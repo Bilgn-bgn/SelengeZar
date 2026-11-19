@@ -1,2 +1,0 @@
-# SelengeZar
-1
