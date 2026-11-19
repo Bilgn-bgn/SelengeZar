@@ -66,3 +66,25 @@ html[data-theme="light"] .upload{background:#f8fafc;border-color:#cbd5e1;color:#
 @media (prefers-color-scheme: light){
   html:not([data-theme="dark"]) body{background:#f1f5f9;color:#0f172a}
 }
+
+/* --- Hero-ийг хэвэнд нь үлдээх - Light/Dark аль алинд нь адилхан --- */
+.hero, html[data-theme="light"] .hero, html[data-theme="dark"] .hero{
+  background:linear-gradient(135deg,#22c55e 0%,#16a34a 55%,#10b981 100%) !important;
+  color:#fff !important;
+  border-radius:28px !important;
+  padding:28px 24px 26px !important;
+  margin:14px 0 18px !important;
+  box-shadow:0 20px 40px rgba(34,197,94,0.35) !important;
+  position:relative; overflow:hidden;
+}
+.hero h2, html[data-theme="light"] .hero h2{
+  color:#fff !important; font-size:44px !important; line-height:1.05 !important; margin:16px 0 10px !important; font-weight:900 !important;
+}
+.hero p, html[data-theme="light"] .hero p{
+  color:rgba(255,255,255,0.92) !important; font-size:16px !important; line-height:1.5 !important; margin:0 0 18px !important;
+}
+.hero-badge, html[data-theme="light"] .hero-badge{
+  background:rgba(0,0,0,0.22) !important; color:#fff !important; border:1px solid rgba(255,255,255,0.18) !important;
+}
+.hero-btn-black{background:#0a0a0a !important; color:#4ade80 !important}
+.hero-btn-ghost{background:rgba(255,255,255,0.12) !important; color:#fff !important; border:1px solid rgba(255,255,255,0.4) !important}
