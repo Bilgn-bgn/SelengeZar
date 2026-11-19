@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SelengeZar - Сэлэнгийн зарын сайт</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="logo">Selenge<span>Zar</span></div>
+  <div class="search"><input id="q" placeholder="Хайх... утас, машин, байр..."><button class="btn" onclick="render()">Хайх</button></div>
+  <button class="btn" onclick="openModal()">+ Зар оруулах</button>
+</header>
+<div class="wrap">
+  <!-- Том ногоон Hero хэсэг -->
+  <section class="hero">
+    <div class="hero-badge">✨ Сүхбаатар • Сэлэнгэ аймаг</div>
+    <h2>Сэлэнгийн<br>зарын сайт</h2>
+    <p>Зар оруулах үнэгүй • Бүгдэд харагдана •<br>Хадгалагдана</p>
+    <div class="hero-btns">
+      <button class="hero-btn-black" onclick="openModal()">+ Зар оруулах</button>
+      <button class="hero-btn-ghost" onclick="document.getElementById('grid').scrollIntoView({behavior:'smooth'})">Зар үзэх ↓</button>
+    </div>
+  </section>
+  <div class="cats" id="cats"></div>
+  <div class="status" id="status">Холбогдож байна...</div>
+  <div class="grid" id="grid"></div>
+  <p class="foot">© 2026 SelengeZar • Сэлэнгэ, Сүхбаатар</p>
+</div>
+<div class="modal" id="modal"><div class="box">
+  <h2 style="margin:0">Шинэ зар оруулах</h2>
+  <input id="f-title" placeholder="Нэр *">
+  <input id="f-price" type="number" placeholder="Үнэ *">
+  <select id="f-cat"><option>Утас</option><option>Машин</option><option>Байр</option><option>Тавилга</option><option>Хувцас</option><option>Бусад</option></select>
+  <input id="f-phone" placeholder="Утас">
+  <input id="f-loc" placeholder="Байршил - жишээ: Сүхбаатар, Сэлэнгэ">
+  <div class="upload"><div style="font-weight:800">📸 Зураг сонгох</div><div style="font-size:12px;color:#9ca3af">Утаснаасаа зураг сонгоно уу</div>
+  <input type="file" id="f-file" accept="image/*" style="margin-top:8px">
+  <img id="preview" style="display:none"></div>
+  <input id="f-img" placeholder="Эсвэл зурагны линк">
+  <textarea id="f-desc" placeholder="Тайлбар"></textarea>
+  <div id="err"></div>
+  <button class="btn" id="publishBtn" style="width:100%">Зар нийтлэх</button>
+  <button onclick="closeModal()" style="width:100%;margin-top:8px;padding:11px;border-radius:999px;border:1px solid #333;background:#0f0f0f;color:#fff;cursor:pointer">Хаах</button>
+</div></div>
+<script>
+const URL="https://ocjpkwlkwtvqjpnwnfes.supabase.co";
+const KEY="sb_publishable_ZIYp3CB6jyjXzaBxdQv1Dw_rpfE1s21";
+const API=URL+"/rest/v1/ads";
+const CATS=["Бүгд","Утас","Машин","Байр","Тавилга","Хувцас","Бусад"];
+let ads=[], cat="Бүгд", file=null, previewUrl="";
+const catsEl=document.getElementById("cats");
+CATS.forEach(c=>{const b=document.createElement("button"); b.className="cat"+(c===cat?" active":""); b.textContent=c; b.onclick=()=>{cat=c; document.querySelectorAll(".cat").forEach(x=>x.classList.remove("active")); b.classList.add("active"); render();}; catsEl.appendChild(b);});
+document.getElementById("q").addEventListener("input",render);
+document.getElementById("f-file").addEventListener("change",e=>{file=e.target.files[0]; if(file){previewUrl=URL.createObjectURL(file); const p=document.getElementById("preview"); p.src=previewUrl; p.style.display="block";}});
+function openModal(){document.getElementById("modal").classList.add("open")}
+function closeModal(){document.getElementById("modal").classList.remove("open")}
+async function load(){try{const r=await fetch(API+"?select=*&order=created_at.desc",{headers:{apikey:KEY,Authorization:"Bearer "+KEY}}); if(!r.ok) throw new Error("HTTP "+r.status); ads=await r.json(); document.getElementById("status").textContent="✅ Supabase холбогдлоо. Нийт "+ads.length+" зар байна."; render();}catch(e){document.getElementById("status").textContent="⚠️ Supabase-д холбогдсонгүй: "+e.message; ads=[]; render();}}
+function render(){const q=(document.getElementById("q").value||"").toLowerCase(); const list=ads.filter(a=>(cat==="Бүгд"||(a.cat||"Бусад")===cat)&&(a.title||"").toLowerCase().includes(q)); const g=document.getElementById("grid"); if(!list.length){g.innerHTML="<div style='color:#9ca3af'>Одоогоор зар алга. Эхлээд зар оруулаарай.</div>"; return} g.innerHTML=list.map(a=>`<div class="card"><img src="${a.img||'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'}"><div class="card-body"><div class="price">${Number(a.price||0).toLocaleString()}₮</div><h3>${a.title||''}</h3><div class="meta">${a.loc||''} • ${a.cat||''}</div><div><span class="phone">☎ ${a.phone||''}</span></div><div class="meta" style="margin-top:6px">${a.description||''}</div></div></div>`).join("");}
+document.getElementById("publishBtn").onclick=async()=>{
+  const title=document.getElementById("f-title").value.trim(); const price=document.getElementById("f-price").value.trim();
+  if(!title){document.getElementById("err").textContent="Нэрийг бичнэ үү"; return} if(!price){document.getElementById("err").textContent="Үнийг бичнэ үү"; return}
+  document.getElementById("err").textContent="Зар оруулж байна...";
+  let imgUrl=document.getElementById("f-img").value.trim()||"https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600";
+  if(file){try{const fn=Date.now()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_"); const up=await fetch(URL+"/storage/v1/object/ads-images/"+fn,{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":file.type},body:file}); if(!up.ok) throw new Error(await up.text()); imgUrl=URL+"/storage/v1/object/public/ads-images/"+fn;}catch(e){document.getElementById("err").textContent="Зураг хуулахад алдаа: "+e.message; return}}
+  const body={title,price:Number(price),cat:document.getElementById("f-cat").value,phone:document.getElementById("f-phone").value.trim(),loc:document.getElementById("f-loc").value.trim()||"Сүхбаатар, Сэлэнгэ",img:imgUrl,description:document.getElementById("f-desc").value.trim()};
+  const r=await fetch(API,{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json",Prefer:"return=representation"},body:JSON.stringify(body)});
+  if(!r.ok){document.getElementById("err").textContent="Алдаа: "+await r.text(); return}
+  const d=await r.json(); ads.unshift(d[0]); render(); closeModal(); alert("Зар Supabase-д хадгалагдлаа!");
+};
+load();
+</script>
+</body></html>
