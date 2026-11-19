@@ -10,11 +10,19 @@
 <header>
   <div class="logo">Selenge<span>Zar</span></div>
   <div class="search"><input id="q" placeholder="Хайх... утас, машин, байр..."><button class="btn" onclick="render()">Хайх</button></div>
-  <button id="themeBtn" class="theme-btn" onclick="toggleTheme()" title="Dark / Light солих">🌙</button><button class="btn" onclick="openModal()">+ Зар оруулах</button>
+  <button class="btn" onclick="openModal()">+ Зар оруулах</button>
 </header>
 <div class="wrap">
-  <h1>Сэлэнгийн зарын сайт</h1>
-  <p class="sub">Сүхбаатар, Сэлэнгэ — Зар оруулах үнэгүй</p>
+  <!-- Том ногоон Hero хэсэг -->
+  <section class="hero">
+    <div class="hero-badge">✨ Сүхбаатар • Сэлэнгэ аймаг</div>
+    <h2>Сэлэнгийн<br>зарын сайт</h2>
+    <p>Зар оруулах үнэгүй • Бүгдэд харагдана •<br>Хадгалагдана</p>
+    <div class="hero-btns">
+      <button class="hero-btn-black" onclick="openModal()">+ Зар оруулах</button>
+      <button class="hero-btn-ghost" onclick="document.getElementById('grid').scrollIntoView({behavior:'smooth'})">Зар үзэх ↓</button>
+    </div>
+  </section>
   <div class="cats" id="cats"></div>
   <div class="status" id="status">Холбогдож байна...</div>
   <div class="grid" id="grid"></div>
@@ -45,9 +53,38 @@ let ads=[], cat="Бүгд", file=null, previewUrl="";
 const catsEl=document.getElementById("cats");
 CATS.forEach(c=>{const b=document.createElement("button"); b.className="cat"+(c===cat?" active":""); b.textContent=c; b.onclick=()=>{cat=c; document.querySelectorAll(".cat").forEach(x=>x.classList.remove("active")); b.classList.add("active"); render();}; catsEl.appendChild(b);});
 document.getElementById("q").addEventListener("input",render);
-document.getElementById("f-file").addEventListener("change",e=>{file=e.target.files[0]; if(file){previewUrl=URL.createObjectURL(file); const p=document.getElementById("preview"); p.src=previewUrl; p.style.display="block";}});
+document.getElementById("f-file").addEventListener("change",async e=>{file=e.target.files[0]; if(file){ const origSize=(file.size/1024/1024).toFixed(1); previewUrl=URL.createObjectURL(file); const p=document.getElementById("preview"); p.src=previewUrl; p.style.display="block"; if(file.size>500*1024){ document.getElementById("err").textContent="Зураг "+origSize+"MB байна. Оруулахад автоматаар жижигрүүлнэ."; } else { document.getElementById("err").textContent=""; } }});
 function openModal(){document.getElementById("modal").classList.add("open")}
 function closeModal(){document.getElementById("modal").classList.remove("open")}
+
+// --- Том зургийг автоматаар жижигрүүлэх ---
+async function compressImage(file){
+  if(file.size < 500*1024) return file; // 500KB-аас бага бол шахахгүй
+  return new Promise((resolve)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        const max = 1200; // хамгийн их тал нь 1200px болно
+        if(w > max || h > max){
+          const ratio = Math.min(max / w, max / h);
+          w = Math.round(w * ratio); h = Math.round(h * ratio);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        canvas.toBlob((blob)=>{
+          const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+          resolve(new File([blob], name, {type: "image/jpeg"}));
+        }, "image/jpeg", 0.82); // 82% чанартай
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 async function load(){try{const r=await fetch(API+"?select=*&order=created_at.desc",{headers:{apikey:KEY,Authorization:"Bearer "+KEY}}); if(!r.ok) throw new Error("HTTP "+r.status); ads=await r.json(); document.getElementById("status").textContent="✅ Supabase холбогдлоо. Нийт "+ads.length+" зар байна."; render();}catch(e){document.getElementById("status").textContent="⚠️ Supabase-д холбогдсонгүй: "+e.message; ads=[]; render();}}
 function render(){const q=(document.getElementById("q").value||"").toLowerCase(); const list=ads.filter(a=>(cat==="Бүгд"||(a.cat||"Бусад")===cat)&&(a.title||"").toLowerCase().includes(q)); const g=document.getElementById("grid"); if(!list.length){g.innerHTML="<div style='color:#9ca3af'>Одоогоор зар алга. Эхлээд зар оруулаарай.</div>"; return} g.innerHTML=list.map(a=>`<div class="card"><img src="${a.img||'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'}"><div class="card-body"><div class="price">${Number(a.price||0).toLocaleString()}₮</div><h3>${a.title||''}</h3><div class="meta">${a.loc||''} • ${a.cat||''}</div><div><span class="phone">☎ ${a.phone||''}</span></div><div class="meta" style="margin-top:6px">${a.description||''}</div></div></div>`).join("");}
 document.getElementById("publishBtn").onclick=async()=>{
@@ -55,39 +92,16 @@ document.getElementById("publishBtn").onclick=async()=>{
   if(!title){document.getElementById("err").textContent="Нэрийг бичнэ үү"; return} if(!price){document.getElementById("err").textContent="Үнийг бичнэ үү"; return}
   document.getElementById("err").textContent="Зар оруулж байна...";
   let imgUrl=document.getElementById("f-img").value.trim()||"https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600";
-  if(file){try{const fn=Date.now()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_"); const up=await fetch(URL+"/storage/v1/object/ads-images/"+fn,{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":file.type},body:file}); if(!up.ok) throw new Error(await up.text()); imgUrl=URL+"/storage/v1/object/public/ads-images/"+fn;}catch(e){document.getElementById("err").textContent="Зураг хуулахад алдаа: "+e.message; return}}
+  if(file){try{
+    document.getElementById("err").textContent="Зургийг жижигрүүлж байна... ("+(file.size/1024/1024).toFixed(1)+"MB)";
+    const smallFile = await compressImage(file);
+    file = smallFile;
+    const fn=Date.now()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_"); const up=await fetch(URL+"/storage/v1/object/ads-images/"+fn,{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":file.type},body:file}); if(!up.ok) throw new Error(await up.text()); imgUrl=URL+"/storage/v1/object/public/ads-images/"+fn;}catch(e){document.getElementById("err").textContent="Зураг хуулахад алдаа: "+e.message; return}}
   const body={title,price:Number(price),cat:document.getElementById("f-cat").value,phone:document.getElementById("f-phone").value.trim(),loc:document.getElementById("f-loc").value.trim()||"Сүхбаатар, Сэлэнгэ",img:imgUrl,description:document.getElementById("f-desc").value.trim()};
   const r=await fetch(API,{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json",Prefer:"return=representation"},body:JSON.stringify(body)});
   if(!r.ok){document.getElementById("err").textContent="Алдаа: "+await r.text(); return}
   const d=await r.json(); ads.unshift(d[0]); render(); closeModal(); alert("Зар Supabase-д хадгалагдлаа!");
 };
-
-// --- Dark / Light - Утас/Ком-ын mode-ийг дагах ---
-function applyTheme(t){
-  document.documentElement.setAttribute("data-theme", t);
-  const b=document.getElementById("themeBtn"); if(b) b.textContent = t==="light" ? "☀️" : "🌙";
-}
-function toggleTheme(){
-  const cur=document.documentElement.getAttribute("data-theme")||"dark";
-  const next=cur==="dark"?"light":"dark";
-  localStorage.setItem("selengezar-theme", next); applyTheme(next);
-}
-// Эхлэхэд: хадгалагдсан тохиргоо байвал түүнийг, үгүй бол утас/ком-ын mode-ийг дагах
-(function(){
-  const saved=localStorage.getItem("selengezar-theme");
-  if(saved){ applyTheme(saved); }
-  else{
-    const prefersLight=window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
-    applyTheme(prefersLight ? "light" : "dark");
-  }
-  // Утас/ком дээр mode солигдвол автоматаар дагах (гараар сольсон бол дагахгүй)
-  if(window.matchMedia){
-    window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", e=>{
-      if(!localStorage.getItem("selengezar-theme")) applyTheme(e.matches ? "light" : "dark");
-    });
-  }
-})();
-
 load();
 </script>
 </body></html>
