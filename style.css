@@ -40,3 +40,82 @@ body{background:radial-gradient(600px 300px at 20% 0%, rgba(34,197,94,0.18), tra
 .hero-btn-black{background:#0a0a0a;color:#4ade80;border:0;padding:13px 20px;border-radius:999px;font-weight:800;font-size:15px;cursor:pointer}
 .hero-btn-ghost{background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:13px 20px;border-radius:999px;font-weight:800;font-size:15px;cursor:pointer;backdrop-filter:blur(6px)}
 @media(max-width:640px){.hero{padding:22px 18px;border-radius:24px}.hero h2{font-size:36px}}
+
+
+
+/* --- DOOD TALYN BAR --- */
+body{
+  padding-bottom: 80px; /* bar-ны доор контент дарагдахгүй байхын тулд */
+}
+
+.bottom-nav{
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+  background: rgba(10,10,10,0.85);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-top: 1px solid rgba(255,255,255,0.12);
+}
+
+.nav-item{
+  flex: 1;
+  background: none;
+  border: 0;
+  color: #9ca3af;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  padding: 4px 0;
+  font-family: inherit;
+}
+
+.nav-item span{ font-size: 22px; line-height: 1; }
+.nav-item small{ font-size: 11px; font-weight: 700; }
+
+.nav-item.active{ color: #22c55e; }
+
+
+/* Голын + товч */
+/* Голын + товч - ЯГ ГОЛДОО */
+
+
+.bottom-nav .nav-add{
+  padding: 0;
+  justify-content: flex-start;
+}
+
+.bottom-nav .nav-add span{
+  width: 54px;
+  height: 54px;
+  min-width: 54px;
+  min-height: 54px;
+  margin-top: -28px;
+  background: linear-gradient(135deg,#22c55e,#16a34a);
+  color: #fff;
+  border-radius: 50%;
+  border: 3px solid #0a0a0a;
+  box-shadow: 0 8px 20px rgba(34,197,94,0.45);
+
+  /* Яг голд нь болгох гол хэсэг нь энэ 4 мөр */
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1;
+  padding: 0;
+  padding-bottom: 4px; /* + тэмдэгтийг нүдээр яг голд нь оруулдаг засал */
+}
+
+
+
+.nav-add small{ color: #fff; }

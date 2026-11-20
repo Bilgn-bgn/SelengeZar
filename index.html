@@ -243,6 +243,67 @@ document.getElementById("publishBtn").onclick=async()=>{
   if(!r.ok){document.getElementById("err").textContent="Алдаа: "+await r.text(); return}
   const d=await r.json(); ads.unshift(d[0]); render(); closeModal(); alert("Зар Supabase-д хадгалагдлаа!");
 };
+
+// --- DOOD BAR LOGIC ---
+function setActiveNav(btn){
+  document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function goHome(btn){
+  setActiveNav(btn);
+  cat = "Бүгд";
+  document.querySelectorAll(".cat").forEach(x => x.classList.remove("active"));
+  // "Бүгд" товчийг идэвхтэй болгоно
+  const allBtn = [...document.querySelectorAll(".cat")].find(x => x.textContent === "Бүгд");
+  if(allBtn) allBtn.classList.add("active");
+  document.getElementById("q").value = "";
+  render();
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+
+function goSaved(btn){
+  setActiveNav(btn);
+  alert("Хадгалсан зар хараахан хийгдээгүй байна. Дараагийн алхамд localStorage-аар хийнэ.");
+}
+
+function goChat(btn){
+  setActiveNav(btn);
+  alert("Чат хараахан хийгдээгүй байна.");
+}
+
+function goProfile(btn){
+  setActiveNav(btn);
+  alert("Профайл хараахан хийгдээгүй байна.");
+}
+
 load();
 </script>
+
+
+
+
+<!-- DOOD TALYN BAR -->
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="goHome(this)">
+    <span>🏠</span>
+    <small>Нүүр</small>
+  </button>
+  <button class="nav-item" onclick="goSaved(this)">
+    <span>🔖</span>
+    <small>Хадгалсан</small>
+  </button>
+  <button class="nav-item nav-add" onclick="openModal()">
+    <span>+</span>
+    <small>Зар нэмэх</small>
+  </button>
+  <button class="nav-item" onclick="goChat(this)">
+    <span>💬</span>
+    <small>Чат</small>
+  </button>
+  <button class="nav-item" onclick="goProfile(this)">
+    <span>👤</span>
+    <small>Профайл</small>
+  </button>
+</nav>
 </body></html>
