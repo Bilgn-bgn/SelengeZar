@@ -170,6 +170,7 @@
   <p class="foot">© 2026 SelengeZar • Сэлэнгэ, Сүхбаатар</p>
 </div>
 <div class="modal" id="modal"><div class="box">
+  <button class="modal-close" onclick="closeModal()">✕</button>
   <h2 style="margin:0">Шинэ зар оруулах</h2>
   <input id="f-title" placeholder="Нэр *">
   <input id="f-price" type="number" placeholder="Үнэ *">
@@ -179,11 +180,9 @@
   <div class="upload"><div style="font-weight:800">📸 Зураг сонгох</div><div style="font-size:12px;color:#9ca3af">Утаснаасаа зураг сонгоно уу</div>
   <input type="file" id="f-file" accept="image/*" style="margin-top:8px">
   <img id="preview" style="display:none"></div>
-  <input id="f-img" placeholder="Эсвэл зурагны линк">
   <textarea id="f-desc" placeholder="Тайлбар"></textarea>
   <div id="err"></div>
   <button class="btn" id="publishBtn" style="width:100%">Зар нийтлэх</button>
-  <button onclick="closeModal()" style="width:100%;margin-top:8px;padding:11px;border-radius:999px;border:1px solid #333;background:#0f0f0f;color:#fff;cursor:pointer">Хаах</button>
 </div></div>
 <script>
 const URL="https://ocjpkwlkwtvqjpnwnfes.supabase.co";
@@ -232,7 +231,7 @@ document.getElementById("publishBtn").onclick=async()=>{
   const title=document.getElementById("f-title").value.trim(); const price=document.getElementById("f-price").value.trim();
   if(!title){document.getElementById("err").textContent="Нэрийг бичнэ үү"; return} if(!price){document.getElementById("err").textContent="Үнийг бичнэ үү"; return}
   document.getElementById("err").textContent="Зар оруулж байна...";
-  let imgUrl=document.getElementById("f-img").value.trim()||"https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600";
+  let imgUrl="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600";
   if(file){try{
     document.getElementById("err").textContent="Зургийг жижигрүүлж байна... ("+(file.size/1024/1024).toFixed(1)+"MB)";
     const smallFile = await compressImage(file);

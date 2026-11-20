@@ -8,8 +8,18 @@ header{background:#0b0b0b;padding:12px 16px;display:flex;gap:12px;align-items:ce
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;margin-top:14px}
 .card{background:#131313;border:1px solid #232323;border-radius:18px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.4);cursor:pointer}.card img{width:100%;height:190px;object-fit:cover;background:#222}.card-body{padding:13px}.price{font-weight:900;color:#22c55e;font-size:20px}.card h3{margin:6px 0 4px;font-size:16px;line-height:1.3;color:#fff}.meta{color:#9ca3af;font-size:13px}.phone{display:inline-block;background:#0f9d58;color:#fff;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:800;margin-top:8px}
 .status{font-size:13px;color:#a7f3d0;background:#12211a;border:1px solid #1f3d2c;padding:10px 12px;border-radius:12px}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}.modal.open{display:flex}
-.box{background:#161616;width:100%;max-width:540px;border-radius:18px;padding:18px;max-height:92vh;overflow:auto;border:1px solid #2a2a2a;color:#fff}.box input,.box select,.box textarea{width:100%;padding:11px 12px;border:1px solid #2a2a2a;border-radius:11px;margin:6px 0;font-size:15px;background:#0f0f0f;color:#fff}
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.7);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:14px;
+  padding-bottom: 100px; /* доод bar-ны дээр гарна */
+  z-index: 200; /* доод bar 100-аас их байх ёстой */
+}.modal.open{display:flex}
+.box{background:#161616;width:100%;max-width:540px;border-radius:18px;padding:18px;max-height:92vh;overflow:auto;border:1px solid #2a2a2a;color:#fff}.box input,.box select,.box textarea{width:100%;padding:11px 12px;border:1px solid #2a2a2a;border-radius:11px;margin:6px 0;font-size:15px;background:#0f0f0f;color:#fff;margin-bottom:80px}
 .upload{border:2px dashed #2e5a44;border-radius:14px;padding:14px;text-align:center;margin:6px 0;background:#0f0f0f}.upload input{margin:0;color:#fff}.upload img{width:100%;height:170px;object-fit:cover;border-radius:10px;display:none;margin-top:8px}
 
 
@@ -123,3 +133,121 @@ body{
 
 
 .nav-add small{ color: #fff; }
+
+
+
+/* --- ЗАР ОРУУЛАХ ЦОНХ - ГҮЙЛГЭХГҮЙГЭЭР БАГТААХ --- */
+.modal{
+  padding: 10px;
+  padding-bottom: 90px; /* доод bar-ны зай */
+  align-items: center;
+}
+
+.modal .box{
+  max-height: calc(100dvh - 110px); /* дэлгэц - дээд + доод bar */
+  height: auto;
+  padding: 14px;
+  overflow: hidden; /* гүйлгэхгүй */
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 0;
+}
+
+.modal .box h2{
+  font-size: 18px;
+  margin-bottom: 4px !important;
+}
+
+/* Бүх оролтуудаа шахах */
+.modal .box input,
+.modal .box select,
+.modal .box textarea{
+  padding: 8px 10px;
+  margin: 3px 0;
+  font-size: 14px;
+}
+
+.modal .box textarea{
+  height: 56px;
+  min-height: 56px;
+  resize: none;
+}
+
+/* Зураг сонгох хэсгийг шахах */
+.modal .upload{
+  padding: 8px;
+  margin: 3px 0;
+}
+.modal .upload img{
+  height: 90px;
+  margin-top: 4px;
+}
+
+.modal .box #err{
+  font-size: 12px;
+  min-height: 14px;
+}
+
+.modal .box .btn{
+  padding: 10px;
+}
+
+
+
+
+
+
+/* --- КОМПЬЮТЕР ДЭЭР ЗАСАХ --- */
+@media (min-width: 641px){
+  .modal{
+    padding: 14px;
+    padding-bottom: 90px; /* доод bar-ны зай, гэхдээ голд нь байна */
+    align-items: center;
+  }
+
+  .modal .box{
+    max-height: calc(100vh - 110px);
+    overflow-y: auto; /* компьютер дээр багтахгүй бол дотроо гүйлгэнэ, Хаах товч гарч ирнэ */
+    margin-bottom: 0;
+  }
+
+  /* Хаах товчийг үргэлж харагдуулна */
+  .modal .box button:last-child{
+    position: sticky;
+    bottom: 0;
+    background: #0f0f0f;
+  }
+}
+
+
+
+
+/* --- MODAL ХААХ X ТОВЧ - БАРУУН ДЭЭД БУЛАНД --- */
+.modal .box{
+  position: relative;
+  padding-top: 38px; /* X товчинд зай гаргана */
+}
+
+.modal-close{
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: #222;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.modal-close:hover{
+  background: #333;
+}
