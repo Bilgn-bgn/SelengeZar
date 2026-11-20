@@ -271,13 +271,165 @@ function goChat(btn){
   alert("Чат хараахан хийгдээгүй байна.");
 }
 
-function goProfile(btn){
-  setActiveNav(btn);
-  alert("Профайл хараахан хийгдээгүй байна.");
-}
 
 load();
 </script>
+
+
+<!-- 1-Р ХЭСЭГ: ЦОНХНЫ ХАРАГДАХ БАЙДАЛ -->
+<div class="modal" id="profileModal"><div class="box">
+  <button class="modal-close" onclick="closeProfile()">✕</button>
+  <h2 style="margin:0">Нэвтрэх</h2>
+  <p style="color:#9ca3af;font-size:13px;margin:6px 0 12px">Дараах аргуудаас сонгоно уу</p>
+
+  <button class="btn" style="width:100%;background:#fff;color:#000" onclick="loginWithGoogle()">G &nbsp; Google-ээр нэвтрэх</button>
+  <button class="btn" style="width:100%;background:#1877F2;margin-top:8px" onclick="loginWithFacebook()">f &nbsp; Facebook-ээр нэвтрэх</button>
+
+  <div style="display:flex;align-items:center;gap:10px;margin:14px 0;color:#9ca3af;font-size:12px">
+    <div style="flex:1;height:1px;background:#2a2a2a"></div>эсвэл утасаар<div style="flex:1;height:1px;background:#2a2a2a"></div>
+  </div>
+
+  <div id="step-phone">
+    <input id="login-phone" placeholder="Утасны дугаар - 99110000" inputmode="numeric">
+    <button class="btn" style="width:100%" onclick="sendCode()">Код явуулах</button>
+  </div>
+
+  <div id="step-code" style="display:none">
+    <p style="font-size:13px;color:#9ca3af"><b id="show-phone" style="color:#fff"></b> дугаар луу код илгээлээ</p>
+    <input id="login-code" placeholder="6 оронтой код" inputmode="numeric" maxlength="6">
+    <button class="btn" style="width:100%" onclick="verifyCode()">Нэвтрэх</button>
+    <button onclick="backToPhone()" style="width:100%;margin-top:8px;padding:11px;border-radius:999px;border:1px solid #333;background:#0f0f0f;color:#fff;cursor:pointer">Дугаар солих</button>
+  </div>
+
+  <div id="login-err" style="color:#f87171;font-size:13px;margin-top:8px;min-height:16px"></div>
+
+  <div id="profile-info" style="display:none">
+    <p>Сайн байна уу, <b id="profile-phone"></b></p>
+    <button class="btn" style="width:100%;background:#333" onclick="logout()">Гарах</button>
+  </div>
+</div></div>
+
+
+
+
+<!-- 2-Р ХЭСЭГ: АЖИЛЛАХ ХЭСЭГ - ЗААВАЛ <script> Д ТОР НЬ БАЙХ ЁСТОЙ -->
+
+
+
+  
+<script>
+function openProfile(){
+  document.getElementById("profileModal").classList.add("open");
+}
+function closeProfile(){
+  document.getElementById("profileModal").classList.remove("open");
+}
+function goProfile(btn){
+  setActiveNav(btn);
+  openProfile();
+}
+function loginWithGoogle(){
+  window.location.href = URL + "/auth/v1/authorize?provider=google&redirect_to=" + encodeURIComponent(window.location.href);
+}
+function loginWithFacebook(){
+  window.location.href = URL + "/auth/v1/authorize?provider=facebook&redirect_to=" + encodeURIComponent(window.location.href);
+}
+function formatPhone(p){
+  p = p.replace(/\D/g,"");
+  if(p.startsWith("976")) return "+"+p;
+  if(p.startsWith("8") || p.startsWith("9")) return "+976"+p;
+  return "+"+p;
+}
+async function sendCode(){
+  const raw = document.getElementById("login-phone").value.trim();
+  if(raw.length < 8){ document.getElementById("login-err").textContent="Дугаарыг бүтэн оруулна уу"; return; }
+  const phone = formatPhone(raw);
+  document.getElementById("login-err").textContent="Код явуулж байна...";
+  const r = await fetch(URL+"/auth/v1/otp",{
+    method:"POST",
+    headers:{apikey:KEY, Authorization:"Bearer "+KEY, "Content-Type":"application/json"},
+    body: JSON.stringify({phone, channel:"sms"})
+  });
+  if(!r.ok){ document.getElementById("login-err").textContent="Алдаа: "+await r.text(); return; }
+  document.getElementById("login-err").textContent="";
+  document.getElementById("step-phone").style.display="none";
+  document.getElementById("step-code").style.display="block";
+  document.getElementById("show-phone").textContent=phone;
+  localStorage.setItem("pendingPhone", phone);
+}
+async function verifyCode(){
+  const phone = localStorage.getItem("pendingPhone");
+  const token = document.getElementById("login-code").value.trim();
+  if(token.length !== 6){ document.getElementById("login-err").textContent="6 оронтой кодыг оруулна уу"; return; }
+  document.getElementById("login-err").textContent="Шалгаж байна...";
+  const r = await fetch(URL+"/auth/v1/verify",{
+    method:"POST",
+    headers:{apikey:KEY, Authorization:"Bearer "+KEY, "Content-Type":"application/json"},
+    body: JSON.stringify({phone, token, type:"sms"})
+  });
+  const d = await r.json();
+  if(!r.ok){ document.getElementById("login-err").textContent="Код буруу байна"; return; }
+  localStorage.setItem("userPhone", phone);
+  showProfile(phone);
+  alert("Амжилттай нэвтэрлээ!");
+}
+function showProfile(phone){
+  document.getElementById("step-phone").style.display="none";
+  document.getElementById("step-code").style.display="none";
+  document.getElementById("profile-info").style.display="block";
+  document.getElementById("profile-phone").textContent=phone;
+}
+function backToPhone(){
+  document.getElementById("step-code").style.display="none";
+  document.getElementById("step-phone").style.display="block";
+}
+function logout(){
+  localStorage.removeItem("userPhone");
+  document.getElementById("profile-info").style.display="none";
+  document.getElementById("step-phone").style.display="block";
+  closeProfile();
+}
+</script>
+
+
+
+
+<!-- ПРОФАЙЛ / НЭВТРЭХ ЦОНХ - УТАС + GOOGLE + 【entity-FACEBOOK¦canonical_name=FACEBOOK】 -->
+<div class="modal" id="profileModal"><div class="box">
+  <button class="modal-close" onclick="closeProfile()">✕</button>
+  <h2 style="margin:0">Нэвтрэх</h2>
+  <p style="color:#9ca3af;font-size:13px;margin:6px 0 12px">Дараах аргуудаас сонгоно уу</p>
+
+  <!-- GOOGLE + 【entity-FACEBOOK¦canonical_name=FACEBOOK】 -->
+  <button class="btn" style="width:100%;background:#fff;color:#000" onclick="loginWithGoogle()">G &nbsp; Google-ээр нэвтрэх</button>
+  <button class="btn" style="width:100%;background:#1877F2;margin-top:8px" onclick="loginWithFacebook()">f &nbsp; 【entity-Facebook¦canonical_name=FACEBOOK】-ээр нэвтрэх</button>
+
+  <div style="display:flex;align-items:center;gap:10px;margin:14px 0;color:#9ca3af;font-size:12px">
+    <div style="flex:1;height:1px;background:#2a2a2a"></div>эсвэл утасаар<div style="flex:1;height:1px;background:#2a2a2a"></div>
+  </div>
+
+  <!-- УТАСНЫ ДУГААР -->
+  <div id="step-phone">
+    <input id="login-phone" placeholder="Утасны дугаар - 99110000" inputmode="numeric">
+    <button class="btn" style="width:100%" onclick="sendCode()">Код явуулах</button>
+  </div>
+
+  <div id="step-code" style="display:none">
+    <p style="font-size:13px;color:#9ca3af"><b id="show-phone" style="color:#fff"></b> дугаар луу код илгээлээ</p>
+    <input id="login-code" placeholder="6 оронтой код" inputmode="numeric" maxlength="6">
+    <button class="btn" style="width:100%" onclick="verifyCode()">Нэвтрэх</button>
+    <button onclick="backToPhone()" style="width:100%;margin-top:8px;padding:11px;border-radius:999px;border:1px solid #333;background:#0f0f0f;color:#fff;cursor:pointer">Дугаар солих</button>
+  </div>
+
+  <div id="login-err" style="color:#f87171;font-size:13px;margin-top:8px;min-height:16px"></div>
+
+  <!-- НЭВТЭРСЭН ХҮНИЙ МЭДЭЭЛЭЛ -->
+  <div id="profile-info" style="display:none">
+    <p>Сайн байна уу, <b id="profile-phone"></b></p>
+    <p style="color:#9ca3af;font-size:13px">Миний зарууд энд гарна</p>
+    <button class="btn" style="width:100%;background:#333" onclick="logout()">Гарах</button>
+  </div>
+</div></div>
 
 
 
