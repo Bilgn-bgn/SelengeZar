@@ -260,6 +260,12 @@ try{
 
 async function checkAuthOnLoad(){
   if(!window.sbClient) return;
+
+if(!data || !data.session){
+  showLoginView();
+  return;
+}
+
 const { data } = await window.sbClient.auth.getSession();
   if(data && data.session && data.session.user){
     const u = data.session.user;
@@ -396,14 +402,11 @@ load();
 function openProfile(){
   const isLoggedIn = localStorage.getItem("userEmail") || localStorage.getItem("userPhone");
   if(isLoggedIn){
-    // Нэвтэрсэн бол - зөвхөн профайл
     document.getElementById("login-view").style.display = "none";
     document.getElementById("profile-info").style.display = "block";
     showProfile(localStorage.getItem("userName") || localStorage.getItem("userEmail"));
   }else{
-    // Нэвтрээгүй бол - зөвхөн нэвтрэх хэсэг
-    document.getElementById("login-view").style.display = "block";
-    document.getElementById("profile-info").style.display = "none";
+    showLoginView();
   }
   document.getElementById("profileModal").classList.add("open");
 }
@@ -421,8 +424,7 @@ function showTab(tab){
 }
 
 function showProfile(name){
-  document.getElementById("login-view").style.display = "none";
-  document.getElementById("profile-info").style.display = "block";
+  showLoginView();
   showTab('profile');
 
   const email = localStorage.getItem("userEmail") || "";
@@ -464,7 +466,29 @@ function closeProfile(){
   document.getElementById("profileModal").classList.remove("open");
 }
 function goProfile(btn){
+
+
   setActiveNav(btn);
+  function showLoginView(){
+  // Профайл хэсгийг бүрэн нууж, зөвхөн нэвтрэх хэсгийг харуулна
+  const profileInfo = document.getElementById("profile-info");
+  const loginView = document.getElementById("login-view");
+  if(profileInfo) profileInfo.style.display = "none";
+  if(loginView) loginView.style.display = "block";
+  const stepPhone = document.getElementById("step-phone");
+  const stepCode = document.getElementById("step-code");
+  if(stepPhone) stepPhone.style.display = "block";
+  if(stepCode) stepCode.style.display = "none";
+  // Профайлын хуучин мэдээллийг цэвэрлэнэ
+  const nameEl = document.getElementById("profile-name");
+  const emailEl = document.getElementById("profile-email");
+  const phoneEl = document.getElementById("profile-phone");
+  if(nameEl) nameEl.textContent = "-";
+  if(emailEl) emailEl.textContent = "-";
+  if(phoneEl) phoneEl.textContent = "-";
+}
+
+
   openProfile();
 }
 
@@ -551,11 +575,37 @@ function backToPhone(){
   document.getElementById("step-phone").style.display="block";
 }
 async function logout(){
-  try{ await sbClient.auth.signOut(); }catch(e){}
+  try{ await window.sbClient.auth.signOut(); }catch(e){}
+  // Бүх мэдээллийг бүрэн цэвэрлэнэ
   localStorage.removeItem("sb-ocjpkwlkwtvqjpnwnfes-auth-token");
   localStorage.removeItem("userEmail");
-  localStorage.removeItem("userName");
   localStorage.removeItem("userPhone");
+  localStorage.removeItem("userName");
+  localStorage.removeItem("userLoc");
+  localStorage.removeItem("userCreated");
+  localStorage.removeItem("pendingPhone");
+
+  // Дэлгэцэн дээрх хуучин нэр, мэйлийг арилгана
+  const nameEl = document.getElementById("profile-name");
+  const emailEl = document.getElementById("profile-email");
+  const phoneEl = document.getElementById("profile-phone");
+  const locEl = document.getElementById("profile-loc");
+  const avatarEl = document.getElementById("profile-avatar");
+  if(nameEl) nameEl.textContent = "-";
+  if(emailEl) emailEl.textContent = "-";
+  if(phoneEl) phoneEl.textContent = "-";
+  if(locEl) locEl.textContent = "-";
+  if(avatarEl) avatarEl.textContent = "?";
+
+  // Тохиргооны оруулах талбарыг цэвэрлэнэ
+  const setName = document.getElementById("set-name");
+  const setPhone = document.getElementById("set-phone");
+  const setLoc = document.getElementById("set-loc");
+  if(setName) setName.value = "";
+  if(setPhone) setPhone.value = "";
+  if(setLoc) setLoc.value = "";
+
+  // Профайлыг нууж, нэвтрэх хэсгийг харуулна
   document.getElementById("profile-info").style.display = "none";
   document.getElementById("login-view").style.display = "block";
   document.getElementById("step-phone").style.display = "block";
