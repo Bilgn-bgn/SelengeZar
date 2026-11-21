@@ -186,25 +186,25 @@
   <button class="btn" id="publishBtn" style="width:100%">Зар нийтлэх</button>
 </div></div>
 <script>
-const URL="https://ocjpkwlkwtvqjpnwnfes.supabase.co";
+const SUPABASE_URL="https://ocjpkwlkwtvqjpnwnfes.supabase.co";
 const KEY="sb_publishable_ZIYp3CB6jyjXzaBxdQv1Dw_rpfE1s21";
 
 
-let sbClient = null;
+window.sbClient = null;
 try{
   if(window.supabase && window.supabase.createClient){
-    sbClient = window.supabase.createClient(URL, KEY);
+    window.sbClient = window.supabase.createClient(SUPABASE_URL, KEY);
   }else{
-    console.log("Supabase сан ачаалагдаагүй байна");
+    console.log("Supabase сан ачаалагдаагүй - head доторх script харагдаж байна уу?");
   }
 }catch(e){
-  console.log("sbClient алдаа:", e);
-  sbClient = null;
+  console.log("createClient алдаа:", e);
+  window.sbClient = null;
 }
 
 async function checkAuthOnLoad(){
   if(!sbClient) return;
-const { data } = await sbClient.auth.getSession();
+const { data } = await window.sbClient.auth.getSession();
   if(data && data.session && data.session.user){
     const u = data.session.user;
     const name = u.user_metadata?.full_name || u.email || u.phone || "";
@@ -219,7 +219,7 @@ const { data } = await sbClient.auth.getSession();
 checkAuthOnLoad();
 
 if(sbClient){
-sbClient.auth.onAuthStateChange((event, session)=>{
+window.sbClient.auth.onAuthStateChange((event, session)=>{
   if(event === 'SIGNED_IN' && session){
     const u = session.user;
     const name = u.user_metadata?.full_name || u.email || u.phone || "";
@@ -239,7 +239,7 @@ sbClient.auth.onAuthStateChange((event, session)=>{
 });}
 
 
-const API=URL+"/rest/v1/ads";
+const API=SUPABASE_URL+"/rest/v1/ads";
 const CATS=["Бүгд","Утас","Машин","Байр","Тавилга","Хувцас","Бусад"];
 let ads=[], cat="Бүгд", file=null, previewUrl="";
 const catsEl=document.getElementById("cats");
@@ -288,7 +288,7 @@ document.getElementById("publishBtn").onclick=async()=>{
     document.getElementById("err").textContent="Зургийг жижигрүүлж байна... ("+(file.size/1024/1024).toFixed(1)+"MB)";
     const smallFile = await compressImage(file);
     file = smallFile;
-    const fn=Date.now()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_"); const up=await fetch(URL+"/storage/v1/object/ads-images/"+fn,{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":file.type},body:file}); if(!up.ok) throw new Error(await up.text()); imgUrl=URL+"/storage/v1/object/public/ads-images/"+fn;}catch(e){document.getElementById("err").textContent="Зураг хуулахад алдаа: "+e.message; return}}
+    const fn=Date.now()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_"); const up=await fetch(SUPABASE_URL+"/storage/v1/object/ads-images/"+fn,{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":file.type},body:file}); if(!up.ok) throw new Error(await up.text()); imgUrl=SUPABASE_URL+"/storage/v1/object/public/ads-images/"+fn;}catch(e){document.getElementById("err").textContent="Зураг хуулахад алдаа: "+e.message; return}}
   const body={title,price:Number(price),cat:document.getElementById("f-cat").value,phone:document.getElementById("f-phone").value.trim(),loc:document.getElementById("f-loc").value.trim()||"Сүхбаатар, Сэлэнгэ",img:imgUrl,description:document.getElementById("f-desc").value.trim()};
   const r=await fetch(API,{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json",Prefer:"return=representation"},body:JSON.stringify(body)});
   if(!r.ok){document.getElementById("err").textContent="Алдаа: "+await r.text(); return}
@@ -356,9 +356,39 @@ load();
   <div id="login-err" style="color:#f87171;font-size:13px;margin-top:8px;min-height:16px"></div>
 
   <div id="profile-info" style="display:none">
-    <p>Сайн байна уу, <b id="profile-phone"></b></p>
-    <button class="btn" style="width:100%;background:#333" onclick="logout()">Гарах</button>
+  <div style="display:flex;gap:10px;margin-bottom:12px">
+    <button class="btn" id="tab-profile-btn" style="flex:1" onclick="showTab('profile')">👤 Профайл</button>
+    <button class="btn" id="tab-settings-btn" style="flex:1;background:#333" onclick="showTab('settings')">⚙️ Тохиргоо</button>
   </div>
+
+  <!-- ПРОФАЙЛ ХЭСЭГ -->
+  <div id="tab-profile">
+    <div style="text-align:center;margin-bottom:12px">
+      <div id="profile-avatar" style="width:70px;height:70px;border-radius:50%;background:#22c55e;color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;margin:0 auto 8px">?</div>
+      <b id="profile-name" style="font-size:16px">-</b>
+      <div id="profile-email" style="color:#9ca3af;font-size:13px">-</div>
+      <div id="profile-phone" style="color:#9ca3af;font-size:13px">-</div>
+    </div>
+    <div style="background:#1a1a1a;border-radius:12px;padding:12px;font-size:13px;color:#9ca3af">
+      <div>📍 Байршил: <b id="profile-loc" style="color:#fff">Сүхбаатар, Сэлэнгэ</b></div>
+      <div style="margin-top:6px">📅 Бүртгүүлсэн: <b id="profile-date" style="color:#fff">-</b></div>
+    </div>
+    <button class="btn" style="width:100%;margin-top:12px" onclick="showTab('settings')">Мэдээлэл засах</button>
+  </div>
+
+  <!-- ТОХИРГОО ХЭСЭГ -->
+  <div id="tab-settings" style="display:none">
+    <p style="font-size:13px;color:#9ca3af;margin:0 0 8px">Нэр</p>
+    <input id="set-name" placeholder="Нэрээ оруулна уу">
+    <p style="font-size:13px;color:#9ca3af;margin:8px 0">Утас</p>
+    <input id="set-phone" placeholder="99110000" inputmode="numeric">
+    <p style="font-size:13px;color:#9ca3af;margin:8px 0">Байршил</p>
+    <input id="set-loc" placeholder="Сүхбаатар, Сэлэнгэ">
+    <div id="settings-err" style="color:#4ade80;font-size:13px;min-height:16px;margin-top:6px"></div>
+    <button class="btn" style="width:100%;margin-top:8px" onclick="saveSettings()">Хадгалах</button>
+    <button class="btn" style="width:100%;background:#333;margin-top:8px" onclick="logout()">Гарах</button>
+  </div>
+</div>
 </div></div>
 
 
@@ -373,6 +403,64 @@ load();
 function openProfile(){
   document.getElementById("profileModal").classList.add("open");
 }
+
+function showTab(tab){
+  document.getElementById("tab-profile").style.display = tab === 'profile' ? 'block' : 'none';
+  document.getElementById("tab-settings").style.display = tab === 'settings' ? 'block' : 'none';
+  document.getElementById("tab-profile-btn").style.background = tab === 'profile' ? '#22c55e' : '#333';
+  document.getElementById("tab-settings-btn").style.background = tab === 'settings' ? '#22c55e' : '#333';
+  if(tab === 'settings'){
+    document.getElementById("set-name").value = localStorage.getItem("userName") || "";
+    document.getElementById("set-phone").value = localStorage.getItem("userPhone") || "";
+    document.getElementById("set-loc").value = localStorage.getItem("userLoc") || "Сүхбаатар, Сэлэнгэ";
+  }
+}
+
+function showProfile(name){
+  // Нэвтрэх хэсгийг нууж, профайлыг харуулна
+  document.getElementById("step-phone").style.display = "none";
+  document.getElementById("step-code").style.display = "none";
+  document.getElementById("profile-info").style.display = "block";
+  showTab('profile');
+
+  const email = localStorage.getItem("userEmail") || "";
+  const phone = localStorage.getItem("userPhone") || "";
+  const loc = localStorage.getItem("userLoc") || "Сүхбаатар, Сэлэнгэ";
+  const displayName = name || localStorage.getItem("userName") || email || phone || "Хэрэглэгч";
+
+  document.getElementById("profile-name").textContent = displayName;
+  document.getElementById("profile-email").textContent = email || "Мэйл байхгүй";
+  document.getElementById("profile-phone").textContent = phone || "Утас байхгүй";
+  document.getElementById("profile-loc").textContent = loc;
+  document.getElementById("profile-avatar").textContent = displayName.charAt(0).toUpperCase();
+  // Бүртгүүлсэн огноо - анх нэвтэрсэн өдөр
+  if(!localStorage.getItem("userCreated")){
+    localStorage.setItem("userCreated", new Date().toLocaleDateString("mn-MN"));
+  }
+  document.getElementById("profile-date").textContent = localStorage.getItem("userCreated");
+}
+
+async function saveSettings(){
+  const name = document.getElementById("set-name").value.trim();
+  const phone = document.getElementById("set-phone").value.trim();
+  const loc = document.getElementById("set-loc").value.trim() || "Сүхбаатар, Сэлэнгэ";
+
+  localStorage.setItem("userName", name);
+  localStorage.setItem("userPhone", phone);
+  localStorage.setItem("userLoc", loc);
+
+  // Supabase-д нэрээ хадгална (Google-ээр нэвтэрсэн бол)
+  try{
+    if(typeof sbClient !== 'undefined' && sbClient){
+      await window.sbClient.auth.updateUser({ data: { full_name: name, phone: phone } });
+    }
+  }catch(e){}
+
+  document.getElementById("settings-err").textContent = "✅ Хадгалагдлаа!";
+  showProfile(name);
+  setTimeout(()=>{ document.getElementById("settings-err").textContent = ""; }, 2000);
+}
+
 function closeProfile(){
   document.getElementById("profileModal").classList.remove("open");
 }
@@ -385,12 +473,21 @@ function goProfile(btn){
 
 
 async function loginWithGoogle(){
-  const { error } = await sbClient.auth.signInWithOAuth({
+  if(!window.sbClient){
+    if(window.supabase && window.supabase.createClient){
+      window.sbClient = window.supabase.createClient(SUPABASE_URL, KEY);
+    }else{
+      alert("Supabase сан ачаалагдаагүй байна. Хуудсаа дахин ачаална уу (Ctrl+R)");
+      return;
+    }
+  }
+  const { error } = await window.sbClient.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: window.location.origin + '/' }
   });
   if(error) alert("Google алдаа: " + error.message);
 }
+
 async function loginWithFacebook(){
   const { error } = await sbClient.auth.signInWithOAuth({
     provider: 'facebook',
