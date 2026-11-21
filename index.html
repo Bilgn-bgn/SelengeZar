@@ -417,9 +417,7 @@ function showTab(tab){
 }
 
 function showProfile(name){
-  // Нэвтрэх хэсгийг нууж, профайлыг харуулна
-  document.getElementById("step-phone").style.display = "none";
-  document.getElementById("step-code").style.display = "none";
+  document.getElementById("login-view").style.display = "none";
   document.getElementById("profile-info").style.display = "block";
   showTab('profile');
 
@@ -429,14 +427,11 @@ function showProfile(name){
   const displayName = name || localStorage.getItem("userName") || email || phone || "Хэрэглэгч";
 
   document.getElementById("profile-name").textContent = displayName;
-  document.getElementById("profile-email").textContent = email || "Мэйл байхгүй";
-  document.getElementById("profile-phone").textContent = phone || "Утас байхгүй";
+  document.getElementById("profile-email").textContent = email || "";
+  document.getElementById("profile-phone").textContent = phone || "-";
   document.getElementById("profile-loc").textContent = loc;
   document.getElementById("profile-avatar").textContent = displayName.charAt(0).toUpperCase();
-  // Бүртгүүлсэн огноо - анх нэвтэрсэн өдөр
-  if(!localStorage.getItem("userCreated")){
-    localStorage.setItem("userCreated", new Date().toLocaleDateString("mn-MN"));
-  }
+  if(!localStorage.getItem("userCreated")) localStorage.setItem("userCreated", new Date().toLocaleDateString("mn-MN"));
   document.getElementById("profile-date").textContent = localStorage.getItem("userCreated");
 }
 
@@ -562,8 +557,10 @@ async function logout(){
   localStorage.removeItem("userEmail");
   localStorage.removeItem("userName");
   localStorage.removeItem("userPhone");
-  document.getElementById("profile-info").style.display="none";
-  document.getElementById("step-phone").style.display="block";
+  document.getElementById("profile-info").style.display = "none";
+  document.getElementById("login-view").style.display = "block";
+  document.getElementById("step-phone").style.display = "block";
+  document.getElementById("step-code").style.display = "none";
   closeProfile();
 }
 </script>
@@ -572,39 +569,62 @@ async function logout(){
 
 
 <!-- ПРОФАЙЛ / НЭВТРЭХ ЦОНХ - УТАС + GOOGLE + 【entity-FACEBOOK¦canonical_name=FACEBOOK】 -->
-<div class="modal" id="profileModal"><div class="box">
+<div class="modal" id="profileModal"><div class="box" style="max-width:380px;padding:24px">
   <button class="modal-close" onclick="closeProfile()">✕</button>
-  <h2 style="margin:0">Нэвтрэх</h2>
-  <p style="color:#9ca3af;font-size:13px;margin:6px 0 12px">Дараах аргуудаас сонгоно уу</p>
 
-  <!-- GOOGLE + 【entity-FACEBOOK¦canonical_name=FACEBOOK】 -->
-  <button class="btn" style="width:100%;background:#fff;color:#000" onclick="loginWithGoogle()">G &nbsp; Google-ээр нэвтрэх</button>
-  <button class="btn" style="width:100%;background:#1877F2;margin-top:8px" onclick="loginWithFacebook()">f &nbsp; 【entity-Facebook¦canonical_name=FACEBOOK】-ээр нэвтрэх</button>
-
-  <div style="display:flex;align-items:center;gap:10px;margin:14px 0;color:#9ca3af;font-size:12px">
-    <div style="flex:1;height:1px;background:#2a2a2a"></div>эсвэл утасаар<div style="flex:1;height:1px;background:#2a2a2a"></div>
+  <!-- НЭВТРЭХ ХЭСЭГ -->
+  <div id="login-view">
+    <h2 style="margin:0;font-size:20px">Тавтай морил</h2>
+    <p style="color:#9ca3af;font-size:13px;margin:6px 0 16px">Үргэлжлүүлэхийн тулд нэвтэрнэ үү</p>
+    <button class="btn" style="width:100%;background:#fff;color:#000" onclick="loginWithGoogle()">G &nbsp; Google-ээр нэвтрэх</button>
+    <button class="btn" style="width:100%;background:#1877F2;margin-top:8px" onclick="loginWithFacebook()">f &nbsp; Facebook-ээр нэвтрэх</button>
+    <div style="display:flex;align-items:center;gap:10px;margin:16px 0;color:#666;font-size:12px"><div style="flex:1;height:1px;background:#222"></div>эсвэл<div style="flex:1;height:1px;background:#222"></div></div>
+    <div id="step-phone">
+      <input id="login-phone" placeholder="Утасны дугаар" inputmode="numeric">
+      <button class="btn" style="width:100%;margin-top:8px" onclick="sendCode()">Код явуулах</button>
+    </div>
+    <div id="step-code" style="display:none">
+      <p style="font-size:13px;color:#9ca3af"><b id="show-phone" style="color:#fff"></b> руу код илгээлээ</p>
+      <input id="login-code" placeholder="6 оронтой код" inputmode="numeric" maxlength="6">
+      <button class="btn" style="width:100%;margin-top:8px" onclick="verifyCode()">Нэвтрэх</button>
+      <button onclick="backToPhone()" style="width:100%;margin-top:8px;padding:11px;border-radius:999px;border:1px solid #333;background:transparent;color:#fff;cursor:pointer">Дугаар солих</button>
+    </div>
+    <div id="login-err" style="color:#f87171;font-size:13px;margin-top:8px;min-height:16px"></div>
   </div>
 
-  <!-- УТАСНЫ ДУГААР -->
-  <div id="step-phone">
-    <input id="login-phone" placeholder="Утасны дугаар - 99110000" inputmode="numeric">
-    <button class="btn" style="width:100%" onclick="sendCode()">Код явуулах</button>
-  </div>
-
-  <div id="step-code" style="display:none">
-    <p style="font-size:13px;color:#9ca3af"><b id="show-phone" style="color:#fff"></b> дугаар луу код илгээлээ</p>
-    <input id="login-code" placeholder="6 оронтой код" inputmode="numeric" maxlength="6">
-    <button class="btn" style="width:100%" onclick="verifyCode()">Нэвтрэх</button>
-    <button onclick="backToPhone()" style="width:100%;margin-top:8px;padding:11px;border-radius:999px;border:1px solid #333;background:#0f0f0f;color:#fff;cursor:pointer">Дугаар солих</button>
-  </div>
-
-  <div id="login-err" style="color:#f87171;font-size:13px;margin-top:8px;min-height:16px"></div>
-
-  <!-- НЭВТЭРСЭН ХҮНИЙ МЭДЭЭЛЭЛ -->
+  <!-- ПРОФАЙЛ ХЭСЭГ - ЦЭВЭРХЭН -->
   <div id="profile-info" style="display:none">
-    <p>Сайн байна уу, <b id="profile-phone"></b></p>
-    <p style="color:#9ca3af;font-size:13px">Миний зарууд энд гарна</p>
-    <button class="btn" style="width:100%;background:#333" onclick="logout()">Гарах</button>
+    <div style="text-align:center;padding:8px 0 16px;border-bottom:1px solid #222">
+      <div id="profile-avatar" style="width:64px;height:64px;border-radius:50%;background:#22c55e;color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;margin:0 auto 10px">?</div>
+      <div id="profile-name" style="font-size:17px;font-weight:700">-</div>
+      <div id="profile-email" style="color:#9ca3af;font-size:13px;margin-top:2px">-</div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin:16px 0">
+      <button id="tab-profile-btn" onclick="showTab('profile')" style="flex:1;padding:10px;border-radius:999px;border:0;background:#22c55e;color:#fff;font-weight:700;cursor:pointer">Профайл</button>
+      <button id="tab-settings-btn" onclick="showTab('settings')" style="flex:1;padding:10px;border-radius:999px;border:0;background:#222;color:#fff;font-weight:700;cursor:pointer">Тохиргоо</button>
+    </div>
+
+    <div id="tab-profile">
+      <div style="font-size:14px;line-height:2">
+        <div style="display:flex;justify-content:space-between"><span style="color:#9ca3af">Утас</span><b id="profile-phone">-</b></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#9ca3af">Байршил</span><b id="profile-loc">-</b></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#9ca3af">Бүртгүүлсэн</span><b id="profile-date">-</b></div>
+      </div>
+    </div>
+
+    <div id="tab-settings" style="display:none">
+      <label style="font-size:12px;color:#9ca3af">Нэр</label>
+      <input id="set-name" placeholder="Нэр" style="margin:4px 0 10px">
+      <label style="font-size:12px;color:#9ca3af">Утас</label>
+      <input id="set-phone" placeholder="Утас" style="margin:4px 0 10px">
+      <label style="font-size:12px;color:#9ca3af">Байршил</label>
+      <input id="set-loc" placeholder="Байршил" style="margin:4px 0 10px">
+      <div id="settings-err" style="color:#4ade80;font-size:13px;min-height:16px"></div>
+      <button class="btn" style="width:100%" onclick="saveSettings()">Хадгалах</button>
+    </div>
+
+    <button onclick="logout()" style="width:100%;margin-top:16px;padding:11px;border-radius:999px;border:1px solid #333;background:transparent;color:#f87171;cursor:pointer">Гарах</button>
   </div>
 </div></div>
 
