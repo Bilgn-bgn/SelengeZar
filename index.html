@@ -7,7 +7,6 @@
 <link rel="stylesheet" href="style.css">
 
 <style>
-  /* Профайл + Тохиргоо - ижил өндөр, гүйлгэдэггүй, доош сунгасан */
   #profileModal .box{
     height: 580px !important;
     max-height: 580px !important;
@@ -28,16 +27,21 @@
     min-height: 340px !important;
     max-height: 340px !important;
     overflow: hidden !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
+    flex-direction: column;
+    justify-content: space-between;
   }
-  #tab-settings input{
-    margin: 4px 0 !important;
-    padding: 11px 12px !important;
+  /* Цонхыг доошлуулж голлуулах - ШИНЭ */
+  #profileModal{
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 14px !important;
+    padding-top: 50px !important;
+    padding-bottom: 90px !important;
   }
-  #profileModal .box input{
-    margin-bottom: 6px !important;
+  #profileModal .box{
+    margin: auto !important;
+    margin-top: 20px !important;
+    transform: translateY(10px);
   }
 </style>
 
@@ -389,8 +393,8 @@ function openProfile(){
 }
 
 function showTab(tab){
-  document.getElementById("tab-profile").style.display = tab === 'profile' ? 'block' : 'none';
-  document.getElementById("tab-settings").style.display = tab === 'settings' ? 'block' : 'none';
+  document.getElementById("tab-profile").style.display = tab === 'profile' ? 'flex' : 'none';
+  document.getElementById("tab-settings").style.display = tab === 'settings' ? 'flex' : 'none';
   document.getElementById("tab-profile-btn").style.background = tab === 'profile' ? '#22c55e' : '#333';
   document.getElementById("tab-settings-btn").style.background = tab === 'settings' ? '#22c55e' : '#333';
   if(tab === 'settings'){
