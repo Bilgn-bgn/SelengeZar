@@ -7,30 +7,23 @@
 <link rel="stylesheet" href="style.css">
 
 <style>
-  /* Профайл + Тохиргоо 2-ыг адилхан хэмжээтэй, гүйлгэдэггүй болгох */
+  
   #profileModal .box{
-    height: 520px !important;
-    max-height: 520px !important;
-    overflow: hidden !important;
-    display: flex !important;
-    flex-direction: column !important;
+    height: auto !important;
+    max-height: calc(100dvh - 120px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-bottom: 20px !important;
   }
   #profile-info{
-    flex: 1;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
+    overflow: visible !important;
   }
   #tab-profile, #tab-settings{
-    flex: 1;
-    min-height: 300px !important;
-    height: 300px !important;
-    overflow: hidden !important;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
   }
-  #tab-settings input{
+  #profileModal .box input{
     margin-bottom: 6px !important;
     padding: 10px 12px !important;
   }
