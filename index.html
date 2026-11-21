@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SelengeZar - Сэлэнгийн зарын сайт</title>
 <link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <header>
@@ -187,6 +188,45 @@
 <script>
 const URL="https://ocjpkwlkwtvqjpnwnfes.supabase.co";
 const KEY="sb_publishable_ZIYp3CB6jyjXzaBxdQv1Dw_rpfE1s21";
+
+
+const supabase = window.supabase.createClient(URL, KEY);
+
+async function checkAuthOnLoad(){
+  const { data } = await supabase.auth.getSession();
+  if(data && data.session && data.session.user){
+    const u = data.session.user;
+    const name = u.user_metadata?.full_name || u.email || u.phone || "";
+    localStorage.setItem("userPhone", u.phone || u.email || name);
+    localStorage.setItem("userEmail", u.email || "");
+    localStorage.setItem("userName", name);
+    const el = document.getElementById("profile-phone");
+    if(el) el.textContent = name;
+    try{ showProfile(name); }catch(e){}
+  }
+}
+checkAuthOnLoad();
+
+supabase.auth.onAuthStateChange((event, session)=>{
+  if(event === 'SIGNED_IN' && session){
+    const u = session.user;
+    const name = u.user_metadata?.full_name || u.email || u.phone || "";
+    localStorage.setItem("userPhone", u.phone || u.email || name);
+    localStorage.setItem("userEmail", u.email || "");
+    localStorage.setItem("userName", name);
+    if(window.location.hash.includes('access_token')){
+      history.replaceState(null, '', window.location.pathname);
+    }
+    try{ showProfile(name); }catch(e){}
+  }
+  if(event === 'SIGNED_OUT'){
+    localStorage.removeItem("userPhone");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userName");
+  }
+});
+
+
 const API=URL+"/rest/v1/ads";
 const CATS=["Бүгд","Утас","Машин","Байр","Тавилга","Хувцас","Бусад"];
 let ads=[], cat="Бүгд", file=null, previewUrl="";
@@ -328,12 +368,27 @@ function goProfile(btn){
   setActiveNav(btn);
   openProfile();
 }
-function loginWithGoogle(){
-  window.location.href = URL + "/auth/v1/authorize?provider=google&redirect_to=" + encodeURIComponent(window.location.href);
+
+
+
+
+async function loginWithGoogle(){
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + '/' }
+  });
+  if(error) alert("Google алдаа: " + error.message);
 }
-function loginWithFacebook(){
-  window.location.href = URL + "/auth/v1/authorize?provider=facebook&redirect_to=" + encodeURIComponent(window.location.href);
+async function loginWithFacebook(){
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'facebook',
+    options: { redirectTo: window.location.origin + '/' }
+  });
+  if(error) alert("【entity-Facebook¦canonical_name=Facebook】 алдаа: " + error.message);
 }
+
+
+
 function formatPhone(p){
   p = p.replace(/\D/g,"");
   if(p.startsWith("976")) return "+"+p;
@@ -368,8 +423,17 @@ async function verifyCode(){
     body: JSON.stringify({phone, token, type:"sms"})
   });
   const d = await r.json();
+
   if(!r.ok){ document.getElementById("login-err").textContent="Код буруу байна"; return; }
+   if(d.access_token){
+    const expires_at = Math.floor(Date.now()/1000) + (d.expires_in || 3600);
+    const session = { access_token: d.access_token, refresh_token: d.refresh_token || "", expires_at, expires_in: d.expires_in || 3600, token_type: d.token_type || "bearer", user: d.user };
+    localStorage.setItem("sb-ocjpkwlkwtvqjpnwnfes-auth-token", JSON.stringify(session));
+    localStorage.setItem("userEmail", d.user?.email || "");
+    localStorage.setItem("userName", d.user?.user_metadata?.full_name || d.user?.email || phone);
+  }
   localStorage.setItem("userPhone", phone);
+
   showProfile(phone);
   alert("Амжилттай нэвтэрлээ!");
 }
@@ -383,7 +447,11 @@ function backToPhone(){
   document.getElementById("step-code").style.display="none";
   document.getElementById("step-phone").style.display="block";
 }
-function logout(){
+async function logout(){
+  try{ await supabase.auth.signOut(); }catch(e){}
+  localStorage.removeItem("sb-ocjpkwlkwtvqjpnwnfes-auth-token");
+  localStorage.removeItem("userEmail");
+  localStorage.removeItem("userName");
   localStorage.removeItem("userPhone");
   document.getElementById("profile-info").style.display="none";
   document.getElementById("step-phone").style.display="block";
