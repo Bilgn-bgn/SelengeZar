@@ -5,6 +5,37 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SelengeZar - Сэлэнгийн зарын сайт</title>
 <link rel="stylesheet" href="style.css">
+
+<style>
+  /* Профайл + Тохиргоо 2-ыг адилхан хэмжээтэй, гүйлгэдэггүй болгох */
+  #profileModal .box{
+    height: 520px !important;
+    max-height: 520px !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  #profile-info{
+    flex: 1;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+  #tab-profile, #tab-settings{
+    flex: 1;
+    min-height: 300px !important;
+    height: 300px !important;
+    overflow: hidden !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+  #tab-settings input{
+    margin-bottom: 6px !important;
+    padding: 10px 12px !important;
+  }
+</style>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -548,7 +579,7 @@ async function logout(){
       <button id="tab-settings-btn" onclick="showTab('settings')" style="flex:1;padding:10px;border-radius:999px;border:0;background:#222;color:#fff;font-weight:700;cursor:pointer">Тохиргоо</button>
     </div>
 
-    <div id="tab-profile">
+    <div id="tab-profile" style="min-height:300px;height:300px;overflow:hidden">
       <div style="font-size:14px;line-height:2">
         <div style="display:flex;justify-content:space-between"><span style="color:#9ca3af">Утас</span><b id="profile-phone">-</b></div>
         <div style="display:flex;justify-content:space-between"><span style="color:#9ca3af">Байршил</span><b id="profile-loc">-</b></div>
@@ -556,7 +587,7 @@ async function logout(){
       </div>
     </div>
 
-    <div id="tab-settings" style="display:none">
+    <div id="tab-settings" style="display:none;min-height:300px;height:300px;overflow:hidden">
       <label style="font-size:12px;color:#9ca3af">Нэр</label>
       <input id="set-name" placeholder="Нэр" style="margin:4px 0 10px">
       <label style="font-size:12px;color:#9ca3af">Утас</label>
