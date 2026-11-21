@@ -7,25 +7,37 @@
 <link rel="stylesheet" href="style.css">
 
 <style>
-  
+  /* Профайл + Тохиргоо - ижил өндөр, гүйлгэдэггүй, доош сунгасан */
   #profileModal .box{
-    height: auto !important;
-    max-height: calc(100dvh - 120px) !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
+    height: 580px !important;
+    max-height: 580px !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
     padding-bottom: 20px !important;
   }
   #profile-info{
-    overflow: visible !important;
+    flex: 1;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
   }
   #tab-profile, #tab-settings{
-    height: auto !important;
-    min-height: 0 !important;
-    overflow: visible !important;
+    flex: 1;
+    height: 340px !important;
+    min-height: 340px !important;
+    max-height: 340px !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+  #tab-settings input{
+    margin: 4px 0 !important;
+    padding: 11px 12px !important;
   }
   #profileModal .box input{
     margin-bottom: 6px !important;
-    padding: 10px 12px !important;
   }
 </style>
 
@@ -572,7 +584,7 @@ async function logout(){
       <button id="tab-settings-btn" onclick="showTab('settings')" style="flex:1;padding:10px;border-radius:999px;border:0;background:#222;color:#fff;font-weight:700;cursor:pointer">Тохиргоо</button>
     </div>
 
-    <div id="tab-profile" style="min-height:300px;height:300px;overflow:hidden">
+    <div id="tab-profile" style="height:340px;min-height:340px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between">
       <div style="font-size:14px;line-height:2">
         <div style="display:flex;justify-content:space-between"><span style="color:#9ca3af">Утас</span><b id="profile-phone">-</b></div>
         <div style="display:flex;justify-content:space-between"><span style="color:#9ca3af">Байршил</span><b id="profile-loc">-</b></div>
@@ -589,9 +601,9 @@ async function logout(){
       <input id="set-loc" placeholder="Байршил" style="margin:4px 0 10px">
       <div id="settings-err" style="color:#4ade80;font-size:13px;min-height:16px"></div>
       <div style="display:flex;flex-direction:column;gap:10px">
-  <div style="display:flex;gap:10px;margin-top:12px">
-  <button class="btn" style="flex:1;margin:0;padding:11px" onclick="saveSettings()">Хадгалах</button>
-  <button onclick="logout()" style="flex:1;padding:11px;border-radius:999px;border:1px solid #f87171;background:#2a0f0f;color:#f87171;font-weight:800;cursor:pointer;position:static !important">Гарах</button>
+  <div style="display:flex;gap:10px;margin-top:auto;padding-top:12px">
+  <button class="btn" style="flex:1;margin:0" onclick="saveSettings()">Хадгалах</button>
+  <button onclick="logout()" style="flex:1;padding:11px;border-radius:999px;border:1px solid #f87171;background:#2a0f0f;color:#f87171;font-weight:800;cursor:pointer">Гарах</button>
 </div>
 </div>
 <div style="height:10px"></div>
