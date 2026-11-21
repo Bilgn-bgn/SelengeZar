@@ -203,7 +203,7 @@ try{
 }
 
 async function checkAuthOnLoad(){
-  if(!sbClient) return;
+  if(!window.sbClient) return;
 const { data } = await window.sbClient.auth.getSession();
   if(data && data.session && data.session.user){
     const u = data.session.user;
@@ -218,7 +218,7 @@ const { data } = await window.sbClient.auth.getSession();
 }
 checkAuthOnLoad();
 
-if(sbClient){
+if(window.sbClient){
 window.sbClient.auth.onAuthStateChange((event, session)=>{
   if(event === 'SIGNED_IN' && session){
     const u = session.user;
@@ -328,69 +328,6 @@ load();
 </script>
 
 
-<!-- 1-Р ХЭСЭГ: ЦОНХНЫ ХАРАГДАХ БАЙДАЛ -->
-<div class="modal" id="profileModal"><div class="box">
-  <button class="modal-close" onclick="closeProfile()">✕</button>
-  <h2 style="margin:0">Нэвтрэх</h2>
-  <p style="color:#9ca3af;font-size:13px;margin:6px 0 12px">Дараах аргуудаас сонгоно уу</p>
-
-  <button class="btn" style="width:100%;background:#fff;color:#000" onclick="loginWithGoogle()">G &nbsp; Google-ээр нэвтрэх</button>
-  <button class="btn" style="width:100%;background:#1877F2;margin-top:8px" onclick="loginWithFacebook()">f &nbsp; Facebook-ээр нэвтрэх</button>
-
-  <div style="display:flex;align-items:center;gap:10px;margin:14px 0;color:#9ca3af;font-size:12px">
-    <div style="flex:1;height:1px;background:#2a2a2a"></div>эсвэл утасаар<div style="flex:1;height:1px;background:#2a2a2a"></div>
-  </div>
-
-  <div id="step-phone">
-    <input id="login-phone" placeholder="Утасны дугаар - 99110000" inputmode="numeric">
-    <button class="btn" style="width:100%" onclick="sendCode()">Код явуулах</button>
-  </div>
-
-  <div id="step-code" style="display:none">
-    <p style="font-size:13px;color:#9ca3af"><b id="show-phone" style="color:#fff"></b> дугаар луу код илгээлээ</p>
-    <input id="login-code" placeholder="6 оронтой код" inputmode="numeric" maxlength="6">
-    <button class="btn" style="width:100%" onclick="verifyCode()">Нэвтрэх</button>
-    <button onclick="backToPhone()" style="width:100%;margin-top:8px;padding:11px;border-radius:999px;border:1px solid #333;background:#0f0f0f;color:#fff;cursor:pointer">Дугаар солих</button>
-  </div>
-
-  <div id="login-err" style="color:#f87171;font-size:13px;margin-top:8px;min-height:16px"></div>
-
-  <div id="profile-info" style="display:none">
-  <div style="display:flex;gap:10px;margin-bottom:12px">
-    <button class="btn" id="tab-profile-btn" style="flex:1" onclick="showTab('profile')">👤 Профайл</button>
-    <button class="btn" id="tab-settings-btn" style="flex:1;background:#333" onclick="showTab('settings')">⚙️ Тохиргоо</button>
-  </div>
-
-  <!-- ПРОФАЙЛ ХЭСЭГ -->
-  <div id="tab-profile">
-    <div style="text-align:center;margin-bottom:12px">
-      <div id="profile-avatar" style="width:70px;height:70px;border-radius:50%;background:#22c55e;color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;margin:0 auto 8px">?</div>
-      <b id="profile-name" style="font-size:16px">-</b>
-      <div id="profile-email" style="color:#9ca3af;font-size:13px">-</div>
-      <div id="profile-phone" style="color:#9ca3af;font-size:13px">-</div>
-    </div>
-    <div style="background:#1a1a1a;border-radius:12px;padding:12px;font-size:13px;color:#9ca3af">
-      <div>📍 Байршил: <b id="profile-loc" style="color:#fff">Сүхбаатар, Сэлэнгэ</b></div>
-      <div style="margin-top:6px">📅 Бүртгүүлсэн: <b id="profile-date" style="color:#fff">-</b></div>
-    </div>
-    <button class="btn" style="width:100%;margin-top:12px" onclick="showTab('settings')">Мэдээлэл засах</button>
-  </div>
-
-  <!-- ТОХИРГОО ХЭСЭГ -->
-  <div id="tab-settings" style="display:none">
-    <p style="font-size:13px;color:#9ca3af;margin:0 0 8px">Нэр</p>
-    <input id="set-name" placeholder="Нэрээ оруулна уу">
-    <p style="font-size:13px;color:#9ca3af;margin:8px 0">Утас</p>
-    <input id="set-phone" placeholder="99110000" inputmode="numeric">
-    <p style="font-size:13px;color:#9ca3af;margin:8px 0">Байршил</p>
-    <input id="set-loc" placeholder="Сүхбаатар, Сэлэнгэ">
-    <div id="settings-err" style="color:#4ade80;font-size:13px;min-height:16px;margin-top:6px"></div>
-    <button class="btn" style="width:100%;margin-top:8px" onclick="saveSettings()">Хадгалах</button>
-    <button class="btn" style="width:100%;background:#333;margin-top:8px" onclick="logout()">Гарах</button>
-  </div>
-</div>
-</div></div>
-
 
 
 
@@ -401,6 +338,17 @@ load();
   
 <script>
 function openProfile(){
+  const isLoggedIn = localStorage.getItem("userEmail") || localStorage.getItem("userPhone");
+  if(isLoggedIn){
+    // Нэвтэрсэн бол - зөвхөн профайл
+    document.getElementById("login-view").style.display = "none";
+    document.getElementById("profile-info").style.display = "block";
+    showProfile(localStorage.getItem("userName") || localStorage.getItem("userEmail"));
+  }else{
+    // Нэвтрээгүй бол - зөвхөн нэвтрэх хэсэг
+    document.getElementById("login-view").style.display = "block";
+    document.getElementById("profile-info").style.display = "none";
+  }
   document.getElementById("profileModal").classList.add("open");
 }
 
@@ -504,7 +452,7 @@ async function sendCode(){
   if(raw.length < 8){ document.getElementById("login-err").textContent="Дугаарыг бүтэн оруулна уу"; return; }
   const phone = formatPhone(raw);
   document.getElementById("login-err").textContent="Код явуулж байна...";
-  const r = await fetch(URL+"/auth/v1/otp",{
+  const r = await fetch(SUPABASE_URL+"/auth/v1/otp",{
     method:"POST",
     headers:{apikey:KEY, Authorization:"Bearer "+KEY, "Content-Type":"application/json"},
     body: JSON.stringify({phone, channel:"sms"})
@@ -521,7 +469,7 @@ async function verifyCode(){
   const token = document.getElementById("login-code").value.trim();
   if(token.length !== 6){ document.getElementById("login-err").textContent="6 оронтой кодыг оруулна уу"; return; }
   document.getElementById("login-err").textContent="Шалгаж байна...";
-  const r = await fetch(URL+"/auth/v1/verify",{
+  const r = await fetch(SUPABASE_URL+"/auth/v1/verify",{
     method:"POST",
     headers:{apikey:KEY, Authorization:"Bearer "+KEY, "Content-Type":"application/json"},
     body: JSON.stringify({phone, token, type:"sms"})
@@ -541,12 +489,7 @@ async function verifyCode(){
   showProfile(phone);
   alert("Амжилттай нэвтэрлээ!");
 }
-function showProfile(phone){
-  document.getElementById("step-phone").style.display="none";
-  document.getElementById("step-code").style.display="none";
-  document.getElementById("profile-info").style.display="block";
-  document.getElementById("profile-phone").textContent=phone;
-}
+
 function backToPhone(){
   document.getElementById("step-code").style.display="none";
   document.getElementById("step-phone").style.display="block";
