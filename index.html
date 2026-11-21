@@ -190,10 +190,21 @@ const URL="https://ocjpkwlkwtvqjpnwnfes.supabase.co";
 const KEY="sb_publishable_ZIYp3CB6jyjXzaBxdQv1Dw_rpfE1s21";
 
 
-const supabase = window.supabase.createClient(URL, KEY);
+let sbClient = null;
+try{
+  if(window.supabase && window.supabase.createClient){
+    sbClient = window.supabase.createClient(URL, KEY);
+  }else{
+    console.log("Supabase сан ачаалагдаагүй байна");
+  }
+}catch(e){
+  console.log("sbClient алдаа:", e);
+  sbClient = null;
+}
 
 async function checkAuthOnLoad(){
-  const { data } = await supabase.auth.getSession();
+  if(!sbClient) return;
+const { data } = await sbClient.auth.getSession();
   if(data && data.session && data.session.user){
     const u = data.session.user;
     const name = u.user_metadata?.full_name || u.email || u.phone || "";
@@ -207,7 +218,8 @@ async function checkAuthOnLoad(){
 }
 checkAuthOnLoad();
 
-supabase.auth.onAuthStateChange((event, session)=>{
+if(sbClient){
+sbClient.auth.onAuthStateChange((event, session)=>{
   if(event === 'SIGNED_IN' && session){
     const u = session.user;
     const name = u.user_metadata?.full_name || u.email || u.phone || "";
@@ -224,7 +236,7 @@ supabase.auth.onAuthStateChange((event, session)=>{
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userName");
   }
-});
+});}
 
 
 const API=URL+"/rest/v1/ads";
@@ -373,14 +385,14 @@ function goProfile(btn){
 
 
 async function loginWithGoogle(){
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { error } = await sbClient.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: window.location.origin + '/' }
   });
   if(error) alert("Google алдаа: " + error.message);
 }
 async function loginWithFacebook(){
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { error } = await sbClient.auth.signInWithOAuth({
     provider: 'facebook',
     options: { redirectTo: window.location.origin + '/' }
   });
@@ -448,7 +460,7 @@ function backToPhone(){
   document.getElementById("step-phone").style.display="block";
 }
 async function logout(){
-  try{ await supabase.auth.signOut(); }catch(e){}
+  try{ await sbClient.auth.signOut(); }catch(e){}
   localStorage.removeItem("sb-ocjpkwlkwtvqjpnwnfes-auth-token");
   localStorage.removeItem("userEmail");
   localStorage.removeItem("userName");
