@@ -10,6 +10,7 @@ const DEFAULT_LOC = "Сүхбаатар, Сэлэнгэ";
 const CATS = ["Бүгд", "Утас", "Машин", "Байр", "Тавилга", "Хувцас", "Бусад"];
 
 const $ = id => document.getElementById(id);
+let myUid = null, chatChannel = null, chatCur = null, pollT = null;
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -115,40 +116,148 @@ async function load() {
       { headers: { apikey: KEY, Authorization: "Bearer " + KEY } });
     if (!r.ok) throw new Error("HTTP " + r.status);
     ads = await r.json();
-    $("status").textContent = "✅ Supabase холбогдлоо. Нийт " + ads.length + " зар байна.";
+    statusText = "✅ Supabase холбогдлоо. Нийт " + ads.length + " зар байна.";
   } catch (e) {
-    $("status").textContent = "⚠ Supabase-д холбогдсонгүй: " + e.message;
+    statusText = "⚠ Supabase-д холбогдсонгүй: " + e.message;
     ads = [];
   }
   render();
 }
 
+let view = "all", statusText = "";
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove("show"), 3200);
+}
+
+// "Өнөөдөр", "1 өдрийн өмнө", "2 долоо хоногийн өмнө" ...
+function timeAgo(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  const startOf = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((startOf(new Date()) - startOf(d)) / 86400000);
+  if (days <= 0) {
+    const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+    if (mins < 1) return "Дөнгөж сая";
+    if (mins < 60) return mins + " минутын өмнө";
+    return "Өнөөдөр";
+  }
+  if (days < 7) return days + " өдрийн өмнө";
+  if (days < 30) return Math.floor(days / 7) + " долоо хоногийн өмнө";
+  if (days < 365) return Math.floor(days / 30) + " сарын өмнө";
+  return Math.floor(days / 365) + " жилийн өмнө";
+}
+
+// ---------- Хадгалсан зар (энэ төхөөрөмжид) ----------
+function savedIds() { try { return JSON.parse(localStorage.getItem("savedAds") || "[]"); } catch (e) { return []; } }
+function isSaved(id) { return savedIds().includes(String(id)); }
+function toggleSave(id) {
+  id = String(id);
+  const cur = savedIds();
+  const on = !cur.includes(id);
+  localStorage.setItem("savedAds", JSON.stringify(on ? [id, ...cur] : cur.filter(x => x !== id)));
+  toast(on ? "🔖 Хадгаллаа" : "Хадгалснаас хаслаа");
+  render();
+  syncAdSaveBtn();
+}
+const findAd = id => ads.find(a => String(a.id) === String(id));
+
 function render() {
   const q = ($("q").value || "").trim().toLowerCase();
+  const saved = savedIds();
   const list = ads.filter(a =>
+    (view !== "saved" || saved.includes(String(a.id))) &&
     (cat === "Бүгд" || (a.cat || "Бусад") === cat) &&
     [a.title, a.description, a.loc].some(t => (t || "").toLowerCase().includes(q))
   );
+  $("status").textContent = view === "saved" ? "🔖 Хадгалсан зар: " + list.length : statusText;
   const g = $("grid");
   if (!list.length) {
-    g.innerHTML = "<div class='empty'>Одоогоор зар алга. Эхлээд зар оруулаарай.</div>";
+    g.innerHTML = view === "saved"
+      ? "<div class='empty'>Хадгалсан зар алга. Зар дээрх 🔖 товчийг дарж хадгална уу.</div>"
+      : "<div class='empty'>Одоогоор зар алга. Эхлээд зар оруулаарай.</div>";
     return;
   }
   g.innerHTML = list.map(a => `
-    <div class="card">
-      <img src="${esc(a.img || DEFAULT_IMG)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
+    <div class="card" data-id="${esc(a.id)}">
+      <div class="card-img">
+        <img src="${esc(a.img || DEFAULT_IMG)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
+        <button class="save-btn${isSaved(a.id) ? " on" : ""}" data-save="${esc(a.id)}" aria-label="Хадгалах">🔖</button>
+      </div>
       <div class="card-body">
         <div class="price">${Number(a.price || 0).toLocaleString()}₮</div>
         <h3>${esc(a.title)}</h3>
         <div class="meta">${esc(a.loc)} • ${esc(a.cat)}</div>
-        <div><span class="phone">☎ ${esc(a.phone)}</span></div>
         <div class="meta desc">${esc(a.description)}</div>
+        <div class="time">🕒 ${esc(timeAgo(a.created_at))}</div>
       </div>
     </div>`).join("");
 }
 
+$("grid").addEventListener("click", e => {
+  const sv = e.target.closest("[data-save]");
+  if (sv) { e.stopPropagation(); toggleSave(sv.dataset.save); return; }
+  const card = e.target.closest(".card");
+  if (card) openAd(card.dataset.id);
+});
+
+// ---------- Зарын дэлгэрэнгүй ----------
+let curAd = null;
+function openAd(id) {
+  const a = findAd(id);
+  if (!a) return;
+  curAd = a;
+  $("ad-img").src = a.img || DEFAULT_IMG;
+  $("ad-img").onerror = function () { this.onerror = null; this.src = DEFAULT_IMG; };
+  $("ad-price").textContent = Number(a.price || 0).toLocaleString() + "₮";
+  $("ad-title").textContent = a.title || "";
+  $("ad-meta").textContent = [a.loc, a.cat, timeAgo(a.created_at)].filter(Boolean).join(" • ");
+  $("ad-desc").textContent = a.description || "Тайлбар оруулаагүй байна.";
+  const ph = localPhone(a.phone || "");
+  const call = $("ad-call");
+  if (ph) { call.href = "tel:" + ph.replace(/[^\d+]/g, ""); call.textContent = "☎ " + ph; call.style.display = "block"; }
+  else { call.style.display = "none"; }
+  syncAdSaveBtn();
+  $("adModal").classList.add("open");
+  $("adModal").querySelector(".box").scrollTop = 0;
+}
+function closeAd() { $("adModal").classList.remove("open"); }
+function syncAdSaveBtn() {
+  if (!curAd) return;
+  $("ad-save").textContent = isSaved(curAd.id) ? "✅ Хадгалсан (болиулах)" : "🔖 Хадгалах";
+}
+function saveFromAd() { if (curAd) toggleSave(curAd.id); }
+function chatFromAd() {
+  if (!curAd) return;
+  if (!curAd.user_id) { toast("Энэ зарын эзэнтэй чатлах боломжгүй. Утсаар холбогдоно уу."); return; }
+  if (!isLoggedIn() || !myUid) { toast("Чат бичихийн тулд нэвтэрнэ үү"); closeAd(); openProfile(); return; }
+  if (curAd.user_id === myUid) { toast("Энэ таны өөрийн зар байна"); return; }
+  const a = curAd;
+  closeAd();
+  openChat();
+  openThread(String(a.id), a.title || "Зар", a.user_id, "Зарын эзэн");
+}
+
 // ---------- Зар оруулах цонх ----------
-function openModal() { $("modal").classList.add("open"); }
+function openModal() {
+  if (!isLoggedIn()) {            // 1) нэвтрээгүй бол эхлээд нэвтрүүлнэ
+    localStorage.setItem("wantPost", "1");
+    openProfile();
+    return;
+  }
+  if (!isPhoneVerified()) {       // 2) утас баталгаажаагүй бол нэг удаа баталгаажуулна
+    openVerify();
+    return;
+  }
+  const ph = localStorage.getItem("userPhone");
+  if (ph && !$("f-phone").value) $("f-phone").value = ph;
+  $("modal").classList.add("open");
+}
 function closeModal() { $("modal").classList.remove("open"); }
 
 function resetAdForm() {
@@ -205,6 +314,7 @@ function compressImage(f) {
 
 $("publishBtn").onclick = async () => {
   const err = $("err"), btn = $("publishBtn");
+  if (!isPhoneVerified()) { closeModal(); openVerify(); return; }
   const title = $("f-title").value.trim();
   const price = $("f-price").value.trim();
   if (!title) { err.textContent = "Нэрийг бичнэ үү"; return; }
@@ -228,6 +338,7 @@ $("publishBtn").onclick = async () => {
     }
 
     const body = {
+      user_id: myUid || null,
       title,
       price: Number(price),
       cat: $("f-cat").value,
@@ -236,22 +347,30 @@ $("publishBtn").onclick = async () => {
       img: imgUrl,
       description: $("f-desc").value.trim()
     };
-    const r = await fetch(API, {
+    const post = b => fetch(API, {
       method: "POST",
       headers: {
         apikey: KEY, Authorization: "Bearer " + KEY,
         "Content-Type": "application/json", Prefer: "return=representation"
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(b)
     });
-    if (!r.ok) throw new Error("Алдаа: " + await r.text());
+    let r = await post(body);
+    if (!r.ok) {
+      const t = await r.text();
+      if (t.includes("user_id")) {   // ads хүснэгтэд user_id багана хараахан нэмээгүй бол түүнгүйгээр оруулна
+        delete body.user_id;
+        r = await post(body);
+        if (!r.ok) throw new Error("Алдаа: " + await r.text());
+      } else throw new Error("Алдаа: " + t);
+    }
     const d = await r.json();
     ads.unshift(d[0]);
-    $("status").textContent = "✅ Supabase холбогдлоо. Нийт " + ads.length + " зар байна.";
+    statusText = "✅ Supabase холбогдлоо. Нийт " + ads.length + " зар байна.";
     render();
     resetAdForm();
     closeModal();
-    alert("Зар Supabase-д хадгалагдлаа!");
+    toast("✅ Зар амжилттай нийтлэгдлээ!");
   } catch (e) {
     err.textContent = e.message;
   } finally {
@@ -262,7 +381,7 @@ $("publishBtn").onclick = async () => {
 // =====================================================
 // 3. НЭВТРЭХ / ПРОФАЙЛ
 // =====================================================
-const LS_KEYS = ["userEmail", "userPhone", "userName", "userLoc", "userCreated", "pendingPhone"];
+const LS_KEYS = ["userEmail", "userPhone", "userName", "userLoc", "userCreated", "pendingPhone", "pendingVerify", "phoneVerified", "wantPost"];
 
 // +97699751740 / 97699751740 -> 99751740 (зөвхөн 8 оронтой дотоодын дугаар)
 function localPhone(p) {
@@ -278,8 +397,15 @@ function saveUserLocal(u, fallbackPhone) {
   localStorage.setItem("userEmail", u.email || "");
   localStorage.setItem("userPhone", phone);
   localStorage.setItem("userName", name);
+  // Supabase талд баталгаажсан дугаартай эсэх (SMS-ээр нэвтэрсэн эсвэл холбосон)
+  localStorage.setItem("phoneVerified", (u.phone && u.phone_confirmed_at) ? "1" : "0");
+  if (u.id && u.id !== myUid) { myUid = u.id; initChat(); }
 }
-function clearUserLocal() { LS_KEYS.forEach(k => localStorage.removeItem(k)); }
+function isPhoneVerified() { return localStorage.getItem("phoneVerified") === "1"; }
+function clearUserLocal() {
+  LS_KEYS.forEach(k => localStorage.removeItem(k));
+  stopChat();
+}
 function isLoggedIn() {
   return !!(localStorage.getItem("userEmail") || localStorage.getItem("userPhone") || localStorage.getItem("userName"));
 }
@@ -306,12 +432,15 @@ function showProfile(name) {
 
   $("profile-name").textContent = displayName;
   $("profile-email").textContent = email;
-  $("profile-phone").textContent = phone || "-";
+  const verified = isPhoneVerified();
+  $("profile-phone").textContent = phone ? phone + (verified ? " ✅" : "") : "-";
+  $("verify-btn").style.display = verified ? "none" : "block";
   $("profile-loc").textContent = loc;
   $("profile-avatar").textContent = displayName.charAt(0).toUpperCase();
   $("profile-date").textContent = localStorage.getItem("userCreated");
   $("set-name").value = displayName;
   $("set-phone").value = phone;
+  $("set-phone").readOnly = verified;
   $("set-loc").value = loc;
 }
 
@@ -328,6 +457,7 @@ function openProfile() {
   $("profileModal").classList.add("open");
 }
 function closeProfile() {
+  localStorage.removeItem("wantPost");
   $("profileModal").classList.remove("open");
   const home = document.querySelector(".bottom-nav .nav-item");
   if (home) setActiveNav(home);
@@ -335,7 +465,7 @@ function closeProfile() {
 
 async function saveSettings() {
   const name = $("set-name").value.trim();
-  const phone = $("set-phone").value.trim();
+  const phone = isPhoneVerified() ? localPhone(localStorage.getItem("userPhone")) : $("set-phone").value.trim();
   const loc = $("set-loc").value.trim() || DEFAULT_LOC;
 
   localStorage.setItem("userName", name);
@@ -380,16 +510,52 @@ function formatPhone(p) {
   return "+" + p;
 }
 
+// ---------- SMS хэмнэлт: 60 секундын завсар ----------
+const SMS_GAP = 60;
+function smsWait() {
+  const last = Number(localStorage.getItem("smsLast") || 0);
+  return Math.max(0, Math.ceil(SMS_GAP - (Date.now() - last) / 1000));
+}
+function runCooldown(btn, label) {
+  if (!btn) return;
+  clearInterval(btn._t);
+  const tick = () => {
+    const w = smsWait();
+    if (w <= 0) { btn.disabled = false; btn.textContent = label; clearInterval(btn._t); return; }
+    btn.disabled = true; btn.textContent = label + " (" + w + "с)";
+  };
+  tick();
+  btn._t = setInterval(tick, 1000);
+}
+function smsErrText(error) {
+  const m = (error && error.message || "").toLowerCase();
+  if (m.includes("already") || m.includes("registered") || m.includes("exists")) return "Энэ дугаар өөр бүртгэлд ашиглагдсан байна";
+  if (m.includes("rate") || m.includes("seconds") || m.includes("too many")) return "Хэт олон удаа оролдлоо. Түр хүлээгээд дахин оролдоно уу";
+  if (m.includes("trial") || m.includes("unsupported")) return "Энэ дугаар руу код илгээх боломжгүй байна";
+  return "Алдаа: " + (error && error.message || "");
+}
+function togglePhoneLogin() {
+  const box = $("phone-login");
+  const open = box.style.display === "none";
+  box.style.display = open ? "block" : "none";
+  $("phone-toggle").style.display = open ? "none" : "block";
+}
+
 async function sendCode() {
   const err = $("login-err");
   const raw = $("login-phone").value.trim();
   if (raw.replace(/\D/g, "").length < 8) { err.textContent = "Дугаарыг бүтэн оруулна уу"; return; }
   if (!sb) { err.textContent = "Supabase ачаалагдаагүй байна"; return; }
 
+  const w = smsWait();
+  if (w > 0) { err.textContent = w + " секундын дараа дахин оролдоно уу"; return; }
+
   const phone = formatPhone(raw);
   err.textContent = "Код явуулж байна...";
   const { error } = await sb.auth.signInWithOtp({ phone, options: { channel: "sms" } });
-  if (error) { err.textContent = "Алдаа: " + error.message; return; }
+  if (error) { err.textContent = smsErrText(error); return; }
+  localStorage.setItem("smsLast", String(Date.now()));
+  runCooldown($("login-resend"), "Дахин илгээх");
 
   err.textContent = "";
   $("step-phone").style.display = "none";
@@ -411,9 +577,9 @@ async function verifyCode() {
 
   err.textContent = "";
   saveUserLocal(data.user, phone);
+  localStorage.setItem("phoneVerified", "1");   // SMS-ээр нэвтэрсэн = дугаар баталгаажсан
   localStorage.removeItem("pendingPhone");
-  showProfile();
-  alert("Амжилттай нэвтэрлээ!");
+  afterLogin();
 }
 
 function backToPhone() {
@@ -421,6 +587,235 @@ function backToPhone() {
   $("step-phone").style.display = "block";
   $("login-err").textContent = "";
 }
+
+// Нэвтэрсний дараа: зар оруулах гэж байсан бол шууд үргэлжлүүлнэ
+function afterLogin() {
+  if (localStorage.getItem("wantPost") === "1") {
+    localStorage.removeItem("wantPost");
+    closeProfile();
+    openModal();
+  } else {
+    showProfile();
+  }
+}
+
+// ---------- Утас баталгаажуулах (Google/Facebook-ээр орсон хэрэглэгчид, нэг удаа) ----------
+function openVerify() {
+  closeProfile();
+  $("v-err").textContent = "";
+  vBack();
+  $("verifyModal").classList.add("open");
+}
+function closeVerify() { $("verifyModal").classList.remove("open"); }
+function vBack() {
+  $("v-step-code").style.display = "none";
+  $("v-step-phone").style.display = "block";
+  $("v-err").textContent = "";
+}
+
+async function sendVerify() {
+  const err = $("v-err");
+  const raw = $("v-phone").value.trim();
+  const digits = raw.replace(/\D/g, "");
+  if (!(digits.length === 8 || (digits.length === 11 && digits.startsWith("976")))) {
+    err.textContent = "8 оронтой дугаараа зөв оруулна уу"; return;
+  }
+  if (!sb) { err.textContent = "Supabase ачаалагдаагүй байна"; return; }
+  const w = smsWait();
+  if (w > 0) { err.textContent = w + " секундын дараа дахин оролдоно уу"; return; }
+
+  const phone = formatPhone(raw);
+  err.textContent = "Код явуулж байна...";
+  const { error } = await sb.auth.updateUser({ phone });
+  if (error) { err.textContent = smsErrText(error); return; }
+
+  localStorage.setItem("smsLast", String(Date.now()));
+  localStorage.setItem("pendingVerify", phone);
+  err.textContent = "";
+  $("v-show").textContent = localPhone(phone);
+  $("v-step-phone").style.display = "none";
+  $("v-step-code").style.display = "block";
+  runCooldown($("v-resend"), "Дахин илгээх");
+}
+
+async function confirmVerify() {
+  const err = $("v-err");
+  const phone = localStorage.getItem("pendingVerify");
+  const token = $("v-code").value.trim();
+  if (token.length !== 6) { err.textContent = "6 оронтой кодыг оруулна уу"; return; }
+  if (!sb || !phone) { err.textContent = "Дахин код авна уу"; return; }
+
+  err.textContent = "Шалгаж байна...";
+  const { data, error } = await sb.auth.verifyOtp({ phone, token, type: "phone_change" });
+  if (error) { err.textContent = "Код буруу эсвэл хугацаа дууссан байна"; return; }
+
+  if (data && data.user) saveUserLocal(data.user, phone);
+  localStorage.setItem("phoneVerified", "1");
+  localStorage.setItem("userPhone", localPhone(phone));
+  localStorage.removeItem("pendingVerify");
+  $("v-code").value = "";
+  closeVerify();
+  openModal();   // шууд зар оруулах цонх руу
+}
+
+// =====================================================
+// ЧАТ (Supabase: messages хүснэгт + realtime)
+// =====================================================
+const chatMissing = e => e && (e.code === "42P01" || e.code === "PGRST205" || /relation|schema cache|does not exist/i.test(e.message || ""));
+const hhmm = iso => { const d = new Date(iso); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+
+function setBadge(n) {
+  const b = $("chatBadge");
+  b.textContent = n > 9 ? "9+" : String(n);
+  b.classList.toggle("show", n > 0);
+}
+async function refreshBadge() {
+  if (!sb || !myUid) { setBadge(0); return; }
+  const { count, error } = await sb.from("messages").select("id", { count: "exact", head: true })
+    .eq("receiver_id", myUid).eq("read", false);
+  if (!error) setBadge(count || 0);
+}
+
+function initChat() {
+  if (!sb || !myUid) return;
+  stopChat(true);
+  refreshBadge();
+  try {
+    chatChannel = sb.channel("msgs-" + myUid)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: "receiver_id=eq." + myUid }, onIncoming)
+      .subscribe();
+  } catch (e) { console.warn("realtime алдаа", e); }
+  pollT = setInterval(() => { if (!document.hidden) refreshBadge(); }, 30000);  // realtime байхгүй үед нөөц
+}
+function stopChat(keepUid) {
+  if (chatChannel && sb) { try { sb.removeChannel(chatChannel); } catch (e) {} }
+  chatChannel = null;
+  clearInterval(pollT);
+  if (!keepUid) { myUid = null; chatCur = null; setBadge(0); }
+}
+
+function onIncoming(payload) {
+  const m = payload.new;
+  const open = $("chatModal").classList.contains("open");
+  const inThread = open && chatCur && String(m.ad_id) === chatCur.adId && m.sender_id === chatCur.otherId;
+  if (inThread) {
+    appendBubble(m);
+    markRead(chatCur.adId, chatCur.otherId);
+  } else {
+    refreshBadge();
+    if (open && $("chat-thread-view").style.display === "none") loadConversations();
+    else if (!open) toast("💬 Шинэ мессеж ирлээ");
+  }
+}
+
+function openChat() {
+  if (!isLoggedIn() || !myUid) { toast("Чат ашиглахын тулд нэвтэрнэ үү"); openProfile(); return; }
+  $("chatModal").classList.add("open");
+  chatBack();
+}
+function closeChat() {
+  $("chatModal").classList.remove("open");
+  chatCur = null;
+  const home = document.querySelector(".bottom-nav .nav-item");
+  if (home) setActiveNav(home);
+}
+function chatBack() {
+  chatCur = null;
+  $("chat-thread-view").style.display = "none";
+  $("chat-list-view").style.display = "block";
+  loadConversations();
+}
+
+async function loadConversations() {
+  const box = $("chat-list");
+  box.innerHTML = "<div class='empty'>Ачаалж байна...</div>";
+  const { data, error } = await sb.from("messages").select("*")
+    .or("sender_id.eq." + myUid + ",receiver_id.eq." + myUid)
+    .order("created_at", { ascending: false }).limit(300);
+  if (error) {
+    box.innerHTML = "<div class='empty'>" + (chatMissing(error) ? "Чат хараахан тохируулагдаагүй байна." : "Алдаа: " + esc(error.message)) + "</div>";
+    return;
+  }
+  const map = new Map();
+  for (const m of data) {
+    const other = m.sender_id === myUid ? m.receiver_id : m.sender_id;
+    const key = m.ad_id + "|" + other;
+    if (!map.has(key)) map.set(key, { adId: String(m.ad_id), title: m.ad_title || "Зар", other, last: m, unread: 0, mine: m.sender_id === myUid });
+    if (m.receiver_id === myUid && !m.read) map.get(key).unread++;
+  }
+  if (!map.size) {
+    box.innerHTML = "<div class='empty'>Мессеж алга. Зар дээрээс «💬 Чат бичих» товчийг дарж эхлүүлнэ үү.</div>";
+    return;
+  }
+  box.innerHTML = [...map.values()].map(c => `
+    <button class="chat-item" data-ad="${esc(c.adId)}" data-other="${esc(c.other)}" data-title="${esc(c.title)}">
+      <div class="ci-main">
+        <div class="ci-title">${esc(c.title)}</div>
+        <div class="ci-last">${c.mine ? "Та: " : ""}${esc(c.last.body)}</div>
+      </div>
+      <div class="ci-time">${esc(hhmm(c.last.created_at))}</div>
+      ${c.unread ? `<span class="dot">${c.unread}</span>` : ""}
+    </button>`).join("");
+}
+$("chat-list").addEventListener("click", e => {
+  const it = e.target.closest(".chat-item");
+  if (it) openThread(it.dataset.ad, it.dataset.title, it.dataset.other, "");
+});
+
+async function openThread(adId, title, otherId, sub) {
+  chatCur = { adId: String(adId), adTitle: title, otherId };
+  $("chat-list-view").style.display = "none";
+  $("chat-thread-view").style.display = "block";
+  $("chat-title").textContent = title;
+  $("chat-sub").textContent = sub || "";
+  const box = $("chat-msgs");
+  box.innerHTML = "<div class='empty'>Ачаалж байна...</div>";
+  const { data, error } = await sb.from("messages").select("*")
+    .eq("ad_id", chatCur.adId)
+    .or("and(sender_id.eq." + myUid + ",receiver_id.eq." + otherId + "),and(sender_id.eq." + otherId + ",receiver_id.eq." + myUid + ")")
+    .order("created_at", { ascending: true }).limit(500);
+  if (error) {
+    box.innerHTML = "<div class='empty'>" + (chatMissing(error) ? "Чат хараахан тохируулагдаагүй байна." : "Алдаа: " + esc(error.message)) + "</div>";
+    return;
+  }
+  box.innerHTML = data.length ? "" : "<div class='empty'>Мессеж бичиж эхлээрэй 👋</div>";
+  data.forEach(appendBubble);
+  markRead(chatCur.adId, otherId);
+  $("chat-input").focus();
+}
+
+function appendBubble(m) {
+  const box = $("chat-msgs");
+  const empty = box.querySelector(".empty");
+  if (empty) empty.remove();
+  const d = document.createElement("div");
+  d.className = "bubble " + (m.sender_id === myUid ? "me" : "them");
+  d.innerHTML = esc(m.body) + "<small>" + esc(hhmm(m.created_at)) + "</small>";
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function markRead(adId, otherId) {
+  await sb.from("messages").update({ read: true })
+    .eq("receiver_id", myUid).eq("sender_id", otherId).eq("ad_id", adId).eq("read", false);
+  refreshBadge();
+}
+
+async function sendMsg() {
+  const inp = $("chat-input");
+  const body = inp.value.trim();
+  if (!body || !chatCur || !myUid) return;
+  inp.value = "";
+  const row = { ad_id: chatCur.adId, ad_title: chatCur.adTitle, sender_id: myUid, receiver_id: chatCur.otherId, body };
+  const { data, error } = await sb.from("messages").insert(row).select().single();
+  if (error) {
+    inp.value = body;
+    toast(chatMissing(error) ? "Чат хараахан тохируулагдаагүй байна" : "Илгээж чадсангүй: " + error.message);
+    return;
+  }
+  appendBubble(data);
+}
+$("chat-input").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); sendMsg(); } });
 
 // ---------- Session ----------
 if (sb) {
@@ -430,7 +825,7 @@ if (sb) {
       if (window.location.hash.includes("access_token")) {
         history.replaceState(null, "", window.location.pathname);
       }
-      showProfile();
+      afterLogin();
     }
     if (event === "SIGNED_OUT") clearUserLocal();
   });
@@ -450,6 +845,7 @@ function setActiveNav(btn) {
 
 function goHome(btn) {
   setActiveNav(btn);
+  view = "all";
   cat = "Бүгд";
   document.querySelectorAll(".cat").forEach(x => x.classList.toggle("active", x.textContent === "Бүгд"));
   $("q").value = "";
@@ -458,11 +854,13 @@ function goHome(btn) {
 }
 function goSaved(btn) {
   setActiveNav(btn);
-  alert("Хадгалсан зар хараахан хийгдээгүй байна.");
+  view = "saved";
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 function goChat(btn) {
   setActiveNav(btn);
-  alert("Чат хараахан хийгдээгүй байна.");
+  openChat();
 }
 function goProfile(btn) {
   setActiveNav(btn);
@@ -471,9 +869,10 @@ function goProfile(btn) {
 
 // Цонхны гадна дарвал / Esc дарвал хаах
 $("modal").addEventListener("click", e => { if (e.target === $("modal")) closeModal(); });
+$("adModal").addEventListener("click", e => { if (e.target === $("adModal")) closeAd(); });
 // Профайлын цонх гадна дарж хаагдахгүй - зөвхөн ✕ товчоор хаагдана
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") closeModal();
+  if (e.key === "Escape") { closeModal(); closeAd(); }
 });
 
 load();

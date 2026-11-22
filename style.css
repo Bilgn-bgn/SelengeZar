@@ -146,7 +146,7 @@ header{
 #tab-settings .settings-actions{margin-top:6px}
 #tab-settings .form-msg{min-height:16px;margin:0}
 @media(min-width:641px){
-  .modal#profileModal{padding-bottom:80px}
+  .modal#profileModal,.modal#verifyModal{padding-bottom:80px}
   .box.profile-box{overflow-y:visible}
 }
 .sub{color:#9ca3af;font-size:13px;margin:6px 0 16px}
@@ -210,3 +210,96 @@ header{
   font-size:32px;font-weight:400;line-height:1;
 }
 .nav-add small{color:#fff}
+
+#verify-btn{margin-top:10px}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+
+/* ---------- Заруудын карт: хадгалах, хугацаа ---------- */
+.card{transition:transform .18s,border-color .18s,box-shadow .18s}
+.card-img{position:relative}
+.save-btn{
+  position:absolute;top:10px;right:10px;width:34px;height:34px;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  border:0;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:16px;cursor:pointer;
+  backdrop-filter:blur(6px);transition:.18s;
+}
+.save-btn:hover{background:rgba(0,0,0,.8);transform:scale(1.1)}
+.save-btn.on{background:#22c55e}
+.time{color:#6b7280;font-size:12px;margin-top:6px}
+.meta.desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* ---------- Зарын дэлгэрэнгүй ---------- */
+.box.ad-box{max-width:480px;padding:0 0 18px;overflow-y:auto}
+.ad-box .modal-close{z-index:2;background:rgba(0,0,0,.6)}
+.ad-img{width:100%;max-height:320px;object-fit:cover;display:block;background:#222}
+.ad-box .price,.ad-box h2,.ad-box .meta,.ad-box .ad-desc,.ad-box .ad-actions{margin-left:18px;margin-right:18px}
+.ad-box .price{margin-top:14px}
+.ad-box h2{margin-top:4px}
+.ad-desc{white-space:pre-wrap;word-break:break-word;color:#d1d5db;font-size:14px;line-height:1.6;margin-top:12px;margin-bottom:14px}
+.ad-actions{display:flex;flex-direction:column;gap:8px}
+a.btn{display:block;text-align:center;text-decoration:none}
+
+/* ---------- Чат ---------- */
+.box.chat-box{max-width:460px;padding:36px 16px 14px}
+#chat-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.chat-item{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:10px 12px;border:1px solid #262626;border-radius:14px;background:#1b1b1b;color:#fff;cursor:pointer;
+  font-family:inherit;transition:.18s;
+}
+.chat-item:hover{background:#252525;border-color:#3a3a3a}
+.chat-item .ci-main{flex:1;min-width:0}
+.chat-item .ci-title{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-item .ci-last{color:#9ca3af;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-item .ci-time{color:#6b7280;font-size:11px;white-space:nowrap}
+.dot{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#ef4444;color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.chat-head{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid #262626}
+.chat-back{width:34px;height:34px;padding:0;border:0;border-radius:50%;background:#222;color:#fff;font-size:18px;cursor:pointer;transition:.18s}
+.chat-back:hover{background:#333}
+.chat-msgs{height:min(46dvh,360px);overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:12px 2px}
+.bubble{max-width:78%;padding:8px 12px;border-radius:16px;font-size:14px;line-height:1.4;word-break:break-word;white-space:pre-wrap}
+.bubble small{display:block;font-size:10px;opacity:.65;margin-top:2px}
+.bubble.me{align-self:flex-end;background:#16a34a;border-bottom-right-radius:4px}
+.bubble.them{align-self:flex-start;background:#262626;border-bottom-left-radius:4px}
+.chat-send{display:flex;gap:8px;align-items:center}
+.chat-send input{margin:0;flex:1}
+.chat-send .btn{padding:10px 16px}
+
+/* ---------- Чат bar дээрх улаан тэмдэг ---------- */
+.nav-item .ico{position:relative;display:inline-block}
+.badge{
+  position:absolute;top:-5px;right:-9px;min-width:17px;height:17px;padding:0 4px;
+  display:none;align-items:center;justify-content:center;
+  background:#ef4444;color:#fff;border-radius:999px;border:2px solid #0a0a0a;
+  font-size:10px;font-weight:800;font-style:normal;line-height:1;box-sizing:content-box;
+}
+.badge.show{display:flex}
+
+#toast{
+  position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(20px);z-index:500;
+  max-width:88vw;padding:10px 16px;border-radius:12px;background:#222;color:#fff;font-size:14px;
+  border:1px solid #333;opacity:0;pointer-events:none;transition:.25s;text-align:center;
+}
+#toast.show{opacity:1;transform:translateX(-50%)}
+
+/* ---------- Бүх товч дээр курсор аваачихад мэдэгдэх (hover) ---------- */
+button,.btn,.cat,.nav-item,.tab-btn,.hero-dots button,a.btn{cursor:pointer;transition:.18s}
+button:disabled{cursor:not-allowed}
+.btn:hover{filter:brightness(1.1)}
+.btn-light:hover{background:#e5e7eb;filter:none}
+.btn-fb:hover{background:#2b86ff;filter:none}
+.btn-outline:hover{background:#1f1f1f;border-color:#666;filter:none}
+.btn-danger:hover{background:#3d1515;border-color:#fca5a5;filter:none}
+.cat:hover{background:#202020;border-color:#3a3a3a;color:#fff}
+.cat.active:hover{background:#12b568;border-color:#12b568}
+.tab-btn:hover{background:#2f2f2f}
+.tab-btn.active:hover{background:#2fd16b}
+.nav-item:hover{color:#fff}
+.nav-item.active:hover{color:#34d27b}
+.nav-add:hover span{transform:scale(1.07);box-shadow:0 10px 26px rgba(34,197,94,.6)}
+.nav-add span{transition:.18s}
+.card:hover{transform:translateY(-3px);border-color:#2e5a44;box-shadow:0 10px 26px rgba(0,0,0,.55)}
+.hero-dots button:hover{background:#fff}
+.modal-close:hover{background:#3a3a3a}
+.foot a:hover,.doc a:hover{color:#4ade80}
+button:focus-visible,.btn:focus-visible,.cat:focus-visible,.nav-item:focus-visible{outline:2px solid #4ade80;outline-offset:2px}

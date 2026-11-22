@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="facebook-domain-verification" content="5quj9a7jvn766wrwn2d5vqzx1bypti" />
 <title>SelengeZar - Сэлэнгийн зарын сайт</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -36,6 +37,47 @@
   <p class="foot">© 2026 SelengeZar • Сэлэнгэ, Сүхбаатар<br>
     <a href="privacy.html">Нууцлалын бодлого</a> • <a href="terms.html">Үйлчилгээний нөхцөл</a> • <a href="data-deletion.html">Мэдээлэл устгах</a></p>
 </div>
+
+<!-- ЗАРЫН ДЭЛГЭРЭНГҮЙ ЦОНХ -->
+<div class="modal" id="adModal">
+  <div class="box ad-box">
+    <button class="modal-close" onclick="closeAd()">✕</button>
+    <img id="ad-img" class="ad-img" alt="">
+    <div class="price" id="ad-price"></div>
+    <h2 id="ad-title"></h2>
+    <div class="meta" id="ad-meta"></div>
+    <p class="ad-desc" id="ad-desc"></p>
+    <div class="ad-actions">
+      <a class="btn btn-block" id="ad-call" href="#">☎ Залгах</a>
+      <button class="btn btn-block btn-outline" id="ad-chat" onclick="chatFromAd()">💬 Чат бичих</button>
+      <button class="btn btn-block btn-outline" id="ad-save" onclick="saveFromAd()">🔖 Хадгалах</button>
+    </div>
+  </div>
+</div>
+
+<!-- ЧАТ ЦОНХ -->
+<div class="modal" id="chatModal">
+  <div class="box chat-box">
+    <button class="modal-close" onclick="closeChat()">✕</button>
+    <div id="chat-list-view">
+      <h2>💬 Чат</h2>
+      <div id="chat-list"></div>
+    </div>
+    <div id="chat-thread-view" style="display:none">
+      <div class="chat-head">
+        <button class="chat-back" onclick="chatBack()" aria-label="Буцах">←</button>
+        <div><b id="chat-title"></b><div class="meta" id="chat-sub"></div></div>
+      </div>
+      <div class="chat-msgs" id="chat-msgs"></div>
+      <div class="chat-send">
+        <input id="chat-input" placeholder="Мессеж бичих..." maxlength="1000" autocomplete="off">
+        <button class="btn" onclick="sendMsg()" aria-label="Илгээх">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
 
 <!-- ЗАР ОРУУЛАХ ЦОНХ -->
 <div class="modal" id="modal">
@@ -74,8 +116,10 @@
       <button class="btn btn-block btn-light" onclick="loginWithGoogle()">G &nbsp; Google-ээр нэвтрэх</button>
       <button class="btn btn-block btn-fb btn-stack" onclick="loginWithFacebook()">f &nbsp; Facebook-ээр нэвтрэх</button>
       <div class="or">эсвэл</div>
+      <button class="btn btn-block btn-outline" id="phone-toggle" onclick="togglePhoneLogin()">📱 Утасны дугаараар нэвтрэх</button>
 
-      <div id="step-phone">
+      <div id="phone-login" style="display:none">
+      <div id="step-phone" style="margin-top:8px">
         <input id="login-phone" placeholder="Утасны дугаар" inputmode="numeric">
         <button class="btn btn-block btn-stack" onclick="sendCode()">Код явуулах</button>
       </div>
@@ -83,7 +127,9 @@
         <p class="sub"><b id="show-phone"></b> руу код илгээлээ</p>
         <input id="login-code" placeholder="6 оронтой код" inputmode="numeric" maxlength="6">
         <button class="btn btn-block btn-stack" onclick="verifyCode()">Нэвтрэх</button>
+        <button class="btn btn-block btn-outline btn-stack" id="login-resend" onclick="sendCode()">Дахин илгээх</button>
         <button class="btn btn-block btn-outline btn-stack" onclick="backToPhone()">Дугаар солих</button>
+      </div>
       </div>
       <div class="form-msg" id="login-err"></div>
     </div>
@@ -102,6 +148,7 @@
 
       <div id="tab-profile" class="tab-body">
         <div class="info-row"><span>Утас</span><b id="profile-phone">-</b></div>
+        <button class="btn btn-block btn-outline btn-stack" id="verify-btn" style="display:none" onclick="openVerify()">📱 Утсаа баталгаажуулах</button>
         <div class="info-row"><span>Байршил</span><b id="profile-loc">-</b></div>
         <div class="info-row"><span>Бүртгүүлсэн</span><b id="profile-date">-</b></div>
       </div>
@@ -123,12 +170,33 @@
   </div>
 </div>
 
+<!-- УТАС БАТАЛГААЖУУЛАХ ЦОНХ (зар оруулахын өмнө, нэг удаа) -->
+<div class="modal" id="verifyModal">
+  <div class="box profile-box">
+    <button class="modal-close" onclick="closeVerify()">✕</button>
+    <h2>Утсаа баталгаажуулна уу</h2>
+    <p class="sub">Зар оруулахын тулд утасны дугаараа нэг удаа баталгаажуулна. Дараа нь дахин шаардахгүй.</p>
+    <div id="v-step-phone">
+      <input id="v-phone" placeholder="Утасны дугаар (8 орон)" inputmode="numeric">
+      <button class="btn btn-block btn-stack" onclick="sendVerify()">Код явуулах</button>
+    </div>
+    <div id="v-step-code" style="display:none">
+      <p class="sub" style="margin:0 0 6px"><b id="v-show"></b> руу код илгээлээ</p>
+      <input id="v-code" placeholder="6 оронтой код" inputmode="numeric" maxlength="6">
+      <button class="btn btn-block btn-stack" onclick="confirmVerify()">Баталгаажуулах</button>
+      <button class="btn btn-block btn-outline btn-stack" id="v-resend" onclick="sendVerify()">Дахин илгээх</button>
+      <button class="btn btn-block btn-outline btn-stack" onclick="vBack()">Дугаар солих</button>
+    </div>
+    <div class="form-msg" id="v-err"></div>
+  </div>
+</div>
+
 <!-- ДООД ТАЛЫН BAR -->
 <nav class="bottom-nav">
   <button class="nav-item active" onclick="goHome(this)"><span>🏠</span><small>Нүүр</small></button>
   <button class="nav-item" onclick="goSaved(this)"><span>🔖</span><small>Хадгалсан</small></button>
   <button class="nav-item nav-add" onclick="openModal()"><span>+</span><small>Зар нэмэх</small></button>
-  <button class="nav-item" onclick="goChat(this)"><span>💬</span><small>Чат</small></button>
+  <button class="nav-item" onclick="goChat(this)"><span class="ico">💬<i class="badge" id="chatBadge"></i></span><small>Чат</small></button>
   <button class="nav-item" onclick="goProfile(this)"><span>👤</span><small>Профайл</small></button>
 </nav>
 
