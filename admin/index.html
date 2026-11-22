@@ -1,1 +1,327 @@
-<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/admin/"><link rel="canonical" href="/admin/"><a href="/admin/">Админ</a>
+<!doctype html>
+<html lang="mn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>SelengeZar · Админ</title>
+<style>
+:root{--bg:#F1F5F4;--surface:#fff;--s2:#F6F9F8;--ink:#10262B;--ink2:#2F474C;--muted:#667C81;--line:#E1E9E8;--line2:#CBD8D6;
+ --brand:#0E6B5C;--brand-d:#0A5A4D;--soft:#E2F2EE;--gold:#F2A516;--danger:#C43D2E;--dsoft:#FCEDEA;--r:12px;color-scheme:light}
+@media(prefers-color-scheme:dark){:root{--bg:#0C1A1D;--surface:#13262A;--s2:#173035;--ink:#E8F1F0;--ink2:#B9CDCB;--muted:#8AA3A5;--line:#22393D;--line2:#2D484D;
+ --brand:#34B39C;--brand-d:#2A9985;--soft:#16342F;--dsoft:#3A1E1B;--danger:#FF7B6B;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border:1px solid var(--line2);border-radius:10px;background:var(--surface);cursor:pointer;font-weight:700;font-size:13px}
+.btn:hover{border-color:var(--brand);color:var(--brand)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}.btn.primary:hover{background:var(--brand-d);color:#fff}
+.btn.danger{color:var(--danger);border-color:var(--danger);background:var(--dsoft)}
+.btn.sm{padding:5px 10px;font-size:12px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--surface)}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--brand);box-shadow:0 0 0 3px rgba(14,107,92,.2)}
+label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 4px}
+/* login */
+#login{min-height:100dvh;display:grid;place-items:center;padding:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:0 8px 24px rgba(16,38,43,.1)}
+#login .card{width:100%;max-width:360px}
+#login h1{margin:0 0 4px;font-size:22px}#login p{margin:0 0 14px;color:var(--muted)}
+#login .btn{width:100%;margin-top:16px;padding:11px}
+.err{color:var(--danger);font-size:13px;min-height:18px;margin-top:10px}
+/* app */
+header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:10px 16px}
+header h1{margin:0;font-size:17px;flex:1}header h1 span{color:var(--brand)}
+nav{display:flex;gap:4px;padding:10px 16px 0;overflow-x:auto;max-width:1200px;margin:0 auto}
+nav button{border:0;background:none;padding:9px 14px;border-radius:10px 10px 0 0;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap}
+nav button.on{background:var(--surface);color:var(--brand);box-shadow:0 -1px 0 var(--line) inset}
+nav .badge{background:var(--gold);color:#1b1200;border-radius:99px;padding:1px 7px;font-size:11px;margin-left:4px}
+main{max-width:1200px;margin:0 auto;padding:0 16px 40px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:0 var(--r) var(--r) var(--r);padding:16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:18px}
+.stat{background:var(--s2);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.stat b{display:block;font-size:26px;line-height:1.1}.stat span{color:var(--muted);font-size:12px;font-weight:600}
+.stat.warn{background:#FFF6E0;border-color:var(--gold);color:#6b4600}.stat.warn span{color:#8a5d00}
+h2{font-size:15px;margin:18px 0 8px}h2:first-child{margin-top:0}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.tools input{max-width:280px}.tools select{width:auto}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r)}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+th{background:var(--s2);font-size:12px;color:var(--muted);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;background:var(--s2);display:block}
+.ttl{font-weight:700;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:800;background:var(--s2);border:1px solid var(--line2);color:var(--ink2);margin-right:4px}
+.tag.ok{background:var(--soft);color:var(--brand);border-color:transparent}.tag.gold{background:#FFF1CC;color:#7A4E00;border-color:transparent}
+.tag.bad{background:var(--dsoft);color:var(--danger);border-color:transparent}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(12,32,36,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal.open{display:flex}.modal .card{width:100%;max-width:520px;max-height:92dvh;overflow:auto}
+.modal h3{margin:0 0 6px}.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chk{display:flex;align-items:center;gap:8px;margin-top:12px;font-weight:600;font-size:13px;color:var(--ink)}.chk input{width:auto}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:30}
+#toast.show{opacity:1}
+@media(max-width:600px){.row2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <form class="card" id="login-form" autocomplete="on">
+    <h1>SelengeZar Админ</h1>
+    <p>Нэвтрэх нэр, нууц үгээ оруулна уу</p>
+    <label for="u">Нэвтрэх нэр</label>
+    <input id="u" name="username" autocomplete="username" required>
+    <label for="pw">Нууц үг</label>
+    <input id="pw" name="password" type="password" autocomplete="current-password" required>
+    <div class="err" id="login-err"></div>
+    <button class="btn primary" type="submit" id="login-btn">Нэвтрэх</button>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header><h1>Selenge<span>Zar</span> · Админ</h1><a class="btn sm" href="/" target="_blank" style="text-decoration:none;color:inherit">Сайт харах</a><button class="btn sm" id="logout">Гарах</button></header>
+  <nav id="tabs">
+    <button data-tab="dash" class="on">Самбар</button>
+    <button data-tab="ads">Зарууд</button>
+    <button data-tab="promo">Реклам <span class="badge" id="promo-badge" hidden></span></button>
+    <button data-tab="users">Хэрэглэгчид</button>
+  </nav>
+  <main><div class="panel" id="panel"></div></main>
+</div>
+
+<div class="modal" id="modal"><div class="card" id="modal-card"></div></div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://ocjpkwlkwtvqjpnwnfes.supabase.co";
+const KEY = "sb_publishable_ZIYp3CB6jyjXzaBxdQv1Dw_rpfE1s21";
+const EMAIL_DOMAIN = "selengezar.mn";            // "admin" -> admin@selengezar.mn
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const sb = supabase.createClient(SUPABASE_URL, KEY, { auth: { storageKey: "sz-admin-auth", persistSession: true, autoRefreshToken: true } });
+
+let ads = [], users = null, stats = null, tab = "dash";
+const isFeat = a => a.featured === true && (!a.featured_until || new Date(a.featured_until) > new Date());
+const fmt = iso => { if (!iso) return "—"; const d = new Date(iso); return isNaN(d) ? "—" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+const code = id => "ZAR-" + (String(id).length > 8 ? String(id).replace(/-/g, "").slice(0, 6).toUpperCase() : id);
+function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("show"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 3000); }
+async function rpc(fn, args) { const { data, error } = await sb.rpc(fn, args || {}); if (error) throw new Error(error.message); return data; }
+const findAd = id => ads.find(a => String(a.id) === String(id));
+
+// ---------- Нэвтрэх ----------
+const withTimeout = (pr, ms, what) => Promise.race([pr, new Promise((_, rej) => setTimeout(() => rej(new Error(what + " хариу ирсэнгүй (" + ms / 1000 + "с)")), ms))]);
+// буцаах утга: "" = амжилттай, эс бөгөөс алдааны тайлбар
+async function enter(session) {
+  let ok = false;
+  try { ok = session && await withTimeout(rpc("is_admin"), 15000, "Админ эрх шалгах"); }
+  catch (e) { await sb.auth.signOut().catch(() => {}); return "Админ эрх шалгахад алдаа: " + e.message + " (admin-setup.sql ажилласан эсэхээ шалгана уу)"; }
+  if (!ok) { await sb.auth.signOut().catch(() => {}); return "Энэ хэрэглэгчид админы эрх олгогдоогүй байна (admins хүснэгтэд нэмсэн эсэхээ шалгана уу)"; }
+  $("login").hidden = true; $("app").hidden = false;
+  await refresh();
+  return "";
+}
+$("login-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const err = $("login-err"), btn = $("login-btn");
+  const u = $("u").value.trim();
+  if (!u) return;
+  const email = u.includes("@") ? u : u.toLowerCase() + "@" + EMAIL_DOMAIN;
+  btn.disabled = true; err.textContent = "Нэвтэрч байна...";
+  try {
+    const { data, error } = await withTimeout(sb.auth.signInWithPassword({ email, password: $("pw").value }), 15000, "Нэвтрэлт");
+    if (error) { err.textContent = /invalid|credentials/i.test(error.message) ? "Нэвтрэх нэр эсвэл нууц үг буруу байна" : "Алдаа: " + error.message; return; }
+    const msg = await enter(data.session);
+    err.textContent = msg; if (!msg) $("pw").value = "";
+  } catch (ex) { err.textContent = "Холбогдож чадсангүй: " + ex.message; }
+  finally { btn.disabled = false; }
+});
+$("logout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+(async () => { try { const { data } = await withTimeout(sb.auth.getSession(), 10000, "Session"); if (data.session) { const m = await enter(data.session); if (m) $("login-err").textContent = m; } } catch (_) {} })();
+
+// ---------- Өгөгдөл ----------
+async function refresh() {
+  try {
+    const [a, s] = await Promise.all([
+      sb.from("ads").select("*").order("created_at", { ascending: false }),
+      rpc("admin_stats")
+    ]);
+    if (a.error) throw new Error(a.error.message);
+    ads = a.data; stats = s;
+    if (tab === "users" || users) users = await rpc("admin_list_users");
+  } catch (e) { toast("Алдаа: " + e.message + " (admin-setup.sql ажилласан эсэхээ шалгана уу)"); }
+  const pend = ads.filter(a => a.feature_requested).length;
+  $("promo-badge").hidden = !pend; $("promo-badge").textContent = pend;
+  draw();
+}
+$("tabs").addEventListener("click", async e => {
+  const b = e.target.closest("[data-tab]"); if (!b) return;
+  tab = b.dataset.tab;
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  if (tab === "users" && !users) { try { users = await rpc("admin_list_users"); } catch (er) { toast("Алдаа: " + er.message); } }
+  draw();
+});
+
+// ---------- Зурах ----------
+function adTags(a) {
+  return (isFeat(a) ? '<span class="tag gold">Онцлох</span>' : "") +
+    (a.feature_requested ? '<span class="tag gold">Төлбөр хүлээж байна</span>' : "") +
+    (a.status === "hidden" ? '<span class="tag bad">Нуусан</span>' : '<span class="tag ok">Идэвхтэй</span>');
+}
+function adRow(a) {
+  return `<tr>
+    <td><img class="thumb" src="${esc(a.img || "")}" alt="" onerror="this.style.visibility='hidden'"></td>
+    <td><div class="ttl" title="${esc(a.title)}">${esc(a.title)}</div><div style="color:var(--muted);font-size:12px">${esc(a.cat || "")} · ${esc(a.loc || "")}</div></td>
+    <td>${Number(a.price || 0).toLocaleString()}₮</td>
+    <td>${esc(a.phone || "—")}</td>
+    <td>${fmt(a.created_at)}</td>
+    <td>${adTags(a)}</td>
+    <td><div class="acts">
+      <button class="btn sm" data-act="edit-ad" data-id="${esc(a.id)}">Засах</button>
+      <button class="btn sm" data-act="toggle-ad" data-id="${esc(a.id)}">${a.status === "hidden" ? "Гаргах" : "Нуух"}</button>
+      <button class="btn sm danger" data-act="del-ad" data-id="${esc(a.id)}">Устгах</button>
+    </div></td></tr>`;
+}
+const adTable = list => list.length
+  ? `<div class="tbl"><table><thead><tr><th></th><th>Зар</th><th>Үнэ</th><th>Утас</th><th>Нэмсэн</th><th>Төлөв</th><th></th></tr></thead><tbody>${list.map(adRow).join("")}</tbody></table></div>`
+  : '<div class="empty">Зар алга</div>';
+
+function draw() {
+  const p = $("panel");
+  if (tab === "dash") {
+    const s = stats || {};
+    const pend = ads.filter(a => a.feature_requested);
+    p.innerHTML = `
+      <div class="stats">
+        <div class="stat"><b>${s.ads_total ?? "–"}</b><span>Нийт зар</span></div>
+        <div class="stat"><b>${s.ads_today ?? "–"}</b><span>Өнөөдөр нэмэгдсэн</span></div>
+        <div class="stat"><b>${s.ads_7d ?? "–"}</b><span>7 хоногт нэмэгдсэн</span></div>
+        <div class="stat"><b>${s.featured_active ?? "–"}</b><span>Идэвхтэй онцлох</span></div>
+        <div class="stat ${s.feature_pending ? "warn" : ""}"><b>${s.feature_pending ?? "–"}</b><span>Төлбөр хүлээж буй</span></div>
+        <div class="stat"><b>${s.ads_hidden ?? "–"}</b><span>Нуусан зар</span></div>
+        <div class="stat"><b>${s.users_total ?? "–"}</b><span>Хэрэглэгч</span></div>
+        <div class="stat"><b>${s.users_7d ?? "–"}</b><span>7 хоногт бүртгүүлсэн</span></div>
+      </div>
+      ${pend.length ? `<h2>Төлбөр шалгах хүсэлтүүд</h2>${promoPending(pend)}` : ""}
+      <h2>Шинээр нэмэгдсэн зарууд</h2>${adTable(ads.slice(0, 10))}`;
+  } else if (tab === "ads") {
+    const q = ($("aq") || {}).value || "", f = ($("af") || {}).value || "all";
+    p.innerHTML = `<div class="tools"><input id="aq" placeholder="Нэр, утас, байршлаар хайх" value="${esc(q)}">
+      <select id="af"><option value="all">Бүх төлөв</option><option value="active">Идэвхтэй</option><option value="hidden">Нуусан</option><option value="featured">Онцлох</option><option value="pending">Төлбөр хүлээж буй</option></select></div>
+      <div id="alist"></div>`;
+    $("af").value = f;
+    $("aq").oninput = $("af").onchange = drawAds;
+    drawAds();
+  } else if (tab === "promo") {
+    const pend = ads.filter(a => a.feature_requested), act = ads.filter(isFeat);
+    p.innerHTML = `<h2>Төлбөр хүлээж буй хүсэлт (${pend.length})</h2>${pend.length ? promoPending(pend) : '<div class="empty">Хүсэлт алга</div>'}
+      <h2>Идэвхтэй онцлох зар (${act.length})</h2>${act.length ? promoActive(act) : '<div class="empty">Онцлох зар алга</div>'}`;
+  } else {
+    if (!users) { p.innerHTML = '<div class="empty">Ачаалж байна...</div>'; return; }
+    const q = ($("uq") || {}).value || "";
+    p.innerHTML = `<div class="tools"><input id="uq" placeholder="Нэр, и-мэйл, утсаар хайх" value="${esc(q)}"></div><div id="ulist"></div>`;
+    $("uq").oninput = drawUsers; drawUsers();
+  }
+}
+function drawAds() {
+  const q = $("aq").value.trim().toLowerCase(), f = $("af").value;
+  const list = ads.filter(a =>
+    (!q || [a.title, a.phone, a.loc, a.description].some(t => String(t || "").toLowerCase().includes(q))) &&
+    (f === "all" || (f === "active" && a.status !== "hidden") || (f === "hidden" && a.status === "hidden") || (f === "featured" && isFeat(a)) || (f === "pending" && a.feature_requested)));
+  $("alist").innerHTML = adTable(list);
+}
+function promoPending(list) {
+  return `<div class="tbl"><table><thead><tr><th>Код</th><th>Зар</th><th>Утас</th><th>Нэмсэн</th><th>Хугацаа</th><th></th></tr></thead><tbody>${list.map(a => `<tr>
+    <td><b>${esc(code(a.id))}</b></td><td><div class="ttl">${esc(a.title)}</div></td><td>${esc(a.phone || "—")}</td><td>${fmt(a.created_at)}</td>
+    <td><select id="days-${esc(a.id)}" style="width:auto"><option value="7">7 хоног</option><option value="14">14 хоног</option><option value="30">30 хоног</option></select></td>
+    <td><div class="acts"><button class="btn sm primary" data-act="approve" data-id="${esc(a.id)}">Төлбөр орсон, онцлох</button>
+    <button class="btn sm" data-act="reject" data-id="${esc(a.id)}">Татгалзах</button></div></td></tr>`).join("")}</tbody></table></div>`;
+}
+function promoActive(list) {
+  return `<div class="tbl"><table><thead><tr><th>Код</th><th>Зар</th><th>Дуусах</th><th></th></tr></thead><tbody>${list.map(a => `<tr>
+    <td><b>${esc(code(a.id))}</b></td><td><div class="ttl">${esc(a.title)}</div></td><td>${a.featured_until ? fmt(a.featured_until) : "Хугацаагүй"}</td>
+    <td><div class="acts"><button class="btn sm" data-act="extend" data-id="${esc(a.id)}">+7 хоног</button>
+    <button class="btn sm danger" data-act="unfeature" data-id="${esc(a.id)}">Цуцлах</button></div></td></tr>`).join("")}</tbody></table></div>`;
+}
+function drawUsers() {
+  const q = $("uq").value.trim().toLowerCase();
+  const list = users.filter(u => !q || [u.name, u.email, u.phone].some(t => String(t || "").toLowerCase().includes(q)));
+  $("ulist").innerHTML = list.length ? `<div class="tbl"><table><thead><tr><th>Нэр</th><th>И-мэйл / Утас</th><th>Нэвтрэлт</th><th>Бүртгүүлсэн</th><th>Сүүлд</th><th>Зар</th><th></th></tr></thead><tbody>${list.map(u => `<tr>
+    <td><b>${esc(u.name || "—")}</b> ${u.banned ? '<span class="tag bad">Хоригдсон</span>' : ""}</td>
+    <td>${esc(u.email || "")}${u.email && u.phone ? "<br>" : ""}${esc(u.phone || "")}</td>
+    <td>${esc(u.provider || "")}</td><td>${fmt(u.created_at)}</td><td>${fmt(u.last_sign_in_at)}</td><td>${u.ads_count}</td>
+    <td><div class="acts"><button class="btn sm" data-act="edit-user" data-id="${esc(u.id)}">Засах</button>
+    <button class="btn sm danger" data-act="del-user" data-id="${esc(u.id)}">Устгах</button></div></td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">Хэрэглэгч алга</div>';
+}
+
+// ---------- Үйлдлүүд ----------
+async function act(fn, okMsg) { try { await fn(); toast(okMsg); await refresh(); } catch (e) { toast("Алдаа: " + e.message); } }
+const upd = (id, data) => rpc("admin_update_ad", { p_id: String(id), p_data: data });
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const id = b.dataset.id, a = findAd(id);
+  switch (b.dataset.act) {
+    case "edit-ad": return editAd(a);
+    case "toggle-ad": return act(() => upd(id, { status: a.status === "hidden" ? "active" : "hidden" }), a.status === "hidden" ? "Зар гарлаа" : "Зар нуугдлаа");
+    case "del-ad": if (confirm("«" + a.title + "» зарыг бүр мөсөн устгах уу?")) act(() => rpc("admin_delete_ad", { p_id: String(id) }), "Зар устлаа"); return;
+    case "approve": { const d = Number($("days-" + id).value);
+      return act(() => upd(id, { featured: true, featured_until: new Date(Date.now() + d * 864e5).toISOString(), feature_requested: false }), "Онцлох боллоо (" + d + " хоног)"); }
+    case "reject": if (confirm("Онцлох хүсэлтийг татгалзах уу?")) act(() => upd(id, { feature_requested: false }), "Хүсэлт татгалзагдлаа"); return;
+    case "extend": { const base = a.featured_until && new Date(a.featured_until) > new Date() ? new Date(a.featured_until).getTime() : Date.now();
+      return act(() => upd(id, { featured_until: new Date(base + 7 * 864e5).toISOString() }), "7 хоног нэмэгдлээ"); }
+    case "unfeature": if (confirm("Онцлохыг цуцлах уу?")) act(() => upd(id, { featured: false, featured_until: "", feature_requested: false }), "Онцлох цуцлагдлаа"); return;
+    case "edit-user": return editUser(users.find(u => u.id === id));
+    case "del-user": return delUser(users.find(u => u.id === id));
+  }
+});
+
+const modal = html => { $("modal-card").innerHTML = html; $("modal").classList.add("open"); };
+const closeModal = () => $("modal").classList.remove("open");
+$("modal").addEventListener("mousedown", e => { if (e.target === $("modal")) closeModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+window.closeModal = closeModal;
+
+function editAd(a) {
+  const cats = ["Утас", "Машин", "Байр", "Тавилга", "Хувцас", "Бусад"];
+  const until = a.featured_until ? new Date(new Date(a.featured_until).getTime() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16) : "";
+  modal(`<h3>Зар засах · ${esc(code(a.id))}</h3>
+    <label>Нэр</label><input id="m-title" value="${esc(a.title)}">
+    <div class="row2"><div><label>Үнэ</label><input id="m-price" type="number" value="${esc(a.price)}"></div>
+    <div><label>Ангилал</label><select id="m-cat">${cats.map(c => `<option${c === a.cat ? " selected" : ""}>${c}</option>`).join("")}</select></div></div>
+    <div class="row2"><div><label>Утас</label><input id="m-phone" value="${esc(a.phone)}"></div>
+    <div><label>Байршил</label><input id="m-loc" value="${esc(a.loc)}"></div></div>
+    <label>Тайлбар</label><textarea id="m-desc" rows="4">${esc(a.description)}</textarea>
+    <div class="row2"><div><label>Төлөв</label><select id="m-status"><option value="active"${a.status !== "hidden" ? " selected" : ""}>Идэвхтэй</option><option value="hidden"${a.status === "hidden" ? " selected" : ""}>Нуусан</option></select></div>
+    <div><label>Онцлох дуусах</label><input id="m-until" type="datetime-local" value="${until}"></div></div>
+    <label class="chk"><input type="checkbox" id="m-feat"${a.featured ? " checked" : ""}> Онцлох зар</label>
+    <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn primary" id="m-save">Хадгалах</button></div>`);
+  $("m-save").onclick = () => act(async () => {
+    const t = $("m-title").value.trim(); if (!t) throw new Error("Нэр хоосон байна");
+    await upd(a.id, {
+      title: t, price: $("m-price").value || 0, cat: $("m-cat").value, phone: $("m-phone").value.trim(), loc: $("m-loc").value.trim(),
+      description: $("m-desc").value.trim(), status: $("m-status").value, featured: $("m-feat").checked,
+      featured_until: $("m-until").value ? new Date($("m-until").value).toISOString() : "",
+      feature_requested: $("m-feat").checked ? false : !!a.feature_requested
+    }); closeModal();
+  }, "Хадгаллаа");
+}
+function editUser(u) {
+  modal(`<h3>Хэрэглэгч засах</h3><p style="color:var(--muted);margin:0">${esc(u.email || u.phone || u.id)}</p>
+    <label>Нэр</label><input id="m-name" value="${esc(u.name || "")}">
+    <label class="chk"><input type="checkbox" id="m-ban"${u.banned ? " checked" : ""}> Хориглох (нэвтэрч чадахгүй)</label>
+    <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn primary" id="m-save">Хадгалах</button></div>`);
+  $("m-save").onclick = () => act(async () => { await rpc("admin_update_user", { p_id: u.id, p_name: $("m-name").value.trim(), p_banned: $("m-ban").checked }); closeModal(); }, "Хадгаллаа");
+}
+function delUser(u) {
+  modal(`<h3>Хэрэглэгч устгах</h3><p>«${esc(u.name || u.email || u.phone || u.id)}» бүртгэлийг бүр мөсөн устгана. Энэ үйлдлийг буцаах боломжгүй.</p>
+    <label class="chk"><input type="checkbox" id="m-delads"> Түүний ${u.ads_count} зарыг хамт устгах</label>
+    <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn danger" id="m-del">Устгах</button></div>`);
+  $("m-del").onclick = () => act(async () => { await rpc("admin_delete_user", { p_id: u.id, p_delete_ads: $("m-delads").checked }); users = null; closeModal(); }, "Хэрэглэгч устлаа");
+}
+</script>
+</body>
+</html>
