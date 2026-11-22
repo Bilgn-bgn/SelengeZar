@@ -7,13 +7,15 @@ const API = SUPABASE_URL + "/rest/v1/ads";
 const BUCKET = "ads-images";
 const DEFAULT_IMG = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600";
 const DEFAULT_LOC = "Сүхбаатар, Сэлэнгэ";
+// Онцлох зарын төлбөр (өөрчлөхдөө энд засна)
+const PAY = { bank: "Хаан банк", account: "5688106076", name: "Билгүүн", price: 5000, days: 7 };
 const CATS = ["Бүгд", "Утас", "Машин", "Байр", "Тавилга", "Хувцас", "Бусад"];
 
 const $ = id => document.getElementById(id);
 // SVG дүрс (index.html дахь sprite-аас)
 const ico = (name, cls) => `<svg class="i${cls ? " " + cls : ""}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 // ---------- Цонхны удирдлага: нэг дор зөвхөн нэг цонх, цаад талын хуудас гүйхгүй ----------
-const MODAL_IDS = ["adModal", "verifyModal"];
+const MODAL_IDS = ["verifyModal", "payModal"];
 function closeAllModals() { MODAL_IDS.forEach(id => $(id).classList.remove("open")); }
 function syncScrollLock() {
   const anyOpen = MODAL_IDS.some(id => $(id).classList.contains("open"));
@@ -125,14 +127,16 @@ async function load() {
     const r = await fetch(API + "?select=*&order=created_at.desc",
       { headers: { apikey: KEY, Authorization: "Bearer " + KEY } });
     if (!r.ok) throw new Error("HTTP " + r.status);
-    ads = await r.json();
+    ads = (await r.json()).filter(a => a.status !== "hidden");   // админ нуусан зар харагдахгүй
     statusText = "Нийт " + ads.length + " зар";
   } catch (e) {
     statusText = "Серверт холбогдож чадсангүй: " + e.message;
     ads = [];
   }
+  adsLoaded = true;
   render();
   updateMyCount();
+  if (document.body.dataset.page === "ad") renderAd(decodeURIComponent(location.hash.slice(5)));
   if (document.body.dataset.page === "mine") renderMine();
   if (document.body.dataset.page === "saved") renderSaved();
 }
@@ -185,8 +189,15 @@ function updateMyCount() { const el = $("my-ads-count"); if (el) el.textContent 
 function showMyAds() { go("#/mine"); }
 const findAd = id => ads.find(a => String(a.id) === String(id));
 
+const isFeat = a => a.featured === true && (!a.featured_until || new Date(a.featured_until) > new Date());
+const fmtDate = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+function featAction(a) {
+  if (isFeat(a)) return `<div class="feat-note">${ico("star")} Онцлох${a.featured_until ? " · " + fmtDate(a.featured_until) + " хүртэл" : ""}</div>`;
+  if (a.feature_requested) return `<button class="feat-btn pending" data-pay="${esc(a.id)}">${ico("clock")} Төлбөр хүлээгдэж байна</button>`;
+  return `<button class="feat-btn" data-pay="${esc(a.id)}">${ico("star")} Онцлох болгох</button>`;
+}
 function cardHTML(a, opts) {
-  const feat = a.featured === true;
+  const feat = isFeat(a);
   return `
     <div class="card${feat ? " featured" : ""}" data-id="${esc(a.id)}">
       <div class="card-img">
@@ -200,7 +211,7 @@ function cardHTML(a, opts) {
         <div class="meta">${ico("pin")}<span>${esc(a.loc)}</span></div>
         <div class="time">${ico("clock")}<span>${esc(timeAgo(a.created_at))}</span></div>
       </div>
-      ${opts && opts.edit ? `<button class="edit-btn" data-edit="${esc(a.id)}">${ico("pencil")} Зар засах</button>` : ""}
+      ${opts && opts.edit ? `<div class="card-actions"><button class="edit-btn" data-edit="${esc(a.id)}">${ico("pencil")} Зар засах</button>${featAction(a)}</div>` : ""}
     </div>`;
 }
 
@@ -213,8 +224,8 @@ function render() {
     [a.title, a.description, a.loc].some(t => (t || "").toLowerCase().includes(q))
   );
   // Онцлох зарууд нүүрэнд тусдаа хэсэгт (хадгалсан харагдацад бүгд нэг дор)
-  const feat = view === "saved" ? [] : base.filter(a => a.featured === true);
-  const main = view === "saved" ? base : base.filter(a => a.featured !== true);
+  const feat = view === "saved" ? [] : base.filter(a => isFeat(a));
+  const main = view === "saved" ? base : base.filter(a => !isFeat(a));
 
   $("status").textContent = statusText;
   $("featured-wrap").hidden = !feat.length;
@@ -252,6 +263,8 @@ function renderMine() {
 }
 
 ["grid", "featured-grid", "mine-grid", "saved-grid"].forEach(gid => $(gid).addEventListener("click", e => {
+  const pay = e.target.closest("[data-pay]");
+  if (pay) { e.stopPropagation(); onFeatureClick(pay.dataset.pay); return; }
   const ed = e.target.closest("[data-edit]");
   if (ed) { e.stopPropagation(); editAd(ed.dataset.edit); return; }
   const sv = e.target.closest("[data-save]");
@@ -262,38 +275,49 @@ function renderMine() {
 
 // ---------- Зарын дэлгэрэнгүй ----------
 let curAd = null;
-function openAd(id) {
+let cameFromApp = false, adsLoaded = false;
+function openAd(id) { cameFromApp = true; go("#/ad/" + encodeURIComponent(id)); }
+function adBack() { if (cameFromApp && history.length > 1) history.back(); else go("#/"); }
+
+// Зарын хуудсыг бөглөх (route() дуудна)
+function renderAd(id) {
   const a = findAd(id);
-  if (!a) return;
-  curAd = a;
-  $("ad-img").src = a.img || DEFAULT_IMG;
-  $("ad-img").onerror = function () { this.onerror = null; this.src = DEFAULT_IMG; };
+  curAd = a || null;
+  if (!a) {
+    if (adsLoaded) { toast("Зар олдсонгүй"); go("#/"); }
+    else { $("ad-title").textContent = "Ачаалж байна..."; ["ad-price", "ad-meta", "ad-desc"].forEach(k => { $(k).innerHTML = ""; }); }
+    return;
+  }
+  const img = $("ad-img");
+  img.src = a.img || DEFAULT_IMG;
+  img.onerror = function () { this.onerror = null; this.src = DEFAULT_IMG; };
   $("ad-price").textContent = Number(a.price || 0).toLocaleString() + "₮";
   $("ad-title").textContent = a.title || "";
-  $("ad-meta").textContent = [a.loc, a.cat, timeAgo(a.created_at)].filter(Boolean).join(" • ");
+  $("ad-meta").innerHTML =
+    (a.loc ? `<span>${ico("pin")}${esc(a.loc)}</span>` : "") +
+    (a.cat ? `<span>${esc(a.cat)}</span>` : "") +
+    (a.created_at ? `<span>${ico("clock")}${esc(timeAgo(a.created_at))}</span>` : "");
   $("ad-desc").textContent = a.description || "Тайлбар оруулаагүй байна.";
   const ph = localPhone(a.phone || "");
   const call = $("ad-call");
-  if (ph) { call.href = "tel:" + ph.replace(/[^\d+]/g, ""); call.innerHTML = ico("phone") + " " + esc(ph); call.style.display = "block"; }
+  if (ph) { call.href = "tel:" + ph.replace(/[^\d+]/g, ""); call.innerHTML = ico("phone") + " " + esc(ph); call.style.display = ""; }
   else { call.style.display = "none"; }
+  $("ad-desc").scrollTop = 0;
   syncAdSaveBtn();
-  closeAllModals();
-  $("adModal").classList.add("open");
-  $("adModal").querySelector(".box").scrollTop = 0;
 }
-function closeAd() { $("adModal").classList.remove("open"); }
 function syncAdSaveBtn() {
   if (!curAd) return;
-  $("ad-save").innerHTML = isSaved(curAd.id) ? ico("check") + " Хадгалсан (болиулах)" : ico("bookmark") + " Хадгалах";
+  const on = isSaved(curAd.id);
+  $("ad-save").classList.toggle("on", on);
+  $("ad-save").setAttribute("aria-label", on ? "Хадгалснаас хасах" : "Хадгалах");
 }
 function saveFromAd() { if (curAd) toggleSave(curAd.id); }
 function chatFromAd() {
   if (!curAd) return;
   if (!curAd.user_id) { toast("Энэ зарын эзэнтэй чатлах боломжгүй. Утсаар холбогдоно уу."); return; }
-  if (!isLoggedIn() || !myUid) { toast("Чат бичихийн тулд нэвтэрнэ үү"); closeAd(); openProfile(); return; }
+  if (!isLoggedIn() || !myUid) { toast("Чат бичихийн тулд нэвтэрнэ үү"); openProfile(); return; }
   if (curAd.user_id === myUid) { toast("Энэ таны өөрийн зар байна"); return; }
   const a = curAd;
-  closeAd();
   pendingThread = [String(a.id), a.title || "Зар", a.user_id, "Зарын эзэн"];
   openChat();
 }
@@ -320,10 +344,77 @@ function closeModal() {
   go(dest);   // route() нь хуудаснаас гарахад засварын төлөвийг цэвэрлэнэ
 }
 
+// ---------- Онцлох зар: сонголт + төлбөрийн мэдээлэл ----------
+let plan = "normal";
+const money = n => Number(n).toLocaleString() + "₮";
+const adCode = id => { const t = String(id); return "ZAR-" + (t.length > 8 ? t.replace(/-/g, "").slice(0, 6).toUpperCase() : t); };
+function setPlan(p) {
+  plan = p;
+  document.querySelectorAll("#plan-pick .plan").forEach(b => {
+    const on = b.dataset.plan === p;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-checked", on);
+  });
+  $("plan-note").hidden = p !== "featured";
+}
+$("plan-price").textContent = money(PAY.price) + " / " + PAY.days + " хоног";
+$("plan-pick").addEventListener("click", e => { const b = e.target.closest(".plan"); if (b) setPlan(b.dataset.plan); });
+
+let payCode = "";
+function openPay(a) {
+  payCode = adCode(a.id);
+  $("pay-ad").textContent = a.title || "";
+  $("pay-amount").textContent = money(PAY.price) + " (" + PAY.days + " хоног)";
+  $("pay-bank").textContent = PAY.bank;
+  $("pay-acc").textContent = PAY.account;
+  $("pay-name").textContent = PAY.name;
+  $("pay-code").textContent = payCode;
+  closeAllModals();
+  $("payModal").classList.add("open");
+}
+function closePay() { $("payModal").classList.remove("open"); }
+$("payModal").addEventListener("click", e => {
+  const c = e.target.closest("[data-copy]");
+  if (!c) { if (e.target === $("payModal")) closePay(); return; }
+  const txt = c.dataset.copy === "acc" ? PAY.account : payCode;
+  try { navigator.clipboard.writeText(txt).then(() => toast("Хууллаа: " + txt), () => toast(txt)); }
+  catch (_) { toast(txt); }
+});
+
+async function patchAd(id, patch) {
+  const { data: sess } = await sb.auth.getSession();
+  const token = sess && sess.session && sess.session.access_token;
+  if (!token) throw new Error("Дахин нэвтэрнэ үү");
+  const pr = await fetch(API + "?id=eq." + encodeURIComponent(id), {
+    method: "PATCH",
+    headers: { apikey: KEY, Authorization: "Bearer " + token, "Content-Type": "application/json", Prefer: "return=representation" },
+    body: JSON.stringify(patch)
+  });
+  if (!pr.ok) throw new Error(await pr.text());
+  const rows = await pr.json();
+  if (!rows.length) throw new Error("Засах эрх олгогдоогүй байна");
+  const i = ads.findIndex(x => String(x.id) === String(id));
+  if (i >= 0) ads[i] = { ...ads[i], ...rows[0] };
+  return ads[i] || rows[0];
+}
+async function onFeatureClick(id) {
+  const a = findAd(id);
+  if (!a) return;
+  if (a.feature_requested) { openPay(a); return; }
+  try {
+    const row = await patchAd(id, { feature_requested: true });
+    renderMine();
+    openPay(row);
+  } catch (e) {
+    toast(e.message.includes("feature_requested") ? "featured-paid.sql-ийг Supabase дээр ажиллуулна уу" : "Алдаа: " + e.message);
+  }
+}
+
 // ---------- Зар засах ----------
 let editingId = null;
 function setFormMode(id) {
   editingId = id;
+  if (!id) { $("plan-pick").hidden = false; setPlan("normal"); }
   $("ad-form-title").textContent = id ? "Зар засах" : "Шинэ зар оруулах";
   $("publishBtn").textContent = id ? "Хадгалах" : "Зар нийтлэх";
 }
@@ -333,6 +424,8 @@ function editAd(id) {
   if (!myUid || String(a.user_id) !== String(myUid)) { toast("Зөвхөн өөрийн зарыг засна"); return; }
   resetAdForm();
   setFormMode(String(a.id));
+  $("plan-pick").hidden = isFeat(a);
+  setPlan(a.feature_requested ? "featured" : "normal");
   $("f-title").value = a.title || "";
   $("f-price").value = a.price ?? "";
   $("f-cat").value = a.cat || "Бусад";
@@ -352,6 +445,7 @@ function resetAdForm() {
   $("preview").removeAttribute("src");
   $("err").textContent = "";
   file = null;
+  setPlan("normal");
 }
 
 $("f-file").addEventListener("change", e => {
@@ -429,6 +523,9 @@ $("publishBtn").onclick = async () => {
         description: $("f-desc").value.trim()
       };
       if (imgUrl) patch.img = imgUrl;
+      const cur = findAd(editingId);
+      const askPay = plan === "featured" && cur && !isFeat(cur);
+      if (cur && !isFeat(cur) && (plan === "featured") !== !!cur.feature_requested) patch.feature_requested = plan === "featured";
       const { data: sess } = await sb.auth.getSession();
       const token = sess && sess.session && sess.session.access_token;
       if (!token) throw new Error("Дахин нэвтэрнэ үү");
@@ -446,6 +543,7 @@ $("publishBtn").onclick = async () => {
       render();
       renderMine();
       toast("Зар шинэчлэгдлээ");
+      if (askPay) setTimeout(() => openPay(ads[i] || rows[0]), 200);
       return;
     }
 
@@ -459,6 +557,8 @@ $("publishBtn").onclick = async () => {
       img: imgUrl,
       description: $("f-desc").value.trim()
     };
+    const wantFeat = plan === "featured";
+    if (wantFeat) body.feature_requested = true;
     const post = b => fetch(API, {
       method: "POST",
       headers: {
@@ -468,14 +568,14 @@ $("publishBtn").onclick = async () => {
       body: JSON.stringify(b)
     });
     let r = await post(body);
-    if (!r.ok) {
+    for (let k = 0; k < 2 && !r.ok; k++) {   // багана хараахан нэмээгүй бол түүнгүйгээр оруулна
       const t = await r.text();
-      if (t.includes("user_id")) {   // ads хүснэгтэд user_id багана хараахан нэмээгүй бол түүнгүйгээр оруулна
-        delete body.user_id;
-        r = await post(body);
-        if (!r.ok) throw new Error("Алдаа: " + await r.text());
-      } else throw new Error("Алдаа: " + t);
+      const col = ["feature_requested", "user_id"].find(c => c in body && t.includes(c));
+      if (!col) throw new Error("Алдаа: " + t);
+      delete body[col];
+      r = await post(body);
     }
+    if (!r.ok) throw new Error("Алдаа: " + await r.text());
     const d = await r.json();
     ads.unshift(d[0]);
     statusText = "Нийт " + ads.length + " зар";
@@ -483,6 +583,7 @@ $("publishBtn").onclick = async () => {
     resetAdForm();
     closeModal();
     toast("Зар амжилттай нийтлэгдлээ!");
+    if (wantFeat && body.feature_requested) setTimeout(() => openPay(d[0]), 200);
   } catch (e) {
     err.textContent = e.message;
   } finally {
@@ -548,9 +649,6 @@ function showProfile(name) {
   const loc = localStorage.getItem("userLoc") || DEFAULT_LOC;
   const customName = localStorage.getItem("userCustomName") || "";
   const displayName = localPhone(name || localStorage.getItem("userName") || email || phone || "Хэрэглэгч");
-  if (!localStorage.getItem("userCreated")) {
-    localStorage.setItem("userCreated", new Date().toLocaleDateString("mn-MN"));
-  }
 
   $("profile-name").textContent = displayName;
   // Өөрийн нэр өгсөн бол зөвхөн нэр. Үгүй бол нэрний доор и-мэйл / утас / Facebook-ийн аль нэг нь.
@@ -570,7 +668,6 @@ function showProfile(name) {
   updateMyCount();
   $("profile-loc").textContent = loc;
   renderAvatar(displayName);
-  $("profile-date").textContent = localStorage.getItem("userCreated");
   $("set-name").value = displayName;
   $("set-phone").value = phone;
   syncPhoneBtn();
@@ -1074,7 +1171,7 @@ function setActiveNav(btn) {
 function syncNav() {
   const page = document.body.dataset.page || "home";
   const items = document.querySelectorAll(".bottom-nav .nav-item");
-  const idx = { home: 0, saved: 1, add: 2, chat: 3, profile: 4, mine: 4 }[page] ?? 0;
+  const idx = { home: 0, saved: 1, add: 2, ad: 0, chat: 3, profile: 4, mine: 4 }[page] ?? 0;
   setActiveNav(items[idx]);
 }
 
@@ -1084,7 +1181,7 @@ function go(hash) {
   if (location.hash === hash || (hash === "#/" && (location.hash === "" || location.hash === "#"))) route();
   else location.hash = hash;
 }
-const PAGES = ["home", "saved", "add", "chat", "profile", "mine"];
+const PAGES = ["home", "saved", "add", "ad", "chat", "profile", "mine"];
 function route() {
   closeAllModals();
   const h = location.hash;
@@ -1095,6 +1192,7 @@ function route() {
   PAGES.forEach(p => { $("page-" + p).hidden = p !== page; });
   if (page === "mine") renderMine();
   if (page === "saved") renderSaved();
+  if (page === "ad") renderAd(decodeURIComponent(h.slice(5)));
   if (page === "profile") {
     if (isLoggedIn()) { showProfile(); if (pendingTab) showTab(pendingTab); }
     else showLoginView();
@@ -1122,10 +1220,9 @@ function goChat(btn) { go("#/chat"); }
 function goProfile(btn) { openProfile(); }
 
 // Цонхны гадна дарвал / Esc дарвал хаах
-$("adModal").addEventListener("click", e => { if (e.target === $("adModal")) closeAd(); });
 // Профайлын цонх гадна дарж хаагдахгүй - зөвхөн ✕ товчоор хаагдана
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { closeAd(); }
+  if (e.key === "Escape" && document.body.dataset.page === "ad") adBack();
 });
 
 // Цонх нээгдэх/хаагдах бүрт цаад талын гүйлтийг түгжинэ/тайлна

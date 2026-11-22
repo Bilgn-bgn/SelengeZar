@@ -30,6 +30,7 @@
   --shadow-lg:0 24px 60px rgba(16,38,43,.22);
   --ring:0 0 0 3px rgba(14,107,92,.22);
 
+  --nav-h:74px;
   --r-sm:10px; --r-md:14px; --r-lg:20px;
   --page:1150px;
   --font:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -66,7 +67,7 @@ html{overflow-x:hidden;-webkit-text-size-adjust:100%}
 body{
   margin:0;font-family:var(--font);font-size:15px;line-height:1.5;
   color:var(--ink);background:var(--bg);
-  padding-bottom:88px;overflow-x:hidden;
+  padding-bottom:calc(var(--nav-h) + 16px);overflow-x:hidden;
 }
 button,input,select,textarea{font-family:inherit}
 img{max-width:100%}
@@ -281,16 +282,43 @@ body[data-page]:not([data-page="home"]) > header{display:none}
 .upload-title{display:inline-flex;align-items:center;gap:8px;font-weight:700;color:var(--ink)}
 .upload-hint{font-size:12.5px;color:var(--muted);margin-top:2px}
 
-/* ---------- Зарын дэлгэрэнгүй ---------- */
-.box.ad-box{max-width:480px;padding:0 0 20px}
-.ad-box .modal-close{background:var(--glass);box-shadow:var(--shadow-sm)}
-.ad-img{display:block;width:100%;max-height:320px;object-fit:cover;background:var(--surface-2)}
-.ad-box .price,.ad-box h2,.ad-box .meta,.ad-box .ad-desc,.ad-box .ad-actions{margin-left:20px;margin-right:20px}
-.ad-box .price{margin-top:16px;font-size:22px}
-.ad-box h2{margin-top:2px;margin-bottom:4px}
-.ad-box .meta{flex-wrap:wrap;font-size:13px}
-.ad-desc{white-space:pre-wrap;word-break:break-word;color:var(--ink-2);font-size:14.5px;line-height:1.65;margin-top:14px;margin-bottom:16px}
-.ad-actions{display:flex;flex-direction:column;gap:8px}
+/* ---------- Зарын дэлгэрэнгүй: бүтэн хуудас, гүйдэггүй ---------- */
+body[data-page="ad"],body[data-page="profile"]{overflow:hidden;padding-bottom:0}
+html:has(body[data-page="ad"]),html:has(body[data-page="profile"]){overflow:hidden}
+.page-ad,.page-profile{
+  display:flex;flex-direction:column;height:calc(100dvh - var(--nav-h));
+  padding-bottom:12px;overflow:hidden;
+}
+.page-ad[hidden],.page-profile[hidden]{display:none !important}
+.icon-btn{
+  margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;
+  border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--ink);cursor:pointer;transition:.15s;
+}
+.icon-btn:hover{border-color:var(--brand);color:var(--brand)}
+.icon-btn.on{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+.icon-btn.on .i{fill:currentColor}
+.ad-layout{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
+.ad-media{flex:1 1 0;min-height:120px;border-radius:var(--r-md);overflow:hidden;background:var(--surface-2);border:1px solid var(--line)}
+.ad-media img{display:block;width:100%;height:100%;object-fit:cover}
+.ad-info{flex:0 1 auto;min-height:0;display:flex;flex-direction:column;gap:6px}
+.ad-info .price{font-size:24px}
+.ad-info h2{margin:0;font-size:18px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
+.ad-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;color:var(--muted);font-size:13px}
+.ad-meta span{display:inline-flex;align-items:center;gap:5px}
+.ad-meta .i{width:15px;height:15px}
+.ad-desc{
+  flex:0 1 auto;min-height:0;max-height:26dvh;overflow-y:auto;margin:2px 0 4px;
+  white-space:pre-wrap;word-break:break-word;color:var(--ink-2);font-size:14.5px;line-height:1.6;
+}
+.ad-actions{display:flex;gap:8px;margin-top:2px}
+.ad-actions .btn{flex:1;padding:13px 14px}
+.ad-actions #ad-call{flex:1.4}
+@media(min-width:900px){
+  .ad-layout{flex-direction:row;gap:28px;align-items:stretch}
+  .ad-media{flex:1.25 1 0}
+  .ad-info{flex:1 1 0;max-width:460px;justify-content:center}
+  .ad-desc{max-height:none;flex:0 1 auto}
+}
 
 /* ---------- Тусдаа хуудас ---------- */
 .page{padding-top:0;padding-bottom:30px}
@@ -333,7 +361,7 @@ body[data-page]:not([data-page="home"]) > header{display:none}
 .tab-btn{flex:1;padding:9px;border:0;border-radius:var(--r-sm);background:transparent;color:var(--muted);font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
 .tab-btn:hover{color:var(--ink)}
 .tab-btn.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm)}
-.tab-body{height:370px;display:flex;flex-direction:column;justify-content:center;overflow:visible}
+.tab-body{display:flex;flex-direction:column;justify-content:flex-start;gap:0}
 .my-ads-row{
   display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;
   padding:13px 14px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--brand-soft);color:var(--brand);
@@ -450,3 +478,57 @@ body[data-page]:not([data-page="home"]) > header{display:none}
   *{transition:none !important;animation:none !important}
   .hero-track{transition:none}
 }
+
+/* ---------- Профайл хуудас: нэг дэлгэцэнд багтана ---------- */
+.page-profile .page-head{flex:none}
+.page-profile .profile-box.page-card{flex:1;min-height:0;width:100%;overflow:auto;margin-bottom:0;padding:14px 18px 16px}
+.page-profile .profile-head{padding-bottom:6px}
+.page-profile .avatar-wrap,.page-profile .avatar{width:58px;height:58px}
+.page-profile .avatar-wrap{margin-bottom:6px}
+.page-profile .avatar{font-size:24px}
+.page-profile .profile-name{font-size:17px}
+.page-profile .tabs{margin:6px 0 10px}
+.page-profile .grp-title{margin:12px 2px 5px}
+.page-profile .info-group .info-row{min-height:38px;padding:4px 0}
+@media(max-height:700px){
+  .page-profile .profile-box.page-card{padding:10px 16px 12px}
+  .page-profile .avatar-wrap,.page-profile .avatar{width:48px;height:48px}
+  .page-profile .grp-title{margin:8px 2px 4px}
+  .page-profile .info-group .info-row{min-height:34px}
+  .page-profile .my-ads-row{padding:10px 12px}
+}
+
+/* ---------- Онцлох зар: сонголт, төлбөр ---------- */
+.plan-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px}
+.plan{display:flex;flex-direction:column;gap:3px;align-items:flex-start;padding:12px 14px;text-align:left;
+  border:1.5px solid var(--line-strong);border-radius:var(--r-md);background:var(--surface);color:var(--ink);cursor:pointer;font:inherit;transition:.15s}
+.plan b{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:800}
+.plan span{font-size:12.5px;color:var(--muted);font-weight:600}
+.plan .i{width:15px;height:15px;color:var(--gold)}
+.plan.on{border-color:var(--brand);background:var(--brand-soft);box-shadow:var(--ring)}
+.plan.on span{color:var(--brand)}
+.plan-note{margin:0 0 6px;padding:9px 12px;border-radius:var(--r-sm);background:var(--brand-soft);color:var(--brand-600);font-size:12.5px;line-height:1.45}
+.card-actions{display:grid;gap:8px;padding:0 12px 12px}
+.card-actions .edit-btn{width:100%;margin:0}
+.feat-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:9px 10px;border:1px solid var(--gold);
+  border-radius:var(--r-sm);background:#FFF6E0;color:#7A4E00;font-size:13px;font-weight:700;cursor:pointer;transition:.15s}
+.feat-btn:hover{background:#FFEBC2}
+.feat-btn.pending{border-color:var(--line-strong);background:var(--surface-2);color:var(--ink-2)}
+.feat-btn .i,.feat-note .i{width:14px;height:14px}
+.feat-note{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border-radius:var(--r-sm);background:var(--brand-soft);color:var(--brand-600);font-size:12.5px;font-weight:700}
+.feat-note .i{color:var(--gold);fill:var(--gold)}
+.pay-box h2{margin-bottom:2px}
+.pay-box .sub{margin:0 0 12px;font-weight:600;color:var(--ink-2)}
+.pay-rows{border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-2);overflow:hidden}
+.pay-row{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line);font-size:14px}
+.pay-row:last-child{border-bottom:0}
+.pay-row span{color:var(--muted);flex:0 0 112px}
+.pay-row b{flex:1;font-weight:800;word-break:break-all}
+.pay-row.key{background:var(--brand-soft)}
+.pay-row.key b{color:var(--brand-600);font-size:16px;letter-spacing:.5px}
+.copy-btn{display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink-2);cursor:pointer}
+.copy-btn:hover{border-color:var(--brand);color:var(--brand)}
+.copy-btn .i{width:16px;height:16px}
+.pay-help{margin:12px 0;font-size:13px;line-height:1.5;color:var(--ink-2)}
+@media(max-width:640px){.card-actions{padding:0 10px 10px}.feat-btn,.feat-note{font-size:12px}.pay-row span{flex-basis:92px}}
+.plan-pick[hidden],.plan-note[hidden]{display:none}

@@ -22,6 +22,7 @@
   <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></symbol>
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
   <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol>
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
   <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
@@ -105,22 +106,27 @@
   </div>
 </section>
 
-<!-- ЗАРЫН ДЭЛГЭРЭНГҮЙ ЦОНХ -->
-<div class="modal" id="adModal">
-  <div class="box ad-box">
-    <button class="modal-close" onclick="closeAd()"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <img id="ad-img" class="ad-img" alt="">
-    <div class="price" id="ad-price"></div>
-    <h2 id="ad-title"></h2>
-    <div class="meta" id="ad-meta"></div>
-    <p class="ad-desc" id="ad-desc"></p>
-    <div class="ad-actions">
-      <a class="btn btn-block" id="ad-call" href="#"><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg> Залгах</a>
-      <button class="btn btn-block btn-outline" id="ad-chat" onclick="chatFromAd()"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg> Чат бичих</button>
-      <button class="btn btn-block btn-outline" id="ad-save" onclick="saveFromAd()"><svg class="i" aria-hidden="true"><use href="#i-bookmark"/></svg> Хадгалах</button>
+<!-- ЗАРЫН ДЭЛГЭРЭНГҮЙ ХУУДАС (бүтэн хуудас, гүйдэггүй) -->
+<section class="wrap page page-ad" id="page-ad" hidden>
+  <div class="page-head">
+    <button class="page-back" onclick="adBack()" aria-label="Буцах"><svg class="i" aria-hidden="true"><use href="#i-arrow-left"/></svg></button>
+    <h2>Зар</h2>
+    <button class="icon-btn" id="ad-save" onclick="saveFromAd()" aria-label="Хадгалах"><svg class="i" aria-hidden="true"><use href="#i-bookmark"/></svg></button>
+  </div>
+  <div class="ad-layout">
+    <div class="ad-media"><img id="ad-img" alt=""></div>
+    <div class="ad-info">
+      <div class="price" id="ad-price"></div>
+      <h2 id="ad-title"></h2>
+      <div class="ad-meta" id="ad-meta"></div>
+      <div class="ad-desc" id="ad-desc"></div>
+      <div class="ad-actions">
+        <a class="btn" id="ad-call" href="#"><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg> Залгах</a>
+        <button class="btn btn-outline" id="ad-chat" onclick="chatFromAd()"><svg class="i" aria-hidden="true"><use href="#i-chat"/></svg> Чат бичих</button>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
 <div id="toast"></div>
 
@@ -131,6 +137,15 @@
     <h2 id="ad-form-title">Шинэ зар оруулах</h2>
   </div>
   <div class="box add-box page-card">
+    <div class="plan-pick" id="plan-pick" role="radiogroup" aria-label="Зарын төрөл">
+      <button type="button" class="plan on" data-plan="normal" role="radio" aria-checked="true">
+        <b>Энгийн</b><span>Үнэгүй</span>
+      </button>
+      <button type="button" class="plan" data-plan="featured" role="radio" aria-checked="false">
+        <b><svg class="i fill" aria-hidden="true"><use href="#i-star"/></svg> Онцлох</b><span id="plan-price"></span>
+      </button>
+    </div>
+    <div class="plan-note" id="plan-note" hidden>Нүүр хуудасны дээд хэсэгт ногоон хүрээтэй, «Онцлох» тэмдэгтэй гарна. Нийтлэсний дараа төлбөрийн мэдээлэл харагдана.</div>
     <input id="f-title" placeholder="Нэр *">
     <input id="f-price" type="number" min="0" placeholder="Үнэ *">
     <select id="f-cat">
@@ -152,7 +167,7 @@
 </section>
 
 <!-- ПРОФАЙЛ / НЭВТРЭХ ХУУДАС -->
-<section class="wrap page" id="page-profile" hidden>
+<section class="wrap page page-profile" id="page-profile" hidden>
   <div class="page-head">
     <button class="page-back" onclick="closeProfile()" aria-label="Буцах"><svg class="i" aria-hidden="true"><use href="#i-arrow-left"/></svg></button>
     <h2>Профайл</h2>
@@ -208,7 +223,6 @@
         <div class="info-group">
           <div class="info-row"><span>Утас</span><b id="profile-phone">-</b></div>
           <div class="info-row"><span>Байршил</span><b id="profile-loc">-</b></div>
-          <div class="info-row"><span>Бүртгүүлсэн</span><b id="profile-date">-</b></div>
         </div>
         <div class="grp-title">Холбосон бүртгэл</div>
         <div class="info-group">
@@ -247,6 +261,23 @@
 </section>
 
 <!-- УТАС БАТАЛГААЖУУЛАХ ЦОНХ (зар оруулахын өмнө, нэг удаа) -->
+<div class="modal" id="payModal">
+  <div class="box profile-box pay-box">
+    <button class="modal-close" onclick="closePay()" aria-label="Хаах"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <h2>Онцлох болгох</h2>
+    <p class="sub" id="pay-ad"></p>
+    <div class="pay-rows">
+      <div class="pay-row"><span>Төлөх дүн</span><b id="pay-amount"></b></div>
+      <div class="pay-row"><span>Банк</span><b id="pay-bank"></b></div>
+      <div class="pay-row"><span>Данс</span><b id="pay-acc"></b><button class="copy-btn" data-copy="acc" aria-label="Хуулах"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg></button></div>
+      <div class="pay-row"><span>Хүлээн авагч</span><b id="pay-name"></b></div>
+      <div class="pay-row key"><span>Гүйлгээний утга</span><b id="pay-code"></b><button class="copy-btn" data-copy="code" aria-label="Хуулах"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg></button></div>
+    </div>
+    <p class="pay-help">Гүйлгээний утга дээр дээрх кодыг <b>заавал</b> бичнэ үү. Төлбөр орсны дараа зар онцлох хэсэгт орно (ихэвчлэн хэдхэн цагийн дотор).</p>
+    <button class="btn btn-block" onclick="closePay()">Ойлголоо</button>
+  </div>
+</div>
+
 <div class="modal" id="verifyModal">
   <div class="box profile-box">
     <button class="modal-close" onclick="closeVerify()"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button>
