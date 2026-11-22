@@ -18,7 +18,7 @@
   <button class="btn" onclick="openModal()">+ Зар оруулах</button>
 </header>
 
-<div class="wrap">
+<div class="wrap" id="page-home">
 
   <!-- HERO: зургийн гүйдэг слайд -->
   <section class="hero" id="hero">
@@ -38,6 +38,41 @@
     <a href="privacy.html">Нууцлалын бодлого</a> • <a href="terms.html">Үйлчилгээний нөхцөл</a> • <a href="data-deletion.html">Мэдээлэл устгах</a></p>
 </div>
 
+<!-- ТУСДАА ХУУДАСНУУД: Миний зарууд, Чат -->
+<section class="wrap page" id="page-mine" hidden>
+  <div class="page-head">
+    <button class="page-back" onclick="go('#/')" aria-label="Буцах">←</button>
+    <h2 id="mine-title">📁 Миний зарууд</h2>
+  </div>
+  <div class="grid" id="mine-grid"></div>
+</section>
+
+<section class="wrap page" id="page-chat" hidden>
+  <div class="page-head">
+    <button class="page-back" onclick="go('#/')" aria-label="Буцах">←</button>
+    <h2>💬 Чат</h2>
+  </div>
+  <div class="chat-layout" id="chat-layout">
+    <div class="chat-col" id="chat-list-view">
+      <div id="chat-list"></div>
+    </div>
+    <div class="chat-col thread-col">
+      <div class="chat-placeholder" id="chat-placeholder">Зүүн талаас яриагаа сонгоно уу</div>
+      <div id="chat-thread-view" style="display:none">
+        <div class="chat-head">
+          <button class="chat-back" onclick="chatBack()" aria-label="Буцах">←</button>
+          <div><b id="chat-title"></b><div class="meta" id="chat-sub"></div></div>
+        </div>
+        <div class="chat-msgs" id="chat-msgs"></div>
+        <div class="chat-send">
+          <input id="chat-input" placeholder="Мессеж бичих..." maxlength="1000" autocomplete="off">
+          <button class="btn" onclick="sendMsg()" aria-label="Илгээх">➤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ЗАРЫН ДЭЛГЭРЭНГҮЙ ЦОНХ -->
 <div class="modal" id="adModal">
   <div class="box ad-box">
@@ -51,28 +86,6 @@
       <a class="btn btn-block" id="ad-call" href="#">☎ Залгах</a>
       <button class="btn btn-block btn-outline" id="ad-chat" onclick="chatFromAd()">💬 Чат бичих</button>
       <button class="btn btn-block btn-outline" id="ad-save" onclick="saveFromAd()">🔖 Хадгалах</button>
-    </div>
-  </div>
-</div>
-
-<!-- ЧАТ ЦОНХ -->
-<div class="modal" id="chatModal">
-  <div class="box chat-box">
-    <button class="modal-close" onclick="closeChat()">✕</button>
-    <div id="chat-list-view">
-      <h2>💬 Чат</h2>
-      <div id="chat-list"></div>
-    </div>
-    <div id="chat-thread-view" style="display:none">
-      <div class="chat-head">
-        <button class="chat-back" onclick="chatBack()" aria-label="Буцах">←</button>
-        <div><b id="chat-title"></b><div class="meta" id="chat-sub"></div></div>
-      </div>
-      <div class="chat-msgs" id="chat-msgs"></div>
-      <div class="chat-send">
-        <input id="chat-input" placeholder="Мессеж бичих..." maxlength="1000" autocomplete="off">
-        <button class="btn" onclick="sendMsg()" aria-label="Илгээх">➤</button>
-      </div>
     </div>
   </div>
 </div>
@@ -151,12 +164,20 @@
       </div>
 
       <div id="tab-profile" class="tab-body">
-        <div class="info-row"><span>Миний зарууд</span><b><span id="my-ads-count">0</span> <button class="btn btn-outline btn-sm" onclick="showMyAds()">Харах</button></b></div>
-        <div class="info-row"><span>Утас</span><b id="profile-phone">-</b></div>
-        <div class="info-row"><span>Байршил</span><b id="profile-loc">-</b></div>
-        <div class="info-row"><span>Google</span><b id="st-google">-</b></div>
-        <div class="info-row"><span>Facebook</span><b id="st-facebook">-</b></div>
-        <div class="info-row"><span>Бүртгүүлсэн</span><b id="profile-date">-</b></div>
+        <button class="my-ads-row" onclick="showMyAds()">
+          <span>📁 Миний зарууд</span><b><span id="my-ads-count">0</span> ›</b>
+        </button>
+        <div class="grp-title">Мэдээлэл</div>
+        <div class="info-group">
+          <div class="info-row"><span>Утас</span><b id="profile-phone">-</b></div>
+          <div class="info-row"><span>Байршил</span><b id="profile-loc">-</b></div>
+          <div class="info-row"><span>Бүртгүүлсэн</span><b id="profile-date">-</b></div>
+        </div>
+        <div class="grp-title">Холбосон бүртгэл</div>
+        <div class="info-group">
+          <div class="info-row"><span>Google</span><b id="st-google">-</b></div>
+          <div class="info-row"><span>Facebook</span><b id="st-facebook">-</b></div>
+        </div>
       </div>
 
       <div id="tab-settings" class="tab-body" style="display:none">

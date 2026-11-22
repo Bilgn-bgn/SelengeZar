@@ -11,7 +11,7 @@ const CATS = ["Бүгд", "Утас", "Машин", "Байр", "Тавилга"
 
 const $ = id => document.getElementById(id);
 // ---------- Цонхны удирдлага: нэг дор зөвхөн нэг цонх, цаад талын хуудас гүйхгүй ----------
-const MODAL_IDS = ["modal", "adModal", "chatModal", "profileModal", "verifyModal"];
+const MODAL_IDS = ["modal", "adModal", "profileModal", "verifyModal"];
 function closeAllModals() { MODAL_IDS.forEach(id => $(id).classList.remove("open")); }
 function syncScrollLock() {
   const anyOpen = MODAL_IDS.some(id => $(id).classList.contains("open"));
@@ -131,6 +131,7 @@ async function load() {
   }
   render();
   updateMyCount();
+  if (document.body.dataset.page === "mine") renderMine();
 }
 
 let view = "all", statusText = "";
@@ -172,40 +173,16 @@ function toggleSave(id) {
   localStorage.setItem("savedAds", JSON.stringify(on ? [id, ...cur] : cur.filter(x => x !== id)));
   toast(on ? "🔖 Хадгаллаа" : "Хадгалснаас хаслаа");
   render();
+  if (document.body.dataset.page === "mine") renderMine();
   syncAdSaveBtn();
 }
 function myAds() { return myUid ? ads.filter(a => a.user_id && String(a.user_id) === String(myUid)) : []; }
 function updateMyCount() { const el = $("my-ads-count"); if (el) el.textContent = myAds().length; }
-function showMyAds() {
-  closeAllModals();
-  setActiveNav(document.querySelector(".bottom-nav .nav-item"));
-  view = "mine";
-  render();
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
+function showMyAds() { go("#/mine"); }
 const findAd = id => ads.find(a => String(a.id) === String(id));
 
-function render() {
-  const q = ($("q").value || "").trim().toLowerCase();
-  const saved = savedIds();
-  const list = ads.filter(a =>
-    (view !== "saved" || saved.includes(String(a.id))) &&
-    (view !== "mine" || (myUid && a.user_id && String(a.user_id) === String(myUid))) &&
-    (cat === "Бүгд" || (a.cat || "Бусад") === cat) &&
-    [a.title, a.description, a.loc].some(t => (t || "").toLowerCase().includes(q))
-  );
-  $("status").textContent = view === "saved" ? "🔖 Хадгалсан зар: " + list.length
-    : view === "mine" ? "📁 Миний зарууд: " + list.length : statusText;
-  const g = $("grid");
-  if (!list.length) {
-    g.innerHTML = view === "saved"
-      ? "<div class='empty'>Хадгалсан зар алга. Зар дээрх 🔖 товчийг дарж хадгална уу.</div>"
-      : view === "mine"
-      ? "<div class='empty'>Таны оруулсан зар алга. «Зар нэмэх» товчоор зар оруулна уу.</div>"
-      : "<div class='empty'>Одоогоор зар алга. Эхлээд зар оруулаарай.</div>";
-    return;
-  }
-  g.innerHTML = list.map(a => `
+function cardHTML(a) {
+  return `
     <div class="card" data-id="${esc(a.id)}">
       <div class="card-img">
         <img src="${esc(a.img || DEFAULT_IMG)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
@@ -218,15 +195,45 @@ function render() {
         <div class="meta desc">${esc(a.description)}</div>
         <div class="time">🕒 ${esc(timeAgo(a.created_at))}</div>
       </div>
-    </div>`).join("");
+    </div>`;
 }
 
-$("grid").addEventListener("click", e => {
+function render() {
+  const q = ($("q").value || "").trim().toLowerCase();
+  const saved = savedIds();
+  const list = ads.filter(a =>
+    (view !== "saved" || saved.includes(String(a.id))) &&
+    (cat === "Бүгд" || (a.cat || "Бусад") === cat) &&
+    [a.title, a.description, a.loc].some(t => (t || "").toLowerCase().includes(q))
+  );
+  $("status").textContent = view === "saved" ? "🔖 Хадгалсан зар: " + list.length : statusText;
+  const g = $("grid");
+  if (!list.length) {
+    g.innerHTML = view === "saved"
+      ? "<div class='empty'>Хадгалсан зар алга. Зар дээрх 🔖 товчийг дарж хадгална уу.</div>"
+      : "<div class='empty'>Одоогоор зар алга. Эхлээд зар оруулаарай.</div>";
+    return;
+  }
+  g.innerHTML = list.map(cardHTML).join("");
+}
+
+// ---------- "Миний зарууд" хуудас ----------
+function renderMine() {
+  const list = myAds();
+  $("mine-title").textContent = "📁 Миний зарууд (" + list.length + ")";
+  $("mine-grid").innerHTML = !isLoggedIn()
+    ? "<div class='empty'>Зараа харахын тулд нэвтэрнэ үү.</div>"
+    : list.length
+      ? list.map(cardHTML).join("")
+      : "<div class='empty'>Таны оруулсан зар алга. «Зар нэмэх» товчоор зар оруулна уу.</div>";
+}
+
+["grid", "mine-grid"].forEach(gid => $(gid).addEventListener("click", e => {
   const sv = e.target.closest("[data-save]");
   if (sv) { e.stopPropagation(); toggleSave(sv.dataset.save); return; }
   const card = e.target.closest(".card");
   if (card) openAd(card.dataset.id);
-});
+}));
 
 // ---------- Зарын дэлгэрэнгүй ----------
 let curAd = null;
@@ -262,8 +269,8 @@ function chatFromAd() {
   if (curAd.user_id === myUid) { toast("Энэ таны өөрийн зар байна"); return; }
   const a = curAd;
   closeAd();
+  pendingThread = [String(a.id), a.title || "Зар", a.user_id, "Зарын эзэн"];
   openChat();
-  openThread(String(a.id), a.title || "Зар", a.user_id, "Зарын эзэн");
 }
 
 // ---------- Зар оруулах цонх ----------
@@ -505,8 +512,7 @@ function openProfile() {
 function closeProfile() {
   localStorage.removeItem("wantPost");
   $("profileModal").classList.remove("open");
-  const home = document.querySelector(".bottom-nav .nav-item");
-  if (home) setActiveNav(home);
+  syncNav();
 }
 
 async function saveSettings() {
@@ -849,33 +855,24 @@ function stopChat(keepUid) {
 
 function onIncoming(payload) {
   const m = payload.new;
-  const open = $("chatModal").classList.contains("open");
-  const inThread = open && chatCur && String(m.ad_id) === chatCur.adId && m.sender_id === chatCur.otherId;
+  const onChat = document.body.dataset.page === "chat";
+  const inThread = onChat && chatCur && String(m.ad_id) === chatCur.adId && m.sender_id === chatCur.otherId;
   if (inThread) {
     appendBubble(m);
     markRead(chatCur.adId, chatCur.otherId);
   } else {
     refreshBadge();
-    if (open && $("chat-thread-view").style.display === "none") loadConversations();
-    else if (!open) toast("💬 Шинэ мессеж ирлээ");
+    if (onChat) loadConversations();
+    else toast("💬 Шинэ мессеж ирлээ");
   }
 }
 
-function openChat() {   // мессеж байхгүй ч, нэвтрээгүй ч нээгдэнэ
-  closeAllModals();
-  $("chatModal").classList.add("open");
-  chatBack();
-}
-function closeChat() {
-  $("chatModal").classList.remove("open");
-  chatCur = null;
-  const home = document.querySelector(".bottom-nav .nav-item");
-  if (home) setActiveNav(home);
-}
+function openChat() { go("#/chat"); }   // мессеж байхгүй ч, нэвтрээгүй ч нээгдэнэ
 function chatBack() {
   chatCur = null;
+  $("chat-layout").classList.remove("in-thread");
   $("chat-thread-view").style.display = "none";
-  $("chat-list-view").style.display = "block";
+  $("chat-placeholder").style.display = "";
   loadConversations();
 }
 
@@ -921,7 +918,8 @@ $("chat-list").addEventListener("click", e => {
 
 async function openThread(adId, title, otherId, sub) {
   chatCur = { adId: String(adId), adTitle: title, otherId };
-  $("chat-list-view").style.display = "none";
+  $("chat-layout").classList.add("in-thread");
+  $("chat-placeholder").style.display = "none";
   $("chat-thread-view").style.display = "block";
   $("chat-title").textContent = title;
   $("chat-sub").textContent = sub || "";
@@ -999,30 +997,50 @@ function setActiveNav(btn) {
   document.querySelectorAll(".nav-item").forEach(x => x.classList.remove("active"));
   if (btn) btn.classList.add("active");
 }
+function syncNav() {
+  const page = document.body.dataset.page || "home";
+  const items = document.querySelectorAll(".bottom-nav .nav-item");
+  const idx = page === "chat" ? 3 : page === "mine" ? 4 : (view === "saved" ? 1 : 0);
+  setActiveNav(items[idx]);
+}
+
+// ---------- Хуудас солих (hash router): #/ нүүр, #/mine миний зарууд, #/chat чат ----------
+let pendingThread = null;
+function go(hash) {
+  if (location.hash === hash || (hash === "#/" && (location.hash === "" || location.hash === "#"))) route();
+  else location.hash = hash;
+}
+function route() {
+  closeAllModals();
+  const h = location.hash;
+  const page = h.startsWith("#/chat") ? "chat" : h.startsWith("#/mine") ? "mine" : "home";
+  document.body.dataset.page = page;
+  ["home", "mine", "chat"].forEach(p => { $("page-" + p).hidden = p !== page; });
+  if (page === "mine") renderMine();
+  if (page === "chat") {
+    if (pendingThread && sb && myUid) { const t = pendingThread; pendingThread = null; openThread(...t); }
+    else { pendingThread = null; chatBack(); }
+  }
+  syncNav();
+  window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", route);
 
 function goHome(btn) {
-  closeAllModals();
-  setActiveNav(btn);
   view = "all";
   cat = "Бүгд";
   document.querySelectorAll(".cat").forEach(x => x.classList.toggle("active", x.textContent === "Бүгд"));
   $("q").value = "";
   render();
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  go("#/");
 }
 function goSaved(btn) {
-  closeAllModals();
-  setActiveNav(btn);
   view = "saved";
   render();
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  go("#/");
 }
-function goChat(btn) {
-  setActiveNav(btn);
-  openChat();
-}
+function goChat(btn) { go("#/chat"); }
 function goProfile(btn) {
-  setActiveNav(btn);
   openProfile();
 }
 
@@ -1038,4 +1056,5 @@ document.addEventListener("keydown", e => {
 const lockObserver = new MutationObserver(syncScrollLock);
 MODAL_IDS.forEach(id => lockObserver.observe($(id), { attributes: true, attributeFilter: ["class"] }));
 
+route();
 load();
