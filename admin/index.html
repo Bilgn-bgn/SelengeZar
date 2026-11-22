@@ -54,6 +54,8 @@ tr:last-child td{border-bottom:0}
 .tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:800;background:var(--s2);border:1px solid var(--line2);color:var(--ink2);margin-right:4px}
 .tag.ok{background:var(--soft);color:var(--brand);border-color:transparent}.tag.gold{background:#FFF1CC;color:#7A4E00;border-color:transparent}
 .tag.bad{background:var(--dsoft);color:var(--danger);border-color:transparent}
+.uav{width:36px;height:36px;border-radius:50%;object-fit:cover;background:var(--soft);flex:none}
+.uname{display:flex;align-items:center;gap:10px}
 .acts{display:flex;gap:6px;flex-wrap:wrap}
 .empty{padding:24px;text-align:center;color:var(--muted)}
 /* modal */
@@ -68,7 +70,7 @@ tr:last-child td{border-bottom:0}
 .clist{overflow-y:auto;flex:1}
 .citem{display:flex;gap:10px;align-items:center;width:100%;padding:10px 12px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;cursor:pointer}
 .citem:hover,.citem.on{background:var(--soft)}
-.citem .av,.chead .av{flex:0 0 36px;width:36px;height:36px;border-radius:50%;background:var(--soft);color:var(--brand);display:grid;place-items:center;font-weight:800}
+.citem .av,.chead .av{object-fit:cover;flex:0 0 36px;width:36px;height:36px;border-radius:50%;background:var(--soft);color:var(--brand);display:grid;place-items:center;font-weight:800}
 .citem .cm{flex:1;min-width:0}.citem .cm b,.citem .cm span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .citem .cm span{color:var(--muted);font-size:12.5px}
 .udot{min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:#E5484D;color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center}
@@ -132,6 +134,7 @@ tr:last-child td{border-bottom:0}
 const SUPABASE_URL = "https://ocjpkwlkwtvqjpnwnfes.supabase.co";
 const KEY = "sb_publishable_ZIYp3CB6jyjXzaBxdQv1Dw_rpfE1s21";
 const EMAIL_DOMAIN = "selengezar.mn";            // "admin" -> admin@selengezar.mn
+const DEFAULT_AV = "data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2096%2096%27%3E%3Crect%20width=%2796%27%20height=%2796%27%20fill=%27%23E2F2EE%27/%3E%3Ccircle%20cx=%2748%27%20cy=%2737%27%20r=%2716%27%20fill=%27%230E6B5C%27/%3E%3Cpath%20d=%27M15%2096c0-19%2015-31%2033-31s33%2012%2033%2031z%27%20fill=%27%230E6B5C%27/%3E%3C/svg%3E";
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const sb = supabase.createClient(SUPABASE_URL, KEY, { auth: { storageKey: "sz-admin-auth", persistSession: true, autoRefreshToken: true } });
@@ -286,7 +289,7 @@ function drawUsers() {
   const q = $("uq").value.trim().toLowerCase();
   const list = users.filter(u => !q || [u.name, u.email, u.phone].some(t => String(t || "").toLowerCase().includes(q)));
   $("ulist").innerHTML = list.length ? `<div class="tbl"><table><thead><tr><th>Нэр</th><th>И-мэйл / Утас</th><th>Нэвтрэлт</th><th>Бүртгүүлсэн</th><th>Сүүлд</th><th>Зар</th><th></th></tr></thead><tbody>${list.map(u => `<tr>
-    <td><b>${esc(u.name || "—")}</b> ${u.banned ? '<span class="tag bad">Хоригдсон</span>' : ""}</td>
+    <td><div class="uname"><img class="uav" src="${esc(u.avatar || DEFAULT_AV)}" alt="" onerror="this.onerror=null;this.src=DEFAULT_AV"><span><b>${esc(u.name || "—")}</b> ${u.banned ? '<span class="tag bad">Хоригдсон</span>' : ""}</span></div></td>
     <td>${esc(u.email || "")}${u.email && u.phone ? "<br>" : ""}${esc(u.phone || "")}</td>
     <td>${esc(u.provider || "")}</td><td>${fmt(u.created_at)}</td><td>${fmt(u.last_sign_in_at)}</td><td>${u.ads_count}</td>
     <td><div class="acts"><button class="btn sm primary" data-act="chat-user" data-id="${esc(u.id)}">Чат</button><button class="btn sm" data-act="edit-user" data-id="${esc(u.id)}">Засах</button>
@@ -346,7 +349,7 @@ function editAd(a) {
   }, "Хадгаллаа");
 }
 function editUser(u) {
-  modal(`<h3>Хэрэглэгч засах</h3><p style="color:var(--muted);margin:0">${esc(u.email || u.phone || u.id)}</p>
+  modal(`<h3>Хэрэглэгч засах</h3><img class="uav" style="width:64px;height:64px;margin:6px 0" src="${esc(u.avatar || DEFAULT_AV)}" alt="" onerror="this.onerror=null;this.src=DEFAULT_AV"><p style="color:var(--muted);margin:0">${esc(u.email || u.phone || u.id)}</p>
     <label>Нэр</label><input id="m-name" value="${esc(u.name || "")}">
     <label class="chk"><input type="checkbox" id="m-ban"${u.banned ? " checked" : ""}> Хориглох (нэвтэрч чадахгүй)</label>
     <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn primary" id="m-save">Хадгалах</button></div>`);
@@ -362,6 +365,7 @@ function delUser(u) {
 // ---------- Чат ----------
 let cmsgs = [], cother = null, cpoll = null;
 const uname = id => { const u = (users || []).find(x => x.id === id); return u ? (u.name || u.email || u.phone || id.slice(0, 8)) : id.slice(0, 8); };
+const avOf = id => { const u = (users || []).find(x => x.id === id); return (u && u.avatar) || DEFAULT_AV; };
 const ini = t => (String(t || "?").trim().charAt(0) || "?").toUpperCase();
 const hm = iso => { const d = new Date(iso); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
 async function loadMsgs() {
@@ -404,7 +408,7 @@ function renderChat() {
       .map(u => ({ id: u.id, last: null, unread: 0 }));
   } else items = convList();
   $("clist").innerHTML = items.length ? items.map(c => `<button class="citem${c.id === cother ? " on" : ""}" data-uid="${esc(c.id)}">
-      <span class="av">${esc(ini(uname(c.id)))}</span>
+      <img class="av" src="${esc(avOf(c.id))}" alt="" onerror="this.onerror=null;this.src=DEFAULT_AV">
       <span class="cm"><b>${esc(uname(c.id))}</b><span>${c.last ? (c.last.sender_id === adminId ? "Та: " : "") + esc(c.last.body) : "Чат эхлэх"}</span></span>
       ${c.unread ? `<span class="udot">${c.unread}</span>` : ""}</button>`).join("")
     : '<div class="empty">Яриа алга. Дээрх хайлтаар хэрэглэгч сонгож эсвэл «Бүх хэрэглэгчид бичих» товчийг ашиглана уу.</div>';
@@ -415,7 +419,7 @@ function renderThread() {
   wrap.classList.toggle("thread", !!cother);
   if (!cother) { main.innerHTML = '<div class="empty" style="margin:auto">Зүүн талаас хэрэглэгч сонгоно уу</div>'; return; }
   if (!$("cinput")) {
-    main.innerHTML = `<div class="chead"><button class="btn sm cback" id="cback">←</button><span class="av">${esc(ini(uname(cother)))}</span><b>${esc(uname(cother))}</b></div>
+    main.innerHTML = `<div class="chead"><button class="btn sm cback" id="cback">←</button><img class="av" src="${esc(avOf(cother))}" alt="" onerror="this.onerror=null;this.src=DEFAULT_AV"><b>${esc(uname(cother))}</b></div>
       <div class="cmsgs" id="cmsgs"></div>
       <div class="csend"><input id="cinput" placeholder="Мессеж бичих..." maxlength="1000" autocomplete="off"><button class="btn primary" id="csend">Илгээх</button></div>`;
     $("cback").onclick = () => { cother = null; main.innerHTML = ""; renderChat(); };
