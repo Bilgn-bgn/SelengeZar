@@ -83,6 +83,15 @@ tr:last-child td{border-bottom:0}
 .csend input{flex:1}
 .cback{display:none}
 @media(max-width:760px){.chatwrap{grid-template-columns:1fr}.chatwrap.thread .cside{display:none}.chatwrap:not(.thread) .cmain{display:none}.cback{display:inline-flex}}
+.me{display:flex;align-items:center;gap:8px;border:1px solid var(--line2);background:var(--surface);border-radius:99px;padding:3px 12px 3px 3px;cursor:pointer;font-weight:700;font-size:13px}
+.me:hover{border-color:var(--brand)}
+.mav{width:30px;height:30px;border-radius:50%;background:var(--soft);color:var(--brand);display:grid;place-items:center;font-weight:800;overflow:hidden;background-size:cover;background-position:center}
+.pavwrap{position:relative;width:96px;height:96px;margin:6px auto 4px}
+.pav{width:96px;height:96px;font-size:34px}
+.pavwrap .mav{width:96px;height:96px;font-size:36px}
+.pedit{position:absolute;right:-2px;top:-2px;width:30px;height:30px;border-radius:50%;border:2px solid var(--surface);background:var(--brand);color:#fff;display:grid;place-items:center;cursor:pointer}
+.pedit svg{width:15px;height:15px}
+@media(max-width:600px){#mname{display:none}.me{padding-right:3px}}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:30}
 #toast.show{opacity:1}
 @media(max-width:600px){.row2{grid-template-columns:1fr}}
@@ -104,7 +113,7 @@ tr:last-child td{border-bottom:0}
 </div>
 
 <div id="app" hidden>
-  <header><h1>Selenge<span>Zar</span> · Админ</h1><a class="btn sm" href="/" target="_blank" style="text-decoration:none;color:inherit">Сайт харах</a><button class="btn sm" id="logout">Гарах</button></header>
+  <header><h1>Selenge<span>Zar</span> · Админ</h1><button class="me" id="me" title="Профайл засах"><span class="mav" id="mav"></span><span id="mname"></span></button><a class="btn sm" href="/" target="_blank" style="text-decoration:none;color:inherit">Сайт харах</a><button class="btn sm" id="logout">Гарах</button></header>
   <nav id="tabs">
     <button data-tab="dash" class="on">Самбар</button>
     <button data-tab="ads">Зарууд</button>
@@ -127,7 +136,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const sb = supabase.createClient(SUPABASE_URL, KEY, { auth: { storageKey: "sz-admin-auth", persistSession: true, autoRefreshToken: true } });
 
-let ads = [], users = null, stats = null, tab = "dash", adminId = null;
+let meName = "", meAvatar = "", ads = [], users = null, stats = null, tab = "dash", adminId = null;
 const isFeat = a => a.featured === true && (!a.featured_until || new Date(a.featured_until) > new Date());
 const fmt = iso => { if (!iso) return "—"; const d = new Date(iso); return isNaN(d) ? "—" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
 const code = id => "ZAR-" + (String(id).length > 8 ? String(id).replace(/-/g, "").slice(0, 6).toUpperCase() : id);
@@ -144,6 +153,7 @@ async function enter(session) {
   catch (e) { await sb.auth.signOut().catch(() => {}); return "Админ эрх шалгахад алдаа: " + e.message + " (admin-setup.sql ажилласан эсэхээ шалгана уу)"; }
   if (!ok) { await sb.auth.signOut().catch(() => {}); return "Энэ хэрэглэгчид админы эрх олгогдоогүй байна (admins хүснэгтэд нэмсэн эсэхээ шалгана уу)"; }
   adminId = session.user && session.user.id;
+  setMe(session.user);
   $("login").hidden = true; $("app").hidden = false;
   await refresh();
   startChatPoll();
@@ -451,6 +461,67 @@ function broadcastModal() {
     catch (e) { toast("Алдаа: " + e.message + " (admin-chat.sql ажилласан эсэхээ шалгана уу)"); $("m-bcsend").disabled = false; }
   };
 }
+
+// ---------- Админы профайл: нэр, зураг ----------
+function setMe(u) {
+  const m = (u && u.user_metadata) || {};
+  meName = m.display_name || ((u && u.email) || "admin").split("@")[0];
+  meAvatar = m.avatar_url || "";
+  $("mname").textContent = meName;
+  paintAv($("mav"), meAvatar, meName);
+}
+function paintAv(el, url, name) {
+  el.style.backgroundImage = url ? 'url("' + url.replace(/"/g, "%22") + '")' : "";
+  el.textContent = url ? "" : (String(name || "A").trim().charAt(0) || "A").toUpperCase();
+}
+function squareJpeg(file, size) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onerror = () => reject(new Error("Зургийг уншиж чадсангүй"));
+    img.onload = () => {
+      const c = document.createElement("canvas"); c.width = c.height = size;
+      const side = Math.min(img.width, img.height);
+      c.getContext("2d").drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => b ? resolve(b) : reject(new Error("Зураг боловсруулахад алдаа")), "image/jpeg", 0.86);
+    };
+    img.src = url;
+  });
+}
+$("me").onclick = () => {
+  let newFile = null;
+  modal(`<h3>Миний профайл</h3>
+    <div class="pavwrap"><span class="mav" id="pav"></span>
+      <label class="pedit" title="Зураг солих"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
+      <input type="file" id="pfile" accept="image/*" hidden></label></div>
+    <label>Нэр</label><input id="pname" maxlength="40" value="${esc(meName)}">
+    <div class="err" id="perr"></div>
+    <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn primary" id="psave">Хадгалах</button></div>`);
+  paintAv($("pav"), meAvatar, meName);
+  $("pfile").onchange = e => {
+    newFile = e.target.files[0] || null;
+    if (newFile) { $("pav").style.backgroundImage = 'url("' + URL.createObjectURL(newFile) + '")'; $("pav").textContent = ""; }
+  };
+  $("psave").onclick = async () => {
+    const name = $("pname").value.trim(), btn = $("psave"), err = $("perr");
+    if (!name) { err.textContent = "Нэрээ бичнэ үү"; return; }
+    btn.disabled = true; err.textContent = "Хадгалж байна...";
+    try {
+      let avatar = meAvatar;
+      if (newFile) {
+        const blob = await squareJpeg(newFile, 320);
+        const fn = "admin-avatar-" + Date.now() + ".jpg";
+        const up = await fetch(SUPABASE_URL + "/storage/v1/object/ads-images/" + fn, {
+          method: "POST", headers: { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "image/jpeg" }, body: blob });
+        if (!up.ok) throw new Error("Зураг хуулахад алдаа: " + await up.text());
+        avatar = SUPABASE_URL + "/storage/v1/object/public/ads-images/" + fn;
+      }
+      const { data, error } = await sb.auth.updateUser({ data: { display_name: name, avatar_url: avatar } });
+      if (error) throw new Error(error.message);
+      setMe(data.user); closeModal(); toast("Профайл хадгалагдлаа");
+    } catch (ex) { err.textContent = ex.message; btn.disabled = false; }
+  };
+};
 </script>
 </body>
 </html>
