@@ -172,6 +172,15 @@ header{
 .settings-actions{display:flex;gap:10px;margin-top:12px}
 .settings-actions .btn{flex:1}
 
+/* ---------- Бодлого / нөхцлийн хуудас ---------- */
+.doc{max-width:760px;line-height:1.7;padding-top:28px}
+.doc h1{font-size:28px;margin:0 0 4px}
+.doc h2{font-size:18px;margin:26px 0 8px;color:#22c55e}
+.doc ul{padding-left:20px}
+.doc a{color:#4ade80}
+.doc .updated{color:#9ca3af;font-size:13px;margin:0 0 18px}
+.foot a{color:#9ca3af;text-decoration:underline}
+
 /* ---------- Bottom nav ---------- */
 .bottom-nav{
   position:fixed;left:0;right:0;bottom:0;z-index:300;
