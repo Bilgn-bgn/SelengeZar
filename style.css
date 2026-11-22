@@ -342,6 +342,7 @@ html:has(body[data-page="ad"]),html:has(body[data-page="profile"]){overflow:hidd
 /* ---------- Профайл ---------- */
 .profile-head{text-align:center;padding-bottom:14px}
 .avatar-wrap{position:relative;width:68px;height:68px;margin:0 auto 10px}
+.avatar{background-position:center!important;background-size:cover!important;background-repeat:no-repeat!important}
 .avatar{
   width:68px;height:68px;margin:0;border-radius:50%;
   background:var(--brand-soft) center/cover no-repeat;color:var(--brand);
@@ -397,8 +398,8 @@ body[data-page="chat"]{overflow:hidden;padding-bottom:0}
 .chat-item{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;font:inherit}
 .chat-item:last-child{border-bottom:0}
 .chat-item:hover{background:var(--brand-soft)}
-.avatar{flex:0 0 42px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand);font-weight:800;font-size:16px}
-.avatar.admin{background:var(--brand);color:var(--on-brand)}
+.cav{flex:0 0 42px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand);font-weight:800;font-size:16px}
+.cav.admin{background:var(--brand);color:var(--on-brand)}
 .ci-main{flex:1;min-width:0}
 .ci-title{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ci-last{color:var(--muted);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -410,7 +411,7 @@ body[data-page="chat"]{overflow:hidden;padding-bottom:0}
 #chat-thread-view{flex:1;min-height:0;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;margin-bottom:12px}
 .chat-head{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
 .chat-who{min-width:0}.chat-who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chat-head .avatar{flex-basis:36px;width:36px;height:36px;font-size:14px}
+.chat-head .cav{flex-basis:36px;width:36px;height:36px;font-size:14px}
 .chat-head .meta{font-size:12.5px;margin:0}
 .chat-msgs{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:14px 12px;background:var(--surface-2)}
 .bubble{max-width:80%;padding:9px 13px;border-radius:18px;font-size:14.5px;line-height:1.45;word-break:break-word;white-space:pre-wrap}
@@ -542,4 +543,4 @@ body[data-page="chat"]{overflow:hidden;padding-bottom:0}
 .feat-track img{-webkit-user-drag:none;user-select:none}
 @media(min-width:640px){.feat-track{--per:3;--gap:14px}}
 @media(min-width:900px){.feat-track{--per:4;--gap:16px}}
-.avatar.img{background-size:cover;background-position:center;background-color:var(--line);color:transparent}
+.cav.img{background-size:cover;background-position:center;background-color:var(--line);color:transparent}

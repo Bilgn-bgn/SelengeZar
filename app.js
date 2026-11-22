@@ -6,6 +6,8 @@ const KEY = "sb_publishable_ZIYp3CB6jyjXzaBxdQv1Dw_rpfE1s21";
 const API = SUPABASE_URL + "/rest/v1/ads";
 const BUCKET = "ads-images";
 const DEFAULT_IMG = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600";
+// Зураг оруулаагүй хэрэглэгчийн анхдагч зураг
+const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2096%2096%27%3E%3Crect%20width=%2796%27%20height=%2796%27%20fill=%27%23E2F2EE%27/%3E%3Ccircle%20cx=%2748%27%20cy=%2737%27%20r=%2716%27%20fill=%27%230E6B5C%27/%3E%3Cpath%20d=%27M15%2096c0-19%2015-31%2033-31s33%2012%2033%2031z%27%20fill=%27%230E6B5C%27/%3E%3C/svg%3E";
 const DEFAULT_LOC = "Сүхбаатар, Сэлэнгэ";
 // Онцлох зарын төлбөр (өөрчлөхдөө энд засна)
 const PAY = { bank: "Хаан банк", account: "5688106076", name: "Билгүүн", price: 5000, days: 7 };
@@ -913,14 +915,9 @@ function backToPhone() {
 // ---------- Профайл зураг ----------
 function renderAvatar(displayName) {
   const av = $("profile-avatar");
-  const url = localStorage.getItem("userAvatar") || "";
-  if (url) {
-    av.style.backgroundImage = 'url("' + url.replace(/"/g, "%22") + '")';
-    av.textContent = "";
-  } else {
-    av.style.backgroundImage = "";
-    av.textContent = (displayName || "?").charAt(0).toUpperCase();
-  }
+  const url = localStorage.getItem("userAvatar") || DEFAULT_AVATAR;
+  av.style.backgroundImage = 'url("' + url.replace(/"/g, "%22") + '")';
+  av.textContent = "";
 }
 function pickAvatar() { $("avatar-file").click(); }
 function squareJpeg(file, size) {
@@ -1129,7 +1126,7 @@ const adminProfP = fetch(SUPABASE_URL + "/rest/v1/site_profile?select=name,avata
 const convTitle = (adId, t) => String(adId) === "admin" && adminProf && adminProf.name ? adminProf.name : t;
 function avatarHTML(adId, title) {
   const adm = String(adId) === "admin", url = adm && adminProf && adminProf.avatar_url;
-  return `<span class="avatar${adm ? " admin" : ""}${url ? " img" : ""}"${url ? ` style="background-image:url('${esc(url)}')"` : ""}>${url ? "" : esc(initialOf(title))}</span>`;
+  return `<span class="cav${adm ? " admin" : ""}${url ? " img" : ""}"${url ? ` style="background-image:url('${esc(url)}')"` : ""}>${url ? "" : esc(initialOf(title))}</span>`;
 }
 const initialOf = t => (String(t || "?").replace(/^[^\p{L}\p{N}]+/u, "").charAt(0) || "?").toUpperCase();
 async function loadConversations() {
