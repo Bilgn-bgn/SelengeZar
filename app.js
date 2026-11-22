@@ -181,11 +181,13 @@ function updateMyCount() { const el = $("my-ads-count"); if (el) el.textContent 
 function showMyAds() { go("#/mine"); }
 const findAd = id => ads.find(a => String(a.id) === String(id));
 
-function cardHTML(a) {
+function cardHTML(a, opts) {
+  const feat = a.featured === true;
   return `
-    <div class="card" data-id="${esc(a.id)}">
+    <div class="card${feat ? " featured" : ""}" data-id="${esc(a.id)}">
       <div class="card-img">
         <img src="${esc(a.img || DEFAULT_IMG)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
+        ${feat ? '<span class="feat-badge">⭐ Онцлох</span>' : ""}
         <button class="save-btn${isSaved(a.id) ? " on" : ""}" data-save="${esc(a.id)}" aria-label="Хадгалах">🔖</button>
       </div>
       <div class="card-body">
@@ -195,26 +197,34 @@ function cardHTML(a) {
         <div class="meta desc">${esc(a.description)}</div>
         <div class="time">🕒 ${esc(timeAgo(a.created_at))}</div>
       </div>
+      ${opts && opts.edit ? `<button class="edit-btn" data-edit="${esc(a.id)}">✏️ Зар засах</button>` : ""}
     </div>`;
 }
 
 function render() {
   const q = ($("q").value || "").trim().toLowerCase();
   const saved = savedIds();
-  const list = ads.filter(a =>
+  const base = ads.filter(a =>
     (view !== "saved" || saved.includes(String(a.id))) &&
     (cat === "Бүгд" || (a.cat || "Бусад") === cat) &&
     [a.title, a.description, a.loc].some(t => (t || "").toLowerCase().includes(q))
   );
-  $("status").textContent = view === "saved" ? "🔖 Хадгалсан зар: " + list.length : statusText;
+  // Онцлох зарууд нүүрэнд тусдаа хэсэгт (хадгалсан харагдацад бүгд нэг дор)
+  const feat = view === "saved" ? [] : base.filter(a => a.featured === true);
+  const main = view === "saved" ? base : base.filter(a => a.featured !== true);
+
+  $("status").textContent = view === "saved" ? "🔖 Хадгалсан зар: " + base.length : statusText;
+  $("featured-wrap").hidden = !feat.length;
+  $("featured-grid").innerHTML = feat.map(a => cardHTML(a)).join("");
+
   const g = $("grid");
-  if (!list.length) {
+  if (!base.length) {
     g.innerHTML = view === "saved"
       ? "<div class='empty'>Хадгалсан зар алга. Зар дээрх 🔖 товчийг дарж хадгална уу.</div>"
       : "<div class='empty'>Одоогоор зар алга. Эхлээд зар оруулаарай.</div>";
     return;
   }
-  g.innerHTML = list.map(cardHTML).join("");
+  g.innerHTML = main.map(a => cardHTML(a)).join("");
 }
 
 // ---------- "Миний зарууд" хуудас ----------
@@ -224,11 +234,13 @@ function renderMine() {
   $("mine-grid").innerHTML = !isLoggedIn()
     ? "<div class='empty'>Зараа харахын тулд нэвтэрнэ үү.</div>"
     : list.length
-      ? list.map(cardHTML).join("")
+      ? list.map(a => cardHTML(a, { edit: true })).join("")
       : "<div class='empty'>Таны оруулсан зар алга. «Зар нэмэх» товчоор зар оруулна уу.</div>";
 }
 
-["grid", "mine-grid"].forEach(gid => $(gid).addEventListener("click", e => {
+["grid", "featured-grid", "mine-grid"].forEach(gid => $(gid).addEventListener("click", e => {
+  const ed = e.target.closest("[data-edit]");
+  if (ed) { e.stopPropagation(); editAd(ed.dataset.edit); return; }
   const sv = e.target.closest("[data-save]");
   if (sv) { e.stopPropagation(); toggleSave(sv.dataset.save); return; }
   const card = e.target.closest(".card");
@@ -284,12 +296,41 @@ function openModal() {
     openVerify();
     return;
   }
+  if (editingId) { resetAdForm(); setFormMode(null); }   // өмнөх засварын үлдэгдэл арилгана
   const ph = localStorage.getItem("userPhone");
   if (ph && !$("f-phone").value) $("f-phone").value = ph;
   closeAllModals();
   $("modal").classList.add("open");
 }
-function closeModal() { $("modal").classList.remove("open"); }
+function closeModal() {
+  $("modal").classList.remove("open");
+  if (editingId) { resetAdForm(); setFormMode(null); }
+}
+
+// ---------- Зар засах ----------
+let editingId = null;
+function setFormMode(id) {
+  editingId = id;
+  $("ad-form-title").textContent = id ? "Зар засах" : "Шинэ зар оруулах";
+  $("publishBtn").textContent = id ? "Хадгалах" : "Зар нийтлэх";
+}
+function editAd(id) {
+  const a = findAd(id);
+  if (!a) return;
+  if (!myUid || String(a.user_id) !== String(myUid)) { toast("Зөвхөн өөрийн зарыг засна"); return; }
+  closeAllModals();
+  resetAdForm();
+  setFormMode(String(a.id));
+  $("f-title").value = a.title || "";
+  $("f-price").value = a.price ?? "";
+  $("f-cat").value = a.cat || "Бусад";
+  $("f-phone").value = a.phone || "";
+  $("f-loc").value = a.loc || "";
+  $("f-desc").value = a.description || "";
+  if (a.img) { $("preview").src = a.img; $("preview").style.display = "block"; }
+  $("err").textContent = "Зураг солихгүй бол хуучнаараа үлдэнэ.";
+  $("modal").classList.add("open");
+}
 
 function resetAdForm() {
   ["f-title", "f-price", "f-phone", "f-loc", "f-desc"].forEach(id => $(id).value = "");
@@ -345,16 +386,16 @@ function compressImage(f) {
 
 $("publishBtn").onclick = async () => {
   const err = $("err"), btn = $("publishBtn");
-  if (!isPhoneVerified()) { closeModal(); openVerify(); return; }
+  if (!editingId && !isPhoneVerified()) { closeModal(); openVerify(); return; }
   const title = $("f-title").value.trim();
   const price = $("f-price").value.trim();
   if (!title) { err.textContent = "Нэрийг бичнэ үү"; return; }
   if (!price) { err.textContent = "Үнийг бичнэ үү"; return; }
 
   btn.disabled = true;
-  err.textContent = "Зар оруулж байна...";
+  err.textContent = editingId ? "Хадгалж байна..." : "Зар оруулж байна...";
   try {
-    let imgUrl = DEFAULT_IMG;
+    let imgUrl = editingId ? null : DEFAULT_IMG;
     if (file) {
       err.textContent = "Зургийг жижигрүүлж байна... (" + (file.size / 1024 / 1024).toFixed(1) + "MB)";
       const small = await compressImage(file);
@@ -366,6 +407,34 @@ $("publishBtn").onclick = async () => {
       });
       if (!up.ok) throw new Error("Зураг хуулахад алдаа: " + await up.text());
       imgUrl = SUPABASE_URL + "/storage/v1/object/public/" + BUCKET + "/" + fn;
+    }
+
+    if (editingId) {   // ---- Одоо байгаа зарыг засах (нэвтэрсэн хэрэглэгчийн token-оор, зөвхөн өөрийн зар) ----
+      const patch = {
+        title, price: Number(price), cat: $("f-cat").value,
+        phone: $("f-phone").value.trim(),
+        loc: $("f-loc").value.trim() || DEFAULT_LOC,
+        description: $("f-desc").value.trim()
+      };
+      if (imgUrl) patch.img = imgUrl;
+      const { data: sess } = await sb.auth.getSession();
+      const token = sess && sess.session && sess.session.access_token;
+      if (!token) throw new Error("Дахин нэвтэрнэ үү");
+      const pr = await fetch(API + "?id=eq." + encodeURIComponent(editingId), {
+        method: "PATCH",
+        headers: { apikey: KEY, Authorization: "Bearer " + token, "Content-Type": "application/json", Prefer: "return=representation" },
+        body: JSON.stringify(patch)
+      });
+      if (!pr.ok) throw new Error("Засахад алдаа: " + await pr.text());
+      const rows = await pr.json();
+      if (!rows.length) throw new Error("Засах эрх олгогдоогүй байна (ads-features.sql-ийг Supabase дээр ажиллуулсан эсэхээ шалгана уу)");
+      const i = ads.findIndex(x => String(x.id) === String(editingId));
+      if (i >= 0) ads[i] = { ...ads[i], ...rows[0] };
+      closeModal();
+      render();
+      renderMine();
+      toast("✅ Зар шинэчлэгдлээ");
+      return;
     }
 
     const body = {

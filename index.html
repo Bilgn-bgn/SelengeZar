@@ -33,6 +33,11 @@
 
   <div class="cats" id="cats"></div>
   <div class="status" id="status">Холбогдож байна...</div>
+  <div id="featured-wrap" hidden>
+    <h3 class="sec-title">⭐ Онцлох зар</h3>
+    <div class="grid" id="featured-grid"></div>
+    <h3 class="sec-title">Бүх зар</h3>
+  </div>
   <div class="grid" id="grid"></div>
   <p class="foot">© 2026 SelengeZar • Сэлэнгэ, Сүхбаатар<br>
     <a href="privacy.html">Нууцлалын бодлого</a> • <a href="terms.html">Үйлчилгээний нөхцөл</a> • <a href="data-deletion.html">Мэдээлэл устгах</a></p>
@@ -96,7 +101,7 @@
 <div class="modal" id="modal">
   <div class="box">
     <button class="modal-close" onclick="closeModal()">✕</button>
-    <h2>Шинэ зар оруулах</h2>
+    <h2 id="ad-form-title">Шинэ зар оруулах</h2>
     <input id="f-title" placeholder="Нэр *">
     <input id="f-price" type="number" min="0" placeholder="Үнэ *">
     <select id="f-cat">
