@@ -309,8 +309,8 @@ function showProfile(name) {
 }
 
 function showTab(tab) {
-  $("tab-profile").style.display = tab === "profile" ? "block" : "none";
-  $("tab-settings").style.display = tab === "settings" ? "block" : "none";
+  $("tab-profile").style.display = tab === "profile" ? "flex" : "none";
+  $("tab-settings").style.display = tab === "settings" ? "flex" : "none";
   $("tab-profile-btn").classList.toggle("active", tab === "profile");
   $("tab-settings-btn").classList.toggle("active", tab === "settings");
 }
@@ -464,9 +464,9 @@ function goProfile(btn) {
 
 // Цонхны гадна дарвал / Esc дарвал хаах
 $("modal").addEventListener("click", e => { if (e.target === $("modal")) closeModal(); });
-$("profileModal").addEventListener("click", e => { if (e.target === $("profileModal")) closeProfile(); });
+// Профайлын цонх гадна дарж хаагдахгүй - зөвхөн ✕ товчоор хаагдана
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { closeModal(); closeProfile(); }
+  if (e.key === "Escape") closeModal();
 });
 
 load();

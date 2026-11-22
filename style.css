@@ -136,7 +136,19 @@ header{
 .form-msg.ok{color:#4ade80}
 
 /* ---------- Profile / login ---------- */
-.box.profile-box{max-width:380px;padding:38px 22px 22px}
+.box.profile-box{max-width:380px;padding:36px 22px 20px;max-height:calc(100dvh - 100px)}
+/* Профайл ба Тохиргоо хоёр ижил хэмжээтэй, агуулга голд нь */
+.tab-body{
+  height:280px;
+  display:flex;flex-direction:column;justify-content:center;
+}
+#tab-settings input{padding:8px 12px;margin:3px 0 7px}
+#tab-settings .settings-actions{margin-top:6px}
+#tab-settings .form-msg{min-height:16px;margin:0}
+@media(min-width:641px){
+  .modal#profileModal{padding-bottom:80px}
+  .box.profile-box{overflow-y:visible}
+}
 .sub{color:#9ca3af;font-size:13px;margin:6px 0 16px}
 .or{display:flex;align-items:center;gap:10px;margin:16px 0;color:#666;font-size:12px}
 .or::before,.or::after{content:"";flex:1;height:1px;background:#222}
@@ -144,15 +156,15 @@ header{
 #step-code .sub{margin:0 0 6px}
 #step-code b{color:#fff}
 
-.profile-head{text-align:center;padding:4px 0 16px;border-bottom:1px solid #222}
+.profile-head{text-align:center;padding:0 0 12px;border-bottom:1px solid #222}
 .avatar{
-  width:64px;height:64px;margin:0 auto 10px;border-radius:50%;
+  width:56px;height:56px;margin:0 auto 8px;border-radius:50%;
   background:#22c55e;color:#fff;font-size:26px;font-weight:800;
   display:flex;align-items:center;justify-content:center;
 }
 .profile-name{font-size:17px;font-weight:700}
 .profile-email{color:#9ca3af;font-size:13px;margin-top:2px}
-.tabs{display:flex;gap:8px;margin:16px 0}
+.tabs{display:flex;gap:8px;margin:12px 0}
 .tab-btn{flex:1;padding:10px;border:0;border-radius:999px;background:#222;color:#fff;font-weight:700;cursor:pointer}
 .tab-btn.active{background:#22c55e}
 .info-row{display:flex;justify-content:space-between;gap:12px;font-size:14px;line-height:2}
