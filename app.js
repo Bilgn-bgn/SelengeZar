@@ -264,12 +264,19 @@ $("publishBtn").onclick = async () => {
 // =====================================================
 const LS_KEYS = ["userEmail", "userPhone", "userName", "userLoc", "userCreated", "pendingPhone"];
 
+// +97699751740 / 97699751740 -> 99751740 (зөвхөн 8 оронтой дотоодын дугаар)
+function localPhone(p) {
+  const d = String(p || "").replace(/\D/g, "");
+  return d.length === 11 && d.startsWith("976") ? d.slice(3) : (p || "");
+}
+
 function saveUserLocal(u, fallbackPhone) {
   if (!u) return;
   const meta = u.user_metadata || {};
-  const name = meta.full_name || meta.name || u.email || u.phone || fallbackPhone || "";
+  const phone = localPhone(u.phone || meta.phone || fallbackPhone || "");
+  const name = meta.full_name || meta.name || u.email || phone || "";
   localStorage.setItem("userEmail", u.email || "");
-  localStorage.setItem("userPhone", u.phone || meta.phone || fallbackPhone || "");
+  localStorage.setItem("userPhone", phone);
   localStorage.setItem("userName", name);
 }
 function clearUserLocal() { LS_KEYS.forEach(k => localStorage.removeItem(k)); }
@@ -290,9 +297,9 @@ function showProfile(name) {
   showTab("profile");
 
   const email = localStorage.getItem("userEmail") || "";
-  const phone = localStorage.getItem("userPhone") || "";
+  const phone = localPhone(localStorage.getItem("userPhone") || "");
   const loc = localStorage.getItem("userLoc") || DEFAULT_LOC;
-  const displayName = name || localStorage.getItem("userName") || email || phone || "Хэрэглэгч";
+  const displayName = localPhone(name || localStorage.getItem("userName") || email || phone || "Хэрэглэгч");
   if (!localStorage.getItem("userCreated")) {
     localStorage.setItem("userCreated", new Date().toLocaleDateString("mn-MN"));
   }
