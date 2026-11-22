@@ -10,8 +10,10 @@ const DEFAULT_LOC = "Сүхбаатар, Сэлэнгэ";
 const CATS = ["Бүгд", "Утас", "Машин", "Байр", "Тавилга", "Хувцас", "Бусад"];
 
 const $ = id => document.getElementById(id);
+// SVG дүрс (index.html дахь sprite-аас)
+const ico = (name, cls) => `<svg class="i${cls ? " " + cls : ""}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 // ---------- Цонхны удирдлага: нэг дор зөвхөн нэг цонх, цаад талын хуудас гүйхгүй ----------
-const MODAL_IDS = ["modal", "adModal", "profileModal", "verifyModal"];
+const MODAL_IDS = ["adModal", "verifyModal"];
 function closeAllModals() { MODAL_IDS.forEach(id => $(id).classList.remove("open")); }
 function syncScrollLock() {
   const anyOpen = MODAL_IDS.some(id => $(id).classList.contains("open"));
@@ -124,14 +126,15 @@ async function load() {
       { headers: { apikey: KEY, Authorization: "Bearer " + KEY } });
     if (!r.ok) throw new Error("HTTP " + r.status);
     ads = await r.json();
-    statusText = "✅ Supabase холбогдлоо. Нийт " + ads.length + " зар байна.";
+    statusText = "Нийт " + ads.length + " зар";
   } catch (e) {
-    statusText = "⚠ Supabase-д холбогдсонгүй: " + e.message;
+    statusText = "Серверт холбогдож чадсангүй: " + e.message;
     ads = [];
   }
   render();
   updateMyCount();
   if (document.body.dataset.page === "mine") renderMine();
+  if (document.body.dataset.page === "saved") renderSaved();
 }
 
 let view = "all", statusText = "";
@@ -171,9 +174,10 @@ function toggleSave(id) {
   const cur = savedIds();
   const on = !cur.includes(id);
   localStorage.setItem("savedAds", JSON.stringify(on ? [id, ...cur] : cur.filter(x => x !== id)));
-  toast(on ? "🔖 Хадгаллаа" : "Хадгалснаас хаслаа");
+  toast(on ? "Хадгаллаа" : "Хадгалснаас хаслаа");
   render();
   if (document.body.dataset.page === "mine") renderMine();
+  if (document.body.dataset.page === "saved") renderSaved();
   syncAdSaveBtn();
 }
 function myAds() { return myUid ? ads.filter(a => a.user_id && String(a.user_id) === String(myUid)) : []; }
@@ -187,17 +191,16 @@ function cardHTML(a, opts) {
     <div class="card${feat ? " featured" : ""}" data-id="${esc(a.id)}">
       <div class="card-img">
         <img src="${esc(a.img || DEFAULT_IMG)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
-        ${feat ? '<span class="feat-badge">⭐ Онцлох</span>' : ""}
-        <button class="save-btn${isSaved(a.id) ? " on" : ""}" data-save="${esc(a.id)}" aria-label="Хадгалах">🔖</button>
+        ${feat ? `<span class="feat-badge">${ico("star")} Онцлох</span>` : `<span class="cat-tag">${esc(a.cat || "Бусад")}</span>`}
+        <button class="save-btn${isSaved(a.id) ? " on" : ""}" data-save="${esc(a.id)}" aria-label="Хадгалах">${ico("bookmark")}</button>
       </div>
       <div class="card-body">
         <div class="price">${Number(a.price || 0).toLocaleString()}₮</div>
         <h3>${esc(a.title)}</h3>
-        <div class="meta">${esc(a.loc)} • ${esc(a.cat)}</div>
-        <div class="meta desc">${esc(a.description)}</div>
-        <div class="time">🕒 ${esc(timeAgo(a.created_at))}</div>
+        <div class="meta">${ico("pin")}<span>${esc(a.loc)}</span></div>
+        <div class="time">${ico("clock")}<span>${esc(timeAgo(a.created_at))}</span></div>
       </div>
-      ${opts && opts.edit ? `<button class="edit-btn" data-edit="${esc(a.id)}">✏️ Зар засах</button>` : ""}
+      ${opts && opts.edit ? `<button class="edit-btn" data-edit="${esc(a.id)}">${ico("pencil")} Зар засах</button>` : ""}
     </div>`;
 }
 
@@ -213,24 +216,34 @@ function render() {
   const feat = view === "saved" ? [] : base.filter(a => a.featured === true);
   const main = view === "saved" ? base : base.filter(a => a.featured !== true);
 
-  $("status").textContent = view === "saved" ? "🔖 Хадгалсан зар: " + base.length : statusText;
+  $("status").textContent = statusText;
   $("featured-wrap").hidden = !feat.length;
   $("featured-grid").innerHTML = feat.map(a => cardHTML(a)).join("");
 
   const g = $("grid");
   if (!base.length) {
     g.innerHTML = view === "saved"
-      ? "<div class='empty'>Хадгалсан зар алга. Зар дээрх 🔖 товчийг дарж хадгална уу.</div>"
+      ? "<div class='empty'>Хадгалсан зар алга. Зарын зураг дээрх тэмдэгийг дарж хадгална уу.</div>"
       : "<div class='empty'>Одоогоор зар алга. Эхлээд зар оруулаарай.</div>";
     return;
   }
   g.innerHTML = main.map(a => cardHTML(a)).join("");
 }
 
+// ---------- "Хадгалсан" хуудас ----------
+function renderSaved() {
+  const ids = savedIds();
+  const list = ids.map(findAd).filter(Boolean);   // хамгийн сүүлд хадгалсан нь эхэнд
+  $("saved-title").textContent = "Хадгалсан зар (" + list.length + ")";
+  $("saved-grid").innerHTML = list.length
+    ? list.map(a => cardHTML(a)).join("")
+    : "<div class='empty'>Хадгалсан зар алга. Зарын зураг дээрх тэмдэгийг дарж хадгална уу.</div>";
+}
+
 // ---------- "Миний зарууд" хуудас ----------
 function renderMine() {
   const list = myAds();
-  $("mine-title").textContent = "📁 Миний зарууд (" + list.length + ")";
+  $("mine-title").textContent = "Миний зарууд (" + list.length + ")";
   $("mine-grid").innerHTML = !isLoggedIn()
     ? "<div class='empty'>Зараа харахын тулд нэвтэрнэ үү.</div>"
     : list.length
@@ -238,7 +251,7 @@ function renderMine() {
       : "<div class='empty'>Таны оруулсан зар алга. «Зар нэмэх» товчоор зар оруулна уу.</div>";
 }
 
-["grid", "featured-grid", "mine-grid"].forEach(gid => $(gid).addEventListener("click", e => {
+["grid", "featured-grid", "mine-grid", "saved-grid"].forEach(gid => $(gid).addEventListener("click", e => {
   const ed = e.target.closest("[data-edit]");
   if (ed) { e.stopPropagation(); editAd(ed.dataset.edit); return; }
   const sv = e.target.closest("[data-save]");
@@ -261,7 +274,7 @@ function openAd(id) {
   $("ad-desc").textContent = a.description || "Тайлбар оруулаагүй байна.";
   const ph = localPhone(a.phone || "");
   const call = $("ad-call");
-  if (ph) { call.href = "tel:" + ph.replace(/[^\d+]/g, ""); call.textContent = "☎ " + ph; call.style.display = "block"; }
+  if (ph) { call.href = "tel:" + ph.replace(/[^\d+]/g, ""); call.innerHTML = ico("phone") + " " + esc(ph); call.style.display = "block"; }
   else { call.style.display = "none"; }
   syncAdSaveBtn();
   closeAllModals();
@@ -271,7 +284,7 @@ function openAd(id) {
 function closeAd() { $("adModal").classList.remove("open"); }
 function syncAdSaveBtn() {
   if (!curAd) return;
-  $("ad-save").textContent = isSaved(curAd.id) ? "✅ Хадгалсан (болиулах)" : "🔖 Хадгалах";
+  $("ad-save").innerHTML = isSaved(curAd.id) ? ico("check") + " Хадгалсан (болиулах)" : ico("bookmark") + " Хадгалах";
 }
 function saveFromAd() { if (curAd) toggleSave(curAd.id); }
 function chatFromAd() {
@@ -299,12 +312,12 @@ function openModal() {
   if (editingId) { resetAdForm(); setFormMode(null); }   // өмнөх засварын үлдэгдэл арилгана
   const ph = localStorage.getItem("userPhone");
   if (ph && !$("f-phone").value) $("f-phone").value = ph;
-  closeAllModals();
-  $("modal").classList.add("open");
+  go("#/add");
 }
+// Зар оруулах/засах хуудсаас буцах
 function closeModal() {
-  $("modal").classList.remove("open");
-  if (editingId) { resetAdForm(); setFormMode(null); }
+  const dest = editingId ? "#/mine" : "#/";
+  go(dest);   // route() нь хуудаснаас гарахад засварын төлөвийг цэвэрлэнэ
 }
 
 // ---------- Зар засах ----------
@@ -318,7 +331,6 @@ function editAd(id) {
   const a = findAd(id);
   if (!a) return;
   if (!myUid || String(a.user_id) !== String(myUid)) { toast("Зөвхөн өөрийн зарыг засна"); return; }
-  closeAllModals();
   resetAdForm();
   setFormMode(String(a.id));
   $("f-title").value = a.title || "";
@@ -329,7 +341,7 @@ function editAd(id) {
   $("f-desc").value = a.description || "";
   if (a.img) { $("preview").src = a.img; $("preview").style.display = "block"; }
   $("err").textContent = "Зураг солихгүй бол хуучнаараа үлдэнэ.";
-  $("modal").classList.add("open");
+  go("#/add");
 }
 
 function resetAdForm() {
@@ -386,7 +398,7 @@ function compressImage(f) {
 
 $("publishBtn").onclick = async () => {
   const err = $("err"), btn = $("publishBtn");
-  if (!editingId && !isPhoneVerified()) { closeModal(); openVerify(); return; }
+  if (!editingId && !isPhoneVerified()) { openVerify(); return; }
   const title = $("f-title").value.trim();
   const price = $("f-price").value.trim();
   if (!title) { err.textContent = "Нэрийг бичнэ үү"; return; }
@@ -433,7 +445,7 @@ $("publishBtn").onclick = async () => {
       closeModal();
       render();
       renderMine();
-      toast("✅ Зар шинэчлэгдлээ");
+      toast("Зар шинэчлэгдлээ");
       return;
     }
 
@@ -466,11 +478,11 @@ $("publishBtn").onclick = async () => {
     }
     const d = await r.json();
     ads.unshift(d[0]);
-    statusText = "✅ Supabase холбогдлоо. Нийт " + ads.length + " зар байна.";
+    statusText = "Нийт " + ads.length + " зар";
     render();
     resetAdForm();
     closeModal();
-    toast("✅ Зар амжилттай нийтлэгдлээ!");
+    toast("Зар амжилттай нийтлэгдлээ!");
   } catch (e) {
     err.textContent = e.message;
   } finally {
@@ -551,10 +563,10 @@ function showProfile(name) {
   try { prov = JSON.parse(localStorage.getItem("providers") || "[]"); } catch (e) {}
   const linkBtn = p => `<button class="btn btn-outline btn-sm" onclick="linkProvider('${p}')">Холбох</button>`;
   $("profile-phone").innerHTML = phone
-    ? esc(phone) + (verified ? ' <span class="ok">✅</span>' : ' <button class="btn btn-outline btn-sm" onclick="openVerify(\'verify\')">Баталгаажуулах</button>')
+    ? esc(phone) + (verified ? ' <span class="ok">' + ico("check-circle") + '</span>' : ' <button class="btn btn-outline btn-sm" onclick="openVerify(\'verify\')">Баталгаажуулах</button>')
     : '<button class="btn btn-outline btn-sm" onclick="openVerify(\'verify\')">Баталгаажуулах</button>';
-  $("st-google").innerHTML = prov.includes("google") ? '<span class="ok">✅ Холбогдсон</span>' : linkBtn("google");
-  $("st-facebook").innerHTML = prov.includes("facebook") ? '<span class="ok">✅ Холбогдсон</span>' : linkBtn("facebook");
+  $("st-google").innerHTML = prov.includes("google") ? '<span class="ok">' + ico("check") + ' Холбогдсон</span>' : linkBtn("google");
+  $("st-facebook").innerHTML = prov.includes("facebook") ? '<span class="ok">' + ico("check") + ' Холбогдсон</span>' : linkBtn("facebook");
   updateMyCount();
   $("profile-loc").textContent = loc;
   renderAvatar(displayName);
@@ -572,16 +584,11 @@ function showTab(tab) {
   $("tab-settings-btn").classList.toggle("active", tab === "settings");
 }
 
-function openProfile() {
-  if (isLoggedIn()) showProfile();
-  else showLoginView();
-  closeAllModals();
-  $("profileModal").classList.add("open");
-}
+let pendingTab = null;
+function openProfile(tab) { pendingTab = tab || null; go("#/profile"); }
 function closeProfile() {
   localStorage.removeItem("wantPost");
-  $("profileModal").classList.remove("open");
-  syncNav();
+  go("#/");
 }
 
 async function saveSettings() {
@@ -605,8 +612,8 @@ async function saveSettings() {
   syncPhoneBtn();
   const typed = (typedRaw || "").replace(/\D/g, "");
   $("settings-err").textContent = (typed && localPhone(typed) !== phone && $("change-phone-btn").style.display !== "none")
-    ? "✅ Хадгалагдлаа. Дугаарыг «Баталгаажуулах» товчоор баталгаажуулна уу."
-    : "✅ Хадгалагдлаа!";
+    ? "Хадгалагдлаа. Дугаарыг «Баталгаажуулах» товчоор баталгаажуулна уу."
+    : "Хадгалагдлаа";
   setTimeout(() => { $("settings-err").textContent = ""; }, 2500);
 }
 
@@ -617,7 +624,7 @@ async function logout() {
   $("login-code").value = "";
   $("login-err").textContent = "";
   showLoginView();
-  closeProfile();
+  go("#/");
 }
 
 // ---------- Google / Facebook ----------
@@ -777,7 +784,7 @@ $("avatar-file").addEventListener("change", async e => {
     if (error) throw error;
     localStorage.setItem("userAvatar", url);
     renderAvatar($("profile-name").textContent);
-    toast("✅ Зураг солигдлоо");
+    toast("Зураг солигдлоо");
   } catch (err) {
     toast("Зураг солиход алдаа: " + (err.message || err));
   }
@@ -801,10 +808,9 @@ function startPhoneVerify() {
 function afterLogin() {
   if (localStorage.getItem("wantPost") === "1") {
     localStorage.removeItem("wantPost");
-    closeProfile();
     openModal();
-  } else {
-    showProfile();
+  } else if (document.body.dataset.page === "profile") {
+    showProfile();   // нэвтрэх хуудаснаас профайл руу шилжинэ
   }
 }
 
@@ -878,9 +884,8 @@ async function confirmVerify() {
   $("v-code").value = "";
   closeVerify();
   if (verifyMode === "change" || verifyMode === "verify") {
-    toast(verifyMode === "change" ? "✅ Утасны дугаар солигдлоо" : "✅ Утас баталгаажлаа");
-    openProfile();
-    showTab("settings");
+    toast(verifyMode === "change" ? "Утасны дугаар солигдлоо" : "Утас баталгаажлаа");
+    openProfile("settings");
   } else {
     openModal();   // шууд зар оруулах цонх руу
   }
@@ -932,7 +937,7 @@ function onIncoming(payload) {
   } else {
     refreshBadge();
     if (onChat) loadConversations();
-    else toast("💬 Шинэ мессеж ирлээ");
+    else toast("Шинэ мессеж ирлээ");
   }
 }
 
@@ -967,7 +972,7 @@ async function loadConversations() {
     if (m.receiver_id === myUid && !m.read) map.get(key).unread++;
   }
   if (!map.size) {
-    box.innerHTML = "<div class='empty'>Мессеж алга. Зар дээрээс «💬 Чат бичих» товчийг дарж эхлүүлнэ үү.</div>";
+    box.innerHTML = "<div class='empty'>Мессеж алга. Зар дээрээс «Чат бичих» товчийг дарж эхлүүлнэ үү.</div>";
     return;
   }
   box.innerHTML = [...map.values()].map(c => `
@@ -1002,7 +1007,7 @@ async function openThread(adId, title, otherId, sub) {
     box.innerHTML = "<div class='empty'>" + (chatMissing(error) ? "Чат хараахан тохируулагдаагүй байна." : "Алдаа: " + esc(error.message)) + "</div>";
     return;
   }
-  box.innerHTML = data.length ? "" : "<div class='empty'>Мессеж бичиж эхлээрэй 👋</div>";
+  box.innerHTML = data.length ? "" : "<div class='empty'>Мессеж бичиж эхлээрэй</div>";
   data.forEach(appendBubble);
   markRead(chatCur.adId, otherId);
   $("chat-input").focus();
@@ -1069,7 +1074,7 @@ function setActiveNav(btn) {
 function syncNav() {
   const page = document.body.dataset.page || "home";
   const items = document.querySelectorAll(".bottom-nav .nav-item");
-  const idx = page === "chat" ? 3 : page === "mine" ? 4 : (view === "saved" ? 1 : 0);
+  const idx = { home: 0, saved: 1, add: 2, chat: 3, profile: 4, mine: 4 }[page] ?? 0;
   setActiveNav(items[idx]);
 }
 
@@ -1079,13 +1084,22 @@ function go(hash) {
   if (location.hash === hash || (hash === "#/" && (location.hash === "" || location.hash === "#"))) route();
   else location.hash = hash;
 }
+const PAGES = ["home", "saved", "add", "chat", "profile", "mine"];
 function route() {
   closeAllModals();
   const h = location.hash;
-  const page = h.startsWith("#/chat") ? "chat" : h.startsWith("#/mine") ? "mine" : "home";
+  const page = PAGES.find(p => p !== "home" && h.startsWith("#/" + p)) || "home";
+  // Зар оруулах/засах хуудаснаас гарахад засварын төлөвийг цэвэрлэнэ
+  if (page !== "add" && editingId) { resetAdForm(); setFormMode(null); }
   document.body.dataset.page = page;
-  ["home", "mine", "chat"].forEach(p => { $("page-" + p).hidden = p !== page; });
+  PAGES.forEach(p => { $("page-" + p).hidden = p !== page; });
   if (page === "mine") renderMine();
+  if (page === "saved") renderSaved();
+  if (page === "profile") {
+    if (isLoggedIn()) { showProfile(); if (pendingTab) showTab(pendingTab); }
+    else showLoginView();
+    pendingTab = null;
+  }
   if (page === "chat") {
     if (pendingThread && sb && myUid) { const t = pendingThread; pendingThread = null; openThread(...t); }
     else { pendingThread = null; chatBack(); }
@@ -1103,22 +1117,15 @@ function goHome(btn) {
   render();
   go("#/");
 }
-function goSaved(btn) {
-  view = "saved";
-  render();
-  go("#/");
-}
+function goSaved(btn) { go("#/saved"); }
 function goChat(btn) { go("#/chat"); }
-function goProfile(btn) {
-  openProfile();
-}
+function goProfile(btn) { openProfile(); }
 
 // Цонхны гадна дарвал / Esc дарвал хаах
-$("modal").addEventListener("click", e => { if (e.target === $("modal")) closeModal(); });
 $("adModal").addEventListener("click", e => { if (e.target === $("adModal")) closeAd(); });
 // Профайлын цонх гадна дарж хаагдахгүй - зөвхөн ✕ товчоор хаагдана
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { closeModal(); closeAd(); }
+  if (e.key === "Escape") { closeAd(); }
 });
 
 // Цонх нээгдэх/хаагдах бүрт цаад талын гүйлтийг түгжинэ/тайлна
