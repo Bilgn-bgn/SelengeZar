@@ -139,7 +139,7 @@ header{
 .box.profile-box{max-width:380px;padding:36px 22px 20px;max-height:calc(100dvh - 100px)}
 /* Профайл ба Тохиргоо хоёр ижил хэмжээтэй, агуулга голд нь */
 .tab-body{
-  height:280px;
+  height:330px;
   display:flex;flex-direction:column;justify-content:center;
 }
 #tab-settings input{padding:8px 12px;margin:3px 0 7px}
@@ -157,8 +157,15 @@ header{
 #step-code b{color:#fff}
 
 .profile-head{text-align:center;padding:0 0 12px;border-bottom:1px solid #222}
+.avatar-wrap{position:relative;width:60px;height:60px;margin:0 auto 8px}
+.avatar-edit{
+  position:absolute;top:-4px;right:-10px;width:26px;height:26px;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid #161616;border-radius:50%;background:#2a2a2a;color:#fff;font-size:11px;line-height:1;cursor:pointer;transition:.18s;
+}
+.avatar-edit:hover{background:#22c55e;transform:scale(1.1)}
 .avatar{
-  width:56px;height:56px;margin:0 auto 8px;border-radius:50%;
+  width:60px;height:60px;margin:0;background-size:cover;background-position:center;border-radius:50%;
   background:#22c55e;color:#fff;font-size:26px;font-weight:800;
   display:flex;align-items:center;justify-content:center;
 }
@@ -211,7 +218,9 @@ header{
 }
 .nav-add small{color:#fff}
 
-#verify-btn{margin-top:10px}
+.link-row{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 6px}
+.link-row:empty{display:none}
+.btn-sm{padding:7px 12px;font-size:12px;flex:1 1 auto}
 .btn:disabled{opacity:.55;cursor:not-allowed}
 
 /* ---------- Заруудын карт: хадгалах, хугацаа ---------- */
@@ -303,3 +312,17 @@ button:disabled{cursor:not-allowed}
 .modal-close:hover{background:#3a3a3a}
 .foot a:hover,.doc a:hover{color:#4ade80}
 button:focus-visible,.btn:focus-visible,.cat:focus-visible,.nav-item:focus-visible{outline:2px solid #4ade80;outline-offset:2px}
+
+.tab-body{overflow-y:auto}
+.phone-row{display:flex;gap:8px;align-items:center}
+.phone-row input{flex:1;margin:3px 0 7px !important}
+.phone-row .btn-sm{flex:0 0 auto;margin-bottom:4px}
+#set-phone[readonly]{opacity:.8}
+
+/* ---------- Цонх нээлттэй үед цаад хуудас гүйхгүй ---------- */
+html.lock,body.lock{overflow:hidden}
+.modal{overscroll-behavior:contain}
+.info-row{align-items:center}
+.info-row b{display:inline-flex;align-items:center;gap:8px}
+.info-row .btn-sm{flex:0 0 auto;padding:5px 12px}
+.ok{color:#4ade80;font-weight:700}

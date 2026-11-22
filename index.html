@@ -137,7 +137,11 @@
     <!-- Профайл хэсэг (нэвтэрсний дараа) -->
     <div id="profile-info" style="display:none">
       <div class="profile-head">
-        <div class="avatar" id="profile-avatar">?</div>
+        <div class="avatar-wrap">
+          <div class="avatar" id="profile-avatar">?</div>
+          <button class="avatar-edit" onclick="pickAvatar()" aria-label="Зураг солих" title="Зураг солих">✏️</button>
+          <input type="file" id="avatar-file" accept="image/*" hidden>
+        </div>
         <div class="profile-name" id="profile-name">-</div>
         <div class="profile-email" id="profile-email"></div>
       </div>
@@ -147,9 +151,11 @@
       </div>
 
       <div id="tab-profile" class="tab-body">
+        <div class="info-row"><span>Миний зарууд</span><b><span id="my-ads-count">0</span> <button class="btn btn-outline btn-sm" onclick="showMyAds()">Харах</button></b></div>
         <div class="info-row"><span>Утас</span><b id="profile-phone">-</b></div>
-        <button class="btn btn-block btn-outline btn-stack" id="verify-btn" style="display:none" onclick="openVerify()">📱 Утсаа баталгаажуулах</button>
         <div class="info-row"><span>Байршил</span><b id="profile-loc">-</b></div>
+        <div class="info-row"><span>Google</span><b id="st-google">-</b></div>
+        <div class="info-row"><span>Facebook</span><b id="st-facebook">-</b></div>
         <div class="info-row"><span>Бүртгүүлсэн</span><b id="profile-date">-</b></div>
       </div>
 
@@ -157,7 +163,10 @@
         <label for="set-name">Нэр</label>
         <input id="set-name" placeholder="Нэр">
         <label for="set-phone">Утас</label>
-        <input id="set-phone" placeholder="Утас" inputmode="tel">
+        <div class="phone-row">
+          <input id="set-phone" placeholder="Утас" inputmode="tel">
+          <button class="btn btn-sm" id="change-phone-btn" style="display:none" onclick="startPhoneVerify()">Баталгаажуулах</button>
+        </div>
         <label for="set-loc">Байршил</label>
         <input id="set-loc" placeholder="Байршил">
         <div class="form-msg ok" id="settings-err"></div>
@@ -174,8 +183,8 @@
 <div class="modal" id="verifyModal">
   <div class="box profile-box">
     <button class="modal-close" onclick="closeVerify()">✕</button>
-    <h2>Утсаа баталгаажуулна уу</h2>
-    <p class="sub">Зар оруулахын тулд утасны дугаараа нэг удаа баталгаажуулна. Дараа нь дахин шаардахгүй.</p>
+    <h2 id="v-title">Утсаа баталгаажуулна уу</h2>
+    <p class="sub" id="v-sub">Зар оруулахын тулд утасны дугаараа нэг удаа баталгаажуулна. Дараа нь дахин шаардахгүй.</p>
     <div id="v-step-phone">
       <input id="v-phone" placeholder="Утасны дугаар (8 орон)" inputmode="numeric">
       <button class="btn btn-block btn-stack" onclick="sendVerify()">Код явуулах</button>

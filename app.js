@@ -10,6 +10,14 @@ const DEFAULT_LOC = "Сүхбаатар, Сэлэнгэ";
 const CATS = ["Бүгд", "Утас", "Машин", "Байр", "Тавилга", "Хувцас", "Бусад"];
 
 const $ = id => document.getElementById(id);
+// ---------- Цонхны удирдлага: нэг дор зөвхөн нэг цонх, цаад талын хуудас гүйхгүй ----------
+const MODAL_IDS = ["modal", "adModal", "chatModal", "profileModal", "verifyModal"];
+function closeAllModals() { MODAL_IDS.forEach(id => $(id).classList.remove("open")); }
+function syncScrollLock() {
+  const anyOpen = MODAL_IDS.some(id => $(id).classList.contains("open"));
+  document.documentElement.classList.toggle("lock", anyOpen);
+  document.body.classList.toggle("lock", anyOpen);
+}
 let myUid = null, chatChannel = null, chatCur = null, pollT = null;
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -122,6 +130,7 @@ async function load() {
     ads = [];
   }
   render();
+  updateMyCount();
 }
 
 let view = "all", statusText = "";
@@ -165,6 +174,15 @@ function toggleSave(id) {
   render();
   syncAdSaveBtn();
 }
+function myAds() { return myUid ? ads.filter(a => a.user_id && String(a.user_id) === String(myUid)) : []; }
+function updateMyCount() { const el = $("my-ads-count"); if (el) el.textContent = myAds().length; }
+function showMyAds() {
+  closeAllModals();
+  setActiveNav(document.querySelector(".bottom-nav .nav-item"));
+  view = "mine";
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
 const findAd = id => ads.find(a => String(a.id) === String(id));
 
 function render() {
@@ -172,14 +190,18 @@ function render() {
   const saved = savedIds();
   const list = ads.filter(a =>
     (view !== "saved" || saved.includes(String(a.id))) &&
+    (view !== "mine" || (myUid && a.user_id && String(a.user_id) === String(myUid))) &&
     (cat === "Бүгд" || (a.cat || "Бусад") === cat) &&
     [a.title, a.description, a.loc].some(t => (t || "").toLowerCase().includes(q))
   );
-  $("status").textContent = view === "saved" ? "🔖 Хадгалсан зар: " + list.length : statusText;
+  $("status").textContent = view === "saved" ? "🔖 Хадгалсан зар: " + list.length
+    : view === "mine" ? "📁 Миний зарууд: " + list.length : statusText;
   const g = $("grid");
   if (!list.length) {
     g.innerHTML = view === "saved"
       ? "<div class='empty'>Хадгалсан зар алга. Зар дээрх 🔖 товчийг дарж хадгална уу.</div>"
+      : view === "mine"
+      ? "<div class='empty'>Таны оруулсан зар алга. «Зар нэмэх» товчоор зар оруулна уу.</div>"
       : "<div class='empty'>Одоогоор зар алга. Эхлээд зар оруулаарай.</div>";
     return;
   }
@@ -223,6 +245,7 @@ function openAd(id) {
   if (ph) { call.href = "tel:" + ph.replace(/[^\d+]/g, ""); call.textContent = "☎ " + ph; call.style.display = "block"; }
   else { call.style.display = "none"; }
   syncAdSaveBtn();
+  closeAllModals();
   $("adModal").classList.add("open");
   $("adModal").querySelector(".box").scrollTop = 0;
 }
@@ -256,6 +279,7 @@ function openModal() {
   }
   const ph = localStorage.getItem("userPhone");
   if (ph && !$("f-phone").value) $("f-phone").value = ph;
+  closeAllModals();
   $("modal").classList.add("open");
 }
 function closeModal() { $("modal").classList.remove("open"); }
@@ -381,7 +405,7 @@ $("publishBtn").onclick = async () => {
 // =====================================================
 // 3. НЭВТРЭХ / ПРОФАЙЛ
 // =====================================================
-const LS_KEYS = ["userEmail", "userPhone", "userName", "userLoc", "userCreated", "pendingPhone", "pendingVerify", "phoneVerified", "wantPost"];
+const LS_KEYS = ["userEmail", "userPhone", "userName", "userLoc", "userCreated", "pendingPhone", "pendingVerify", "phoneVerified", "wantPost", "providers", "userCustomName", "userProviderName", "userAvatar"];
 
 // +97699751740 / 97699751740 -> 99751740 (зөвхөн 8 оронтой дотоодын дугаар)
 function localPhone(p) {
@@ -393,12 +417,21 @@ function saveUserLocal(u, fallbackPhone) {
   if (!u) return;
   const meta = u.user_metadata || {};
   const phone = localPhone(u.phone || meta.phone || fallbackPhone || "");
-  const name = meta.full_name || meta.name || u.email || phone || "";
+  // custom_name / custom_avatar - хэрэглэгчийн өөрөө тохируулсан (Google/Facebook нэвтрэх бүрт дарагдахгүй)
+  const customName = meta.custom_name || "";
+  const providerName = meta.full_name || meta.name || "";
   localStorage.setItem("userEmail", u.email || "");
   localStorage.setItem("userPhone", phone);
-  localStorage.setItem("userName", name);
+  localStorage.setItem("userCustomName", customName);
+  const baseName = providerName || u.email || phone || "";
+  localStorage.setItem("userProviderName", baseName);
+  localStorage.setItem("userName", customName || baseName);
+  localStorage.setItem("userAvatar", meta.custom_avatar || meta.avatar_url || meta.picture || "");
   // Supabase талд баталгаажсан дугаартай эсэх (SMS-ээр нэвтэрсэн эсвэл холбосон)
   localStorage.setItem("phoneVerified", (u.phone && u.phone_confirmed_at) ? "1" : "0");
+  const prov = (u.identities || []).map(i => i.provider);
+  if (u.phone && !prov.includes("phone")) prov.push("phone");
+  localStorage.setItem("providers", JSON.stringify(prov));
   if (u.id && u.id !== myUid) { myUid = u.id; initChat(); }
 }
 function isPhoneVerified() { return localStorage.getItem("phoneVerified") === "1"; }
@@ -425,22 +458,34 @@ function showProfile(name) {
   const email = localStorage.getItem("userEmail") || "";
   const phone = localPhone(localStorage.getItem("userPhone") || "");
   const loc = localStorage.getItem("userLoc") || DEFAULT_LOC;
+  const customName = localStorage.getItem("userCustomName") || "";
   const displayName = localPhone(name || localStorage.getItem("userName") || email || phone || "Хэрэглэгч");
   if (!localStorage.getItem("userCreated")) {
     localStorage.setItem("userCreated", new Date().toLocaleDateString("mn-MN"));
   }
 
   $("profile-name").textContent = displayName;
-  $("profile-email").textContent = email;
+  // Өөрийн нэр өгсөн бол зөвхөн нэр. Үгүй бол нэрний доор и-мэйл / утас / Facebook-ийн аль нэг нь.
+  let provs = [];
+  try { provs = JSON.parse(localStorage.getItem("providers") || "[]"); } catch (e) {}
+  const ident = email || phone || (provs.includes("facebook") ? "Facebook" : "");
+  $("profile-email").textContent = customName || ident === displayName ? "" : ident;
   const verified = isPhoneVerified();
-  $("profile-phone").textContent = phone ? phone + (verified ? " ✅" : "") : "-";
-  $("verify-btn").style.display = verified ? "none" : "block";
+  let prov = [];
+  try { prov = JSON.parse(localStorage.getItem("providers") || "[]"); } catch (e) {}
+  const linkBtn = p => `<button class="btn btn-outline btn-sm" onclick="linkProvider('${p}')">Холбох</button>`;
+  $("profile-phone").innerHTML = phone
+    ? esc(phone) + (verified ? ' <span class="ok">✅</span>' : ' <button class="btn btn-outline btn-sm" onclick="openVerify(\'verify\')">Баталгаажуулах</button>')
+    : '<button class="btn btn-outline btn-sm" onclick="openVerify(\'verify\')">Баталгаажуулах</button>';
+  $("st-google").innerHTML = prov.includes("google") ? '<span class="ok">✅ Холбогдсон</span>' : linkBtn("google");
+  $("st-facebook").innerHTML = prov.includes("facebook") ? '<span class="ok">✅ Холбогдсон</span>' : linkBtn("facebook");
+  updateMyCount();
   $("profile-loc").textContent = loc;
-  $("profile-avatar").textContent = displayName.charAt(0).toUpperCase();
+  renderAvatar(displayName);
   $("profile-date").textContent = localStorage.getItem("userCreated");
   $("set-name").value = displayName;
   $("set-phone").value = phone;
-  $("set-phone").readOnly = verified;
+  syncPhoneBtn();
   $("set-loc").value = loc;
 }
 
@@ -454,6 +499,7 @@ function showTab(tab) {
 function openProfile() {
   if (isLoggedIn()) showProfile();
   else showLoginView();
+  closeAllModals();
   $("profileModal").classList.add("open");
 }
 function closeProfile() {
@@ -465,19 +511,28 @@ function closeProfile() {
 
 async function saveSettings() {
   const name = $("set-name").value.trim();
-  const phone = isPhoneVerified() ? localPhone(localStorage.getItem("userPhone")) : $("set-phone").value.trim();
+  const phone = localPhone(localStorage.getItem("userPhone") || "");   // дугаарыг зөвхөн баталгаажуулалтаар солино
   const loc = $("set-loc").value.trim() || DEFAULT_LOC;
 
-  localStorage.setItem("userName", name);
-  localStorage.setItem("userPhone", phone);
+  // Нэр нь Google/Facebook/и-мэйлийн анхны нэрээс өөр бол "өөрийн нэр" гэж тооцно
+  const base = localStorage.getItem("userProviderName") || "";
+  const custom = name && name !== base ? name : "";
+  localStorage.setItem("userCustomName", custom);
+  if (name) localStorage.setItem("userName", name);
   localStorage.setItem("userLoc", loc);
 
-  try { if (sb) await sb.auth.updateUser({ data: { full_name: name, phone } }); } catch (e) { console.warn(e); }
+  try { if (sb) await sb.auth.updateUser({ data: { custom_name: custom } }); } catch (e) { console.warn(e); }
 
+  const typedRaw = $("set-phone").value;   // баталгаажуулаагүй шинэ дугаарыг хадгалахад арилгахгүй
   showProfile(name);
   showTab("settings");
-  $("settings-err").textContent = "✅ Хадгалагдлаа!";
-  setTimeout(() => { $("settings-err").textContent = ""; }, 2000);
+  $("set-phone").value = typedRaw;
+  syncPhoneBtn();
+  const typed = (typedRaw || "").replace(/\D/g, "");
+  $("settings-err").textContent = (typed && localPhone(typed) !== phone && $("change-phone-btn").style.display !== "none")
+    ? "✅ Хадгалагдлаа. Дугаарыг «Баталгаажуулах» товчоор баталгаажуулна уу."
+    : "✅ Хадгалагдлаа!";
+  setTimeout(() => { $("settings-err").textContent = ""; }, 2500);
 }
 
 async function logout() {
@@ -529,11 +584,24 @@ function runCooldown(btn, label) {
 }
 function smsErrText(error) {
   const m = (error && error.message || "").toLowerCase();
-  if (m.includes("already") || m.includes("registered") || m.includes("exists")) return "Энэ дугаар өөр бүртгэлд ашиглагдсан байна";
+  if (m.includes("already") || m.includes("registered") || m.includes("exists")) return "Энэ дугаар өөр бүртгэлд байна. Өмнө нь дугаараар нэвтэрч байсан бол «Утасны дугаараар нэвтрэх»-ээр орж, Профайл дээрээс Google/Facebook холбоорой";
   if (m.includes("rate") || m.includes("seconds") || m.includes("too many")) return "Хэт олон удаа оролдлоо. Түр хүлээгээд дахин оролдоно уу";
   if (m.includes("trial") || m.includes("unsupported")) return "Энэ дугаар руу код илгээх боломжгүй байна";
   return "Алдаа: " + (error && error.message || "");
 }
+// Нэг бүртгэлд Google / Facebook / утсыг холбох (Supabase identity linking)
+async function linkProvider(provider) {
+  if (!sb) return;
+  const { error } = await sb.auth.linkIdentity({
+    provider,
+    options: { redirectTo: window.location.origin + window.location.pathname }
+  });
+  if (error) {
+    const m = (error.message || "").toLowerCase();
+    toast(m.includes("manual linking") ? "Supabase дээр «Allow manual linking»-г асаана уу" : "Холбож чадсангүй: " + error.message);
+  }
+}
+
 function togglePhoneLogin() {
   const box = $("phone-login");
   const open = box.style.display === "none";
@@ -588,6 +656,72 @@ function backToPhone() {
   $("login-err").textContent = "";
 }
 
+// ---------- Профайл зураг ----------
+function renderAvatar(displayName) {
+  const av = $("profile-avatar");
+  const url = localStorage.getItem("userAvatar") || "";
+  if (url) {
+    av.style.backgroundImage = 'url("' + url.replace(/"/g, "%22") + '")';
+    av.textContent = "";
+  } else {
+    av.style.backgroundImage = "";
+    av.textContent = (displayName || "?").charAt(0).toUpperCase();
+  }
+}
+function pickAvatar() { $("avatar-file").click(); }
+function squareJpeg(file, size) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onerror = () => reject(new Error("Зургийг уншиж чадсангүй"));
+    img.onload = () => {
+      const side = Math.min(img.width, img.height);
+      const cv = document.createElement("canvas");
+      cv.width = cv.height = size;
+      cv.getContext("2d").drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+      cv.toBlob(b => b ? resolve(b) : reject(new Error("Зураг боловсруулж чадсангүй")), "image/jpeg", 0.85);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+$("avatar-file").addEventListener("change", async e => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f || !sb || !myUid) return;
+  toast("Зураг хуулж байна...");
+  try {
+    const blob = await squareJpeg(f, 256);
+    const fn = "avatars/" + myUid + "-" + Date.now() + ".jpg";
+    const up = await fetch(SUPABASE_URL + "/storage/v1/object/" + BUCKET + "/" + fn, {
+      method: "POST",
+      headers: { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "image/jpeg" },
+      body: blob
+    });
+    if (!up.ok) throw new Error(await up.text());
+    const url = SUPABASE_URL + "/storage/v1/object/public/" + BUCKET + "/" + fn;
+    const { error } = await sb.auth.updateUser({ data: { custom_avatar: url } });
+    if (error) throw error;
+    localStorage.setItem("userAvatar", url);
+    renderAvatar($("profile-name").textContent);
+    toast("✅ Зураг солигдлоо");
+  } catch (err) {
+    toast("Зураг солиход алдаа: " + (err.message || err));
+  }
+});
+
+// ---------- Тохиргоо: утасны дугаар засаж баталгаажуулах ----------
+function syncPhoneBtn() {
+  const typed = ($("set-phone").value || "").replace(/\D/g, "");
+  const valid = typed.length === 8 || (typed.length === 11 && typed.startsWith("976"));
+  const current = isPhoneVerified() ? localPhone(localStorage.getItem("userPhone") || "") : "";
+  const btn = $("change-phone-btn");
+  btn.style.display = valid && localPhone(typed) !== current ? "" : "none";
+}
+$("set-phone").addEventListener("input", syncPhoneBtn);
+function startPhoneVerify() {
+  const typed = ($("set-phone").value || "").replace(/\D/g, "");
+  openVerify(isPhoneVerified() ? "change" : "verify", localPhone(typed));
+}
+
 // Нэвтэрсний дараа: зар оруулах гэж байсан бол шууд үргэлжлүүлнэ
 function afterLogin() {
   if (localStorage.getItem("wantPost") === "1") {
@@ -600,8 +734,18 @@ function afterLogin() {
 }
 
 // ---------- Утас баталгаажуулах (Google/Facebook-ээр орсон хэрэглэгчид, нэг удаа) ----------
-function openVerify() {
-  closeProfile();
+let verifyMode = "post";   // "post" = зар оруулахын өмнө, "verify" = тохиргооноос баталгаажуулах, "change" = дугаар солих
+function openVerify(mode, prefill) {
+  verifyMode = mode === "change" || mode === "verify" ? mode : "post";
+  $("v-title").textContent = verifyMode === "change" ? "Утасны дугаар солих" : "Утсаа баталгаажуулна уу";
+  $("v-sub").textContent = verifyMode === "change"
+    ? "Шинэ дугаараа оруулбал баталгаажуулах код ирнэ. Код оруулсны дараа дугаар солигдоно."
+    : verifyMode === "verify"
+      ? "Дугаараа оруулж, ирсэн кодоор баталгаажуулна уу."
+      : "Зар оруулахын тулд утасны дугаараа нэг удаа баталгаажуулна. Дараа нь дахин шаардахгүй.";
+  $("v-phone").value = prefill || "";
+  $("v-code").value = "";
+  closeAllModals();
   $("v-err").textContent = "";
   vBack();
   $("verifyModal").classList.add("open");
@@ -625,6 +769,9 @@ async function sendVerify() {
   if (w > 0) { err.textContent = w + " секундын дараа дахин оролдоно уу"; return; }
 
   const phone = formatPhone(raw);
+  if (verifyMode === "change" && isPhoneVerified() && localPhone(phone) === localPhone(localStorage.getItem("userPhone"))) {
+    err.textContent = "Энэ дугаар одоогийн дугаартай адил байна"; return;
+  }
   err.textContent = "Код явуулж байна...";
   const { error } = await sb.auth.updateUser({ phone });
   if (error) { err.textContent = smsErrText(error); return; }
@@ -655,7 +802,13 @@ async function confirmVerify() {
   localStorage.removeItem("pendingVerify");
   $("v-code").value = "";
   closeVerify();
-  openModal();   // шууд зар оруулах цонх руу
+  if (verifyMode === "change" || verifyMode === "verify") {
+    toast(verifyMode === "change" ? "✅ Утасны дугаар солигдлоо" : "✅ Утас баталгаажлаа");
+    openProfile();
+    showTab("settings");
+  } else {
+    openModal();   // шууд зар оруулах цонх руу
+  }
 }
 
 // =====================================================
@@ -708,8 +861,8 @@ function onIncoming(payload) {
   }
 }
 
-function openChat() {
-  if (!isLoggedIn() || !myUid) { toast("Чат ашиглахын тулд нэвтэрнэ үү"); openProfile(); return; }
+function openChat() {   // мессеж байхгүй ч, нэвтрээгүй ч нээгдэнэ
+  closeAllModals();
   $("chatModal").classList.add("open");
   chatBack();
 }
@@ -728,6 +881,10 @@ function chatBack() {
 
 async function loadConversations() {
   const box = $("chat-list");
+  if (!sb || !myUid) {
+    box.innerHTML = "<div class='empty'>Чат ашиглахын тулд нэвтэрнэ үү.</div><button class='btn btn-block btn-stack' onclick='openProfile()'>Нэвтрэх</button>";
+    return;
+  }
   box.innerHTML = "<div class='empty'>Ачаалж байна...</div>";
   const { data, error } = await sb.from("messages").select("*")
     .or("sender_id.eq." + myUid + ",receiver_id.eq." + myUid)
@@ -844,6 +1001,7 @@ function setActiveNav(btn) {
 }
 
 function goHome(btn) {
+  closeAllModals();
   setActiveNav(btn);
   view = "all";
   cat = "Бүгд";
@@ -853,6 +1011,7 @@ function goHome(btn) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 function goSaved(btn) {
+  closeAllModals();
   setActiveNav(btn);
   view = "saved";
   render();
@@ -874,5 +1033,9 @@ $("adModal").addEventListener("click", e => { if (e.target === $("adModal")) clo
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") { closeModal(); closeAd(); }
 });
+
+// Цонх нээгдэх/хаагдах бүрт цаад талын гүйлтийг түгжинэ/тайлна
+const lockObserver = new MutationObserver(syncScrollLock);
+MODAL_IDS.forEach(id => lockObserver.observe($(id), { attributes: true, attributeFilter: ["class"] }));
 
 load();
