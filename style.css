@@ -1,247 +1,191 @@
-*{box-sizing:border-box}body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:#0a0f0d;color:#e8f5ee}
-header{background:#0b0b0b;padding:12px 16px;display:flex;gap:12px;align-items:center;position:sticky;top:0;z-index:10;border-bottom:2px solid #0f9d58;flex-wrap:wrap}
-.logo{font-weight:900;font-size:26px;color:#0f9d58;letter-spacing:.5px;white-space:nowrap}.logo span{color:#fff}
-.search{flex:1;min-width:180px;display:flex;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:999px;padding:4px 4px 4px 14px;align-items:center}.search input{flex:1;border:0;background:transparent;outline:none;font-size:15px;padding:8px 0;color:#fff}.search input::placeholder{color:#888}
-.btn{background:#0f9d58;color:#fff;border:0;padding:11px 18px;border-radius:999px;font-weight:800;cursor:pointer;white-space:nowrap}.btn:hover{background:#0c7a45}
-.wrap{max-width:1150px;margin:auto;padding:16px}
-.cats{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.cat{padding:8px 14px;border-radius:999px;border:1px solid #2a2a2a;background:#141414;color:#ddd;cursor:pointer;font-weight:600}.cat.active{background:#0f9d58;color:#fff;border-color:#0f9d58}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;margin-top:14px}
-.card{background:#131313;border:1px solid #232323;border-radius:18px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.4);cursor:pointer}.card img{width:100%;height:190px;object-fit:cover;background:#222}.card-body{padding:13px}.price{font-weight:900;color:#22c55e;font-size:20px}.card h3{margin:6px 0 4px;font-size:16px;line-height:1.3;color:#fff}.meta{color:#9ca3af;font-size:13px}.phone{display:inline-block;background:#0f9d58;color:#fff;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:800;margin-top:8px}
-.status{font-size:13px;color:#a7f3d0;background:#12211a;border:1px solid #1f3d2c;padding:10px 12px;border-radius:12px}
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.7);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding:14px;
-  padding-bottom: 100px; /* доод bar-ны дээр гарна */
-  z-index: 200; /* доод bar 100-аас их байх ёстой */
-}.modal.open{display:flex}
-.box{background:#161616;width:100%;max-width:540px;border-radius:18px;padding:18px;max-height:92vh;overflow:auto;border:1px solid #2a2a2a;color:#fff}.box input,.box select,.box textarea{width:100%;padding:11px 12px;border:1px solid #2a2a2a;border-radius:11px;margin:6px 0;font-size:15px;background:#0f0f0f;color:#fff}
-.upload{border:2px dashed #2e5a44;border-radius:14px;padding:14px;text-align:center;margin:6px 0;background:#0f0f0f}.upload input{margin:0;color:#fff}.upload img{width:100%;height:170px;object-fit:cover;border-radius:10px;display:none;margin-top:8px}
-
-
-/* --- Glass Header - Blur тунгалаг --- */
-header{position:sticky;top:0;z-index:50;display:flex;gap:14px;align-items:center;justify-content:space-between;padding:14px 22px;
-background:rgba(10,10,10,0.55);
-backdrop-filter:blur(18px) saturate(160%);
--webkit-backdrop-filter:blur(18px) saturate(160%);
-border-bottom:1px solid rgba(255,255,255,0.12);
-box-shadow:0 8px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);}
-.logo{font-size:26px;font-weight:900;letter-spacing:-0.5px;background:linear-gradient(90deg,#fff,#22c55e,#a7f3d0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 0 20px rgba(34,197,94,0.25)}
-.logo span{color:#22c55e}
-.search{display:flex;gap:8px;flex:1;max-width:520px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);border-radius:999px;padding:5px 5px 5px 16px;backdrop-filter:blur(10px)}
-.search input{background:transparent;border:0;color:#fff;outline:none;flex:1;font-size:14px}
-.search input::placeholder{color:#a3a3a3}
-.btn{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:0;padding:11px 18px;border-radius:999px;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(34,197,94,0.35);transition:.2s}
-.btn:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(34,197,94,0.45)}
-body{background:radial-gradient(600px 300px at 20% 0%, rgba(34,197,94,0.18), transparent), radial-gradient(500px 300px at 90% 10%, rgba(34,197,94,0.12), transparent), #0a0a0a;}
-.wrap{padding-top:18px}
-@media(max-width:640px){header{flex-wrap:wrap;padding:12px 14px}.search{order:3;max-width:none;width:100%}}
-
-/* --- Том ногоон Hero --- */
-.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#22c55e 0%,#16a34a 55%,#10b981 100%);border-radius:28px;padding:28px 24px 26px;margin:14px 0 18px;color:#fff;box-shadow:0 20px 40px rgba(34,197,94,0.35)}
-.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,0.22);border:1px solid rgba(255,255,255,0.18);padding:8px 14px;border-radius:999px;font-size:14px;font-weight:800}
-.hero h2{font-size:44px;line-height:1.05;margin:16px 0 10px;font-weight:900;letter-spacing:-0.5px;position:relative;z-index:1}
-.hero p{font-size:16px;line-height:1.5;color:rgba(255,255,255,0.92);margin:0 0 18px;position:relative;z-index:1}
-.hero-btns{display:flex;gap:10px;flex-wrap:wrap;position:relative;z-index:1}
-.hero-btn-black{background:#0a0a0a;color:#4ade80;border:0;padding:13px 20px;border-radius:999px;font-weight:800;font-size:15px;cursor:pointer}
-.hero-btn-ghost{background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:13px 20px;border-radius:999px;font-weight:800;font-size:15px;cursor:pointer;backdrop-filter:blur(6px)}
-@media(max-width:640px){.hero{padding:22px 18px;border-radius:24px}.hero h2{font-size:36px}}
-
-
-
-/* --- DOOD TALYN BAR --- */
+/* ===== SelengeZar - style.css ===== */
+*{box-sizing:border-box}
+html{overflow-x:hidden}
 body{
-  padding-bottom: 80px; /* bar-ны доор контент дарагдахгүй байхын тулд */
+  margin:0;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e8f5ee;
+  background:
+    radial-gradient(600px 300px at 20% 0%, rgba(34,197,94,.18), transparent),
+    radial-gradient(500px 300px at 90% 10%, rgba(34,197,94,.12), transparent),
+    #0a0a0a;
+  padding-bottom:80px; /* доод bar-ны зай */
+  overflow-x:hidden;
 }
 
-.bottom-nav{
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  z-index: 100;
-  display: flex;
-  justify-content: space-around;
-  align-items: flex-end;
-  padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+/* ---------- Header (glass) ---------- */
+header{
+  position:sticky;top:0;z-index:50;
+  display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;
+  padding:14px 22px;
+  background:rgba(10,10,10,.55);
+  backdrop-filter:blur(18px) saturate(160%);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  border-bottom:1px solid rgba(255,255,255,.12);
+  box-shadow:0 8px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.logo{
+  font-size:26px;font-weight:900;letter-spacing:-.5px;white-space:nowrap;
+  background:linear-gradient(90deg,#fff,#22c55e,#a7f3d0);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.search{
+  display:flex;gap:8px;align-items:center;flex:1;min-width:180px;max-width:520px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:999px;padding:5px 5px 5px 16px;
+  backdrop-filter:blur(10px);
+}
+.search input{flex:1;min-width:0;background:transparent;border:0;outline:none;color:#fff;font-size:14px;padding:8px 0}
+.search input::placeholder{color:#a3a3a3}
 
-  /* Дээд bar-тай ЯГ АДИЛХАН тунгалаг өнгө */
-  background: rgba(10,10,10,0.55);
-  backdrop-filter: blur(18px) saturate(160%);
-  -webkit-backdrop-filter: blur(18px) saturate(160%);
+.btn{
+  background:linear-gradient(135deg,#22c55e,#16a34a);
+  color:#fff;border:0;padding:11px 18px;border-radius:999px;
+  font-weight:800;cursor:pointer;white-space:nowrap;
+  box-shadow:0 6px 20px rgba(34,197,94,.35);transition:.2s;
+}
+.btn:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(34,197,94,.45)}
+.btn:disabled{opacity:.6;cursor:wait;transform:none}
+.btn-light{background:#fff;color:#000;box-shadow:none}
+.btn-fb{background:#1877f2;box-shadow:none}
+.btn-outline{background:transparent;border:1px solid #333;color:#fff;box-shadow:none}
+.btn-danger{background:#2a0f0f;border:1px solid #f87171;color:#f87171;box-shadow:none}
+.btn-block{width:100%}
 
-  border-top: 1px solid rgba(255,255,255,0.12);
-  box-shadow: 0 -8px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+@media(max-width:640px){
+  header{padding:12px 14px}
+  .search{order:3;max-width:none;width:100%}
 }
 
-.nav-item{
-  flex: 1;
-  background: none;
-  border: 0;
-  color: #9ca3af;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  cursor: pointer;
-  padding: 4px 0;
-  font-family: inherit;
+/* ---------- Layout ---------- */
+.wrap{max-width:1150px;margin:auto;padding:18px 16px 16px}
+.foot{text-align:center;color:#6b7280;font-size:13px;margin:28px 0 8px}
+
+/* ---------- Hero carousel ---------- */
+.hero{
+  position:relative;overflow:hidden;
+  width:100%;aspect-ratio:1920/800;
+  margin:0 0 16px;border-radius:22px;
+  background:#000;cursor:grab;user-select:none;touch-action:pan-y;
 }
+.hero:active{cursor:grabbing}
+.hero-track{display:flex;width:100%;height:100%;transition:transform .6s ease;will-change:transform}
+.hero-track img{flex:0 0 100%;width:100%;height:100%;object-fit:cover;pointer-events:none;-webkit-user-drag:none}
+.hero-dots{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:10}
+.hero-dots button{width:10px;height:10px;border:0;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer;padding:0;transition:.2s}
+.hero-dots button.active{background:#fff;transform:scale(1.3)}
 
-.nav-item span{ font-size: 22px; line-height: 1; }
-.nav-item small{ font-size: 11px; font-weight: 700; }
+/* ---------- Categories ---------- */
+.cats{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.cat{padding:8px 14px;border-radius:999px;border:1px solid #2a2a2a;background:#141414;color:#ddd;cursor:pointer;font-weight:600}
+.cat.active{background:#0f9d58;color:#fff;border-color:#0f9d58}
 
-.nav-item.active{ color: #22c55e; }
+.status{font-size:13px;color:#a7f3d0;background:#12211a;border:1px solid #1f3d2c;padding:10px 12px;border-radius:12px}
+.empty{color:#9ca3af}
 
+/* ---------- Ads grid ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;margin-top:14px}
+.card{background:#131313;border:1px solid #232323;border-radius:18px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.4);cursor:pointer}
+.card img{width:100%;height:190px;object-fit:cover;background:#222;display:block}
+.card-body{padding:13px}
+.price{font-weight:900;color:#22c55e;font-size:20px}
+.card h3{margin:6px 0 4px;font-size:16px;line-height:1.3;color:#fff}
+.meta{color:#9ca3af;font-size:13px}
+.meta.desc{margin-top:6px;word-break:break-word}
+.phone{display:inline-block;background:#0f9d58;color:#fff;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:800;margin-top:8px}
 
-/* Голын + товч */
-/* Голын + товч - ЯГ ГОЛДОО */
-
-
-.bottom-nav .nav-add{
-  padding: 0;
-  justify-content: flex-start;
-}
-
-.bottom-nav .nav-add span{
-  width: 54px;
-  height: 54px;
-  min-width: 54px;
-  min-height: 54px;
-  margin-top: -28px;
-  background: linear-gradient(135deg,#22c55e,#16a34a);
-  color: #fff;
-  border-radius: 50%;
-  border: 3px solid #0a0a0a;
-  box-shadow: 0 8px 20px rgba(34,197,94,0.45);
-
-  /* Яг голд нь болгох гол хэсэг нь энэ 4 мөр */
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-
-  font-size: 32px;
-  font-weight: 400;
-  line-height: 1;
-  padding: 0;
-  padding-bottom: 4px; /* + тэмдэгтийг нүдээр яг голд нь оруулдаг засал */
-}
-
-
-
-.nav-add small{ color: #fff; }
-
-
-
-/* --- ЗАР ОРУУЛАХ ЦОНХ - ГҮЙЛГЭХГҮЙГЭЭР БАГТААХ --- */
+/* ---------- Modal ---------- */
 .modal{
-  padding: 10px;
-  padding-bottom: 90px; /* доод bar-ны зай */
-  align-items: center;
+  position:fixed;inset:0;z-index:200;
+  display:none;align-items:center;justify-content:center;
+  padding:14px 14px 100px; /* доод bar-ны дээр гарна */
+  background:rgba(0,0,0,.7);
 }
-
-.modal .box{
-  max-height: calc(100dvh - 110px); /* дэлгэц - дээд + доод bar */
-  height: auto;
-  padding: 14px;
-  overflow: hidden; /* гүйлгэхгүй */
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-bottom: 0;
+.modal.open{display:flex}
+.box{
+  position:relative;width:100%;max-width:540px;
+  max-height:calc(100dvh - 120px);
+  overflow-y:auto;
+  padding:38px 18px 18px;
+  background:#161616;color:#fff;
+  border:1px solid #2a2a2a;border-radius:18px;
 }
-
-.modal .box h2{
-  font-size: 18px;
-  margin-bottom: 4px !important;
+.box h2{margin:0 0 6px;font-size:20px}
+.box input,.box select,.box textarea{
+  width:100%;padding:10px 12px;margin:5px 0;
+  border:1px solid #2a2a2a;border-radius:11px;
+  background:#0f0f0f;color:#fff;font-size:15px;font-family:inherit;
 }
-
-/* Бүх оролтуудаа шахах */
-.modal .box input,
-.modal .box select,
-.modal .box textarea{
-  padding: 8px 10px;
-  margin: 3px 0;
-  font-size: 14px;
-}
-
-.modal .box textarea{
-  height: 56px;
-  min-height: 56px;
-  resize: none;
-}
-
-/* Зураг сонгох хэсгийг шахах */
-.modal .upload{
-  padding: 8px;
-  margin: 3px 0;
-}
-.modal .upload img{
-  height: 90px;
-  margin-top: 4px;
-}
-
-.modal .box #err{
-  font-size: 12px;
-  min-height: 14px;
-}
-
-.modal .box .btn{
-  padding: 10px;
-}
-
-
-
-
-
-
-/* --- КОМПЬЮТЕР ДЭЭР ЗАСАХ --- */
-@media (min-width: 641px){
-  .modal{
-    padding: 14px;
-    padding-bottom: 90px; /* доод bar-ны зай, гэхдээ голд нь байна */
-    align-items: center;
-  }
-
-  .modal .box{
-    max-height: calc(100vh - 110px);
-    overflow-y: auto; /* компьютер дээр багтахгүй бол дотроо гүйлгэнэ, Хаах товч гарч ирнэ */
-    margin-bottom: 0;
-  }
-
-}
-
-
-
-
-/* --- MODAL ХААХ X ТОВЧ - БАРУУН ДЭЭД БУЛАНД --- */
-.modal .box{
-  position: relative;
-  padding-top: 38px; /* X товчинд зай гаргана */
-}
-
+.box textarea{height:70px;resize:none}
+.box label{font-size:12px;color:#9ca3af}
 .modal-close{
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  width: 32px;
-  height: 32px;
-  border: 0;
-  border-radius: 50%;
-  background: #222;
-  color: #fff;
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
+  position:absolute;top:10px;right:12px;width:32px;height:32px;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  border:0;border-radius:50%;background:#222;color:#fff;font-size:16px;line-height:1;cursor:pointer;
 }
+.modal-close:hover{background:#333}
 
-.modal-close:hover{
-  background: #333;
+.upload{border:2px dashed #2e5a44;border-radius:14px;padding:10px;text-align:center;margin:6px 0;background:#0f0f0f}
+.upload input{margin:8px 0 0;color:#fff}
+.upload img{display:none;width:100%;height:110px;object-fit:cover;border-radius:10px;margin-top:8px}
+.upload-title{font-weight:800}
+.upload-hint{font-size:12px;color:#9ca3af}
+.form-msg{font-size:13px;min-height:18px;margin:4px 0;color:#f87171}
+.form-msg.ok{color:#4ade80}
+
+/* ---------- Profile / login ---------- */
+.box.profile-box{max-width:380px;padding:38px 22px 22px}
+.sub{color:#9ca3af;font-size:13px;margin:6px 0 16px}
+.or{display:flex;align-items:center;gap:10px;margin:16px 0;color:#666;font-size:12px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:#222}
+.btn-stack{margin-top:8px}
+#step-code .sub{margin:0 0 6px}
+#step-code b{color:#fff}
+
+.profile-head{text-align:center;padding:4px 0 16px;border-bottom:1px solid #222}
+.avatar{
+  width:64px;height:64px;margin:0 auto 10px;border-radius:50%;
+  background:#22c55e;color:#fff;font-size:26px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
 }
+.profile-name{font-size:17px;font-weight:700}
+.profile-email{color:#9ca3af;font-size:13px;margin-top:2px}
+.tabs{display:flex;gap:8px;margin:16px 0}
+.tab-btn{flex:1;padding:10px;border:0;border-radius:999px;background:#222;color:#fff;font-weight:700;cursor:pointer}
+.tab-btn.active{background:#22c55e}
+.info-row{display:flex;justify-content:space-between;gap:12px;font-size:14px;line-height:2}
+.info-row span{color:#9ca3af}
+.settings-actions{display:flex;gap:10px;margin-top:12px}
+.settings-actions .btn{flex:1}
+
+/* ---------- Bottom nav ---------- */
+.bottom-nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:300;
+  display:flex;justify-content:space-around;align-items:flex-end;
+  padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+  background:rgba(10,10,10,.55);
+  backdrop-filter:blur(18px) saturate(160%);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  border-top:1px solid rgba(255,255,255,.12);
+  box-shadow:0 -8px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:4px 0;background:none;border:0;color:#9ca3af;cursor:pointer;font-family:inherit;
+}
+.nav-item span{font-size:22px;line-height:1}
+.nav-item small{font-size:11px;font-weight:700}
+.nav-item.active{color:#22c55e}
+
+.nav-add{padding:0;justify-content:flex-start}
+.nav-add span{
+  width:54px;height:54px;min-width:54px;margin-top:-28px;padding:0 0 4px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;
+  border:3px solid #0a0a0a;border-radius:50%;
+  box-shadow:0 8px 20px rgba(34,197,94,.45);
+  font-size:32px;font-weight:400;line-height:1;
+}
+.nav-add small{color:#fff}
