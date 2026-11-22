@@ -542,3 +542,4 @@ body[data-page="chat"]{overflow:hidden;padding-bottom:0}
 .feat-track img{-webkit-user-drag:none;user-select:none}
 @media(min-width:640px){.feat-track{--per:3;--gap:14px}}
 @media(min-width:900px){.feat-track{--per:4;--gap:16px}}
+.avatar.img{background-size:cover;background-position:center;background-color:var(--line);color:transparent}

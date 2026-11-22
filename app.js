@@ -1122,9 +1122,19 @@ function chatBack() {
   loadConversations();
 }
 
+// Админы нэр, зураг (site_profile хүснэгтээс; байхгүй бол "SelengeZar · Админ")
+let adminProf = null;
+const adminProfP = fetch(SUPABASE_URL + "/rest/v1/site_profile?select=name,avatar_url&id=eq.1", { headers: { apikey: KEY, Authorization: "Bearer " + KEY } })
+  .then(r => r.ok ? r.json() : []).then(d => { adminProf = d && d[0] || null; }).catch(() => {});
+const convTitle = (adId, t) => String(adId) === "admin" && adminProf && adminProf.name ? adminProf.name : t;
+function avatarHTML(adId, title) {
+  const adm = String(adId) === "admin", url = adm && adminProf && adminProf.avatar_url;
+  return `<span class="avatar${adm ? " admin" : ""}${url ? " img" : ""}"${url ? ` style="background-image:url('${esc(url)}')"` : ""}>${url ? "" : esc(initialOf(title))}</span>`;
+}
 const initialOf = t => (String(t || "?").replace(/^[^\p{L}\p{N}]+/u, "").charAt(0) || "?").toUpperCase();
 async function loadConversations() {
   const box = $("chat-list");
+  await adminProfP;
   if (!sb || !myUid) {
     box.innerHTML = "<div class='empty'>Чат ашиглахын тулд нэвтэрнэ үү.</div><button class='btn btn-block btn-stack' onclick='openProfile()'>Нэвтрэх</button>";
     return;
@@ -1150,9 +1160,9 @@ async function loadConversations() {
   }
   box.innerHTML = [...map.values()].map(c => `
     <button class="chat-item" data-ad="${esc(c.adId)}" data-other="${esc(c.other)}" data-title="${esc(c.title)}">
-      <span class="avatar${c.adId === "admin" ? " admin" : ""}">${esc(initialOf(c.title))}</span>
+      ${avatarHTML(c.adId, convTitle(c.adId, c.title))}
       <div class="ci-main">
-        <div class="ci-title">${esc(c.title)}</div>
+        <div class="ci-title">${esc(convTitle(c.adId, c.title))}</div>
         <div class="ci-last">${c.mine ? "Та: " : ""}${esc(c.last.body)}</div>
       </div>
       <div class="ci-time">${esc(hhmm(c.last.created_at))}</div>
@@ -1165,14 +1175,19 @@ $("chat-list").addEventListener("click", e => {
 });
 
 async function openThread(adId, title, otherId, sub) {
+  await adminProfP;
   chatCur = { adId: String(adId), adTitle: title, otherId };
+  title = convTitle(adId, title);
   $("chat-layout").classList.add("in-thread");
   $("page-chat").classList.add("in-thread");
   $("chat-thread-view").style.display = "flex";
   $("chat-title").textContent = title;
   $("chat-sub").textContent = sub || (String(adId) === "admin" ? "Админ" : "Зарын чат");
-  $("chat-av").textContent = initialOf(title);
-  $("chat-av").classList.toggle("admin", String(adId) === "admin");
+  const av = $("chat-av"), aurl = String(adId) === "admin" && adminProf && adminProf.avatar_url;
+  av.textContent = aurl ? "" : initialOf(title);
+  av.style.backgroundImage = aurl ? `url('${aurl.replace(/'/g, "%27")}')` : "";
+  av.classList.toggle("img", !!aurl);
+  av.classList.toggle("admin", String(adId) === "admin");
   const box = $("chat-msgs");
   box.innerHTML = "<div class='empty'>Ачаалж байна...</div>";
   const { data, error } = await sb.from("messages").select("*")
