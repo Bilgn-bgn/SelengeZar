@@ -518,7 +518,10 @@ $("me").onclick = () => {
       }
       const { data, error } = await sb.auth.updateUser({ data: { display_name: name, avatar_url: avatar } });
       if (error) throw new Error(error.message);
-      setMe(data.user); closeModal(); toast("Профайл хадгалагдлаа");
+      setMe(data.user);
+      let pub = "";
+      try { await rpc("admin_set_profile", { p_name: name, p_avatar: avatar }); } catch (e2) { pub = " (чатад харагдахын тулд admin-profile.sql ажиллуулна уу)"; }
+      closeModal(); toast("Профайл хадгалагдлаа" + pub);
     } catch (ex) { err.textContent = ex.message; btn.disabled = false; }
   };
 };
