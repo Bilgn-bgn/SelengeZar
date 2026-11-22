@@ -63,7 +63,7 @@
   <div class="status" id="status">Холбогдож байна...</div>
   <div id="featured-wrap" hidden>
     <h3 class="sec-title"><svg class="i fill" aria-hidden="true"><use href="#i-star"/></svg> Онцлох зар</h3>
-    <div class="grid" id="featured-grid"></div>
+    <div class="feat-track" id="featured-grid"></div>
     <h3 class="sec-title">Бүх зар</h3>
   </div>
   <div class="grid" id="grid"></div>
@@ -80,27 +80,23 @@
   <div class="grid" id="mine-grid"></div>
 </section>
 
-<section class="wrap page" id="page-chat" hidden>
+<section class="wrap page page-chat" id="page-chat" hidden>
   <div class="page-head">
     <button class="page-back" onclick="go('#/')" aria-label="Буцах"><svg class="i" aria-hidden="true"><use href="#i-arrow-left"/></svg></button>
     <h2>Чат</h2>
   </div>
   <div class="chat-layout" id="chat-layout">
-    <div class="chat-col" id="chat-list-view">
-      <div id="chat-list"></div>
-    </div>
-    <div class="chat-col thread-col">
-      <div class="chat-placeholder" id="chat-placeholder">Зүүн талаас яриагаа сонгоно уу</div>
-      <div id="chat-thread-view" style="display:none">
-        <div class="chat-head">
-          <button class="chat-back" onclick="chatBack()" aria-label="Буцах"><svg class="i" aria-hidden="true"><use href="#i-arrow-left"/></svg></button>
-          <div><b id="chat-title"></b><div class="meta" id="chat-sub"></div></div>
-        </div>
-        <div class="chat-msgs" id="chat-msgs"></div>
-        <div class="chat-send">
-          <input id="chat-input" placeholder="Мессеж бичих..." maxlength="1000" autocomplete="off">
-          <button class="btn" onclick="sendMsg()" aria-label="Илгээх"><svg class="i" aria-hidden="true"><use href="#i-send"/></svg></button>
-        </div>
+    <div class="chat-col" id="chat-list-view"><div id="chat-list"></div></div>
+    <div id="chat-thread-view" style="display:none">
+      <div class="chat-head">
+        <button class="chat-back" onclick="chatBack()" aria-label="Буцах"><svg class="i" aria-hidden="true"><use href="#i-arrow-left"/></svg></button>
+        <span class="avatar" id="chat-av"></span>
+        <div class="chat-who"><b id="chat-title"></b><div class="meta" id="chat-sub"></div></div>
+      </div>
+      <div class="chat-msgs" id="chat-msgs"></div>
+      <div class="chat-send">
+        <input id="chat-input" placeholder="Мессеж бичих..." maxlength="1000" autocomplete="off">
+        <button class="send-btn" onclick="sendMsg()" aria-label="Илгээх"><svg class="i" aria-hidden="true"><use href="#i-send"/></svg></button>
       </div>
     </div>
   </div>

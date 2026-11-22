@@ -215,6 +215,81 @@ function cardHTML(a, opts) {
     </div>`;
 }
 
+// ---------- Онцлох зарын карусель: хажуу тийш 3 секунд тутам урсана, гараар чирж болно ----------
+const FT = { sig: "", list: [], S: 0, w: 0, per: 1, loop: false, touch: 0, norm: null, down: null, moved: false };
+function featMetrics(t) {
+  const c = t.querySelector(".card");
+  if (!c || !t.clientWidth) return null;
+  const gap = parseFloat(getComputedStyle(t).columnGap) || 12;
+  const w = c.getBoundingClientRect().width + gap;
+  return { w, per: Math.max(1, Math.round((t.clientWidth - 12 + gap) / w)) };
+}
+function setupFeatured(feat, force) {
+  const t = $("featured-grid");
+  FT.list = feat;
+  const sig = feat.map(a => [a.id, a.title, a.price, a.img].join(":")).join("|");
+  if (!force && sig === FT.sig && t.children.length) {   // өөрчлөлтгүй бол дахин байгуулахгүй (байрлал хэвээр)
+    t.querySelectorAll("[data-save]").forEach(b => b.classList.toggle("on", isSaved(b.dataset.save)));
+    return;
+  }
+  const one = feat.map(a => cardHTML(a)).join("");
+  t.innerHTML = one;
+  FT.loop = false;
+  if (!feat.length) { FT.sig = sig; return; }
+  const m = featMetrics(t);
+  if (!m) { FT.sig = ""; return; }                      // нүүр хуудас харагдахгүй байна - буцаж ирэхэд дахин байгуулна
+  FT.sig = sig; FT.w = m.w; FT.per = m.per;
+  if (feat.length > m.per) {                            // төгсгөлгүй гүйлгэхийн тулд 3 хувь
+    t.innerHTML = one + one + one;
+    FT.loop = true; FT.S = feat.length * m.w;
+    t.scrollLeft = FT.S;
+  }
+}
+(function featInit() {
+  const t = $("featured-grid");
+  const touch = () => { FT.touch = Date.now(); };
+  ["touchstart", "wheel"].forEach(ev => t.addEventListener(ev, touch, { passive: true }));
+  t.addEventListener("scroll", () => {
+    if (!FT.loop) return;
+    clearTimeout(FT.norm);
+    FT.norm = setTimeout(() => {                         // гүйлт зогсмогц дунд хувь руу нууцаар буцаана
+      const sl = t.scrollLeft;
+      if (sl < FT.S - FT.w / 2) t.scrollLeft = sl + FT.S;
+      else if (sl >= 2 * FT.S - FT.w / 2) t.scrollLeft = sl - FT.S;
+    }, 140);
+  }, { passive: true });
+  // Хулганаар чирэх (компьютер)
+  t.addEventListener("pointerdown", e => {
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    FT.down = { x: e.clientX, sl: t.scrollLeft }; FT.moved = false; touch();
+  });
+  window.addEventListener("pointermove", e => {
+    if (!FT.down) return;
+    const dx = e.clientX - FT.down.x;
+    if (!FT.moved && Math.abs(dx) < 5) return;
+    FT.moved = true; t.classList.add("drag"); touch();
+    t.scrollLeft = FT.down.sl - dx;
+  });
+  window.addEventListener("pointerup", () => {
+    if (!FT.down) return;
+    FT.down = null; touch();
+    if (FT.moved) {
+      t.classList.remove("drag");
+      if (FT.w) t.scrollTo({ left: Math.round(t.scrollLeft / FT.w) * FT.w, behavior: "smooth" });
+      setTimeout(() => { FT.moved = false; }, 0);
+    }
+  });
+  t.addEventListener("click", e => { if (FT.moved) { e.stopPropagation(); e.preventDefault(); } }, true);
+  t.addEventListener("dragstart", e => e.preventDefault());
+  // Автомат урсалт: 3 секунд тутам 1 хуудас (нэг дор харагдаж буй тооны зар)
+  setInterval(() => {
+    if (!FT.loop || document.hidden || document.body.dataset.page !== "home" || FT.down) return;
+    if (Date.now() - FT.touch < 3000) return;            // хэрэглэгч оролцсон бол түр хүлээнэ
+    t.scrollBy({ left: FT.per * FT.w, behavior: "smooth" });
+  }, 3000);
+  let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => setupFeatured(FT.list, true), 250); });
+})();
+
 function render() {
   const q = ($("q").value || "").trim().toLowerCase();
   const saved = savedIds();
@@ -229,7 +304,7 @@ function render() {
 
   $("status").textContent = statusText;
   $("featured-wrap").hidden = !feat.length;
-  $("featured-grid").innerHTML = feat.map(a => cardHTML(a)).join("");
+  setupFeatured(feat);
 
   const g = $("grid");
   if (!base.length) {
@@ -1042,11 +1117,12 @@ function openChat() { go("#/chat"); }   // мессеж байхгүй ч, нэ�
 function chatBack() {
   chatCur = null;
   $("chat-layout").classList.remove("in-thread");
+  $("page-chat").classList.remove("in-thread");
   $("chat-thread-view").style.display = "none";
-  $("chat-placeholder").style.display = "";
   loadConversations();
 }
 
+const initialOf = t => (String(t || "?").replace(/^[^\p{L}\p{N}]+/u, "").charAt(0) || "?").toUpperCase();
 async function loadConversations() {
   const box = $("chat-list");
   if (!sb || !myUid) {
@@ -1069,11 +1145,12 @@ async function loadConversations() {
     if (m.receiver_id === myUid && !m.read) map.get(key).unread++;
   }
   if (!map.size) {
-    box.innerHTML = "<div class='empty'>Мессеж алга. Зар дээрээс «Чат бичих» товчийг дарж эхлүүлнэ үү.</div>";
+    box.innerHTML = "<div class='empty chat-empty'>" + ico("chat") + "<b>Мессеж алга</b><span>Зар дээрх «Чат бичих» товчоор эхэлнэ.</span></div>";
     return;
   }
   box.innerHTML = [...map.values()].map(c => `
     <button class="chat-item" data-ad="${esc(c.adId)}" data-other="${esc(c.other)}" data-title="${esc(c.title)}">
+      <span class="avatar${c.adId === "admin" ? " admin" : ""}">${esc(initialOf(c.title))}</span>
       <div class="ci-main">
         <div class="ci-title">${esc(c.title)}</div>
         <div class="ci-last">${c.mine ? "Та: " : ""}${esc(c.last.body)}</div>
@@ -1090,10 +1167,12 @@ $("chat-list").addEventListener("click", e => {
 async function openThread(adId, title, otherId, sub) {
   chatCur = { adId: String(adId), adTitle: title, otherId };
   $("chat-layout").classList.add("in-thread");
-  $("chat-placeholder").style.display = "none";
-  $("chat-thread-view").style.display = "block";
+  $("page-chat").classList.add("in-thread");
+  $("chat-thread-view").style.display = "flex";
   $("chat-title").textContent = title;
-  $("chat-sub").textContent = sub || "";
+  $("chat-sub").textContent = sub || (String(adId) === "admin" ? "Админ" : "Зарын чат");
+  $("chat-av").textContent = initialOf(title);
+  $("chat-av").classList.toggle("admin", String(adId) === "admin");
   const box = $("chat-msgs");
   box.innerHTML = "<div class='empty'>Ачаалж байна...</div>";
   const { data, error } = await sb.from("messages").select("*")
@@ -1202,6 +1281,7 @@ function route() {
     if (pendingThread && sb && myUid) { const t = pendingThread; pendingThread = null; openThread(...t); }
     else { pendingThread = null; chatBack(); }
   }
+  if (page === "home") setTimeout(() => setupFeatured(FT.list, !FT.sig), 0);
   syncNav();
   window.scrollTo(0, 0);
 }
