@@ -865,27 +865,40 @@ function togglePhoneLogin() {
   $("phone-toggle").style.display = open ? "none" : "block";
 }
 
+let sendingCode = false;
+// Supabase "N секундын дараа дахин хүсэх" гэвэл код саяхан явсан гэсэн үг - код оруулах алхам руу шилжинэ
+const isTooSoon = e => /\d+ seconds/i.test((e && e.message) || "");
 async function sendCode() {
   const err = $("login-err");
   const raw = $("login-phone").value.trim();
+  if (sendingCode) return;
   if (raw.replace(/\D/g, "").length < 8) { err.textContent = "Дугаарыг бүтэн оруулна уу"; return; }
   if (!sb) { err.textContent = "Supabase ачаалагдаагүй байна"; return; }
 
   const w = smsWait();
+  if (w > 0 && localStorage.getItem("pendingPhone") === formatPhone(raw)) {
+    // саяхан ийм дугаарт код явуулсан - дахин явуулахгүй, код оруулах хэсэг рүү шилжинэ
+    $("step-phone").style.display = "none"; $("step-code").style.display = "block";
+    $("show-phone").textContent = formatPhone(raw); err.textContent = "";
+    return;
+  }
   if (w > 0) { err.textContent = w + " секундын дараа дахин оролдоно уу"; return; }
 
   const phone = formatPhone(raw);
+  sendingCode = true;
   err.textContent = "Код явуулж байна...";
-  const { error } = await sb.auth.signInWithOtp({ phone, options: { channel: "sms" } });
-  if (error) { err.textContent = smsErrText(error); return; }
-  localStorage.setItem("smsLast", String(Date.now()));
-  runCooldown($("login-resend"), "Дахин илгээх");
-
-  err.textContent = "";
-  $("step-phone").style.display = "none";
-  $("step-code").style.display = "block";
-  $("show-phone").textContent = phone;
-  localStorage.setItem("pendingPhone", phone);
+  try {
+    const { error } = await sb.auth.signInWithOtp({ phone, options: { channel: "sms" } });
+    if (error && !isTooSoon(error)) { err.textContent = smsErrText(error); return; }
+    if (!error) localStorage.setItem("smsLast", String(Date.now()));
+    runCooldown($("login-resend"), "Дахин илгээх");
+    err.textContent = "";
+    $("step-phone").style.display = "none";
+    $("step-code").style.display = "block";
+    $("show-phone").textContent = phone;
+    localStorage.setItem("pendingPhone", phone);
+    if (error) toast("Код саяхан явсан. Ирсэн кодоо оруулна уу");
+  } finally { sendingCode = false; }
 }
 
 async function verifyCode() {
@@ -1007,6 +1020,7 @@ function vBack() {
   $("v-err").textContent = "";
 }
 
+let sendingVerify = false;
 async function sendVerify() {
   const err = $("v-err");
   const raw = $("v-phone").value.trim();
@@ -1022,11 +1036,15 @@ async function sendVerify() {
   if (verifyMode === "change" && isPhoneVerified() && localPhone(phone) === localPhone(localStorage.getItem("userPhone"))) {
     err.textContent = "Энэ дугаар одоогийн дугаартай адил байна"; return;
   }
+  if (sendingVerify) return;
+  sendingVerify = true;
   err.textContent = "Код явуулж байна...";
-  const { error } = await sb.auth.updateUser({ phone });
-  if (error) { err.textContent = smsErrText(error); return; }
+  let error;
+  try { ({ error } = await sb.auth.updateUser({ phone })); } finally { sendingVerify = false; }
+  if (error && !isTooSoon(error)) { err.textContent = smsErrText(error); return; }
 
-  localStorage.setItem("smsLast", String(Date.now()));
+  if (!error) localStorage.setItem("smsLast", String(Date.now()));
+  else toast("Код саяхан явсан. Ирсэн кодоо оруулна уу");
   localStorage.setItem("pendingVerify", phone);
   err.textContent = "";
   $("v-show").textContent = localPhone(phone);
