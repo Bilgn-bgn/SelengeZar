@@ -98,6 +98,30 @@ tr:last-child td{border-bottom:0}
 #toast.show{opacity:1}
 @media(max-width:600px){.row2{grid-template-columns:1fr}}
 
+
+/* ---- Зарын жагсаалт (1 зар = 1 мөр) ---- */
+.alistbox{display:grid;gap:8px}
+.aitem{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer;min-width:0}
+.aitem:hover{border-color:var(--brand);background:var(--soft)}
+.aitem .thumb{width:52px;height:52px;flex:none}
+.aitem .ab{min-width:0;flex:1}
+.aitem .l1{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px}
+.aitem .l1 .tag{margin:0}
+.aitem .ph{color:var(--ink2);font-weight:600}
+.aitem .pr{margin-left:auto}
+.aitem .l2{margin-top:3px;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dhead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.dhead h3{margin:0 0 8px;overflow-wrap:anywhere}
+.dimg{width:100%;max-height:260px;object-fit:cover;border-radius:12px;background:var(--s2);margin-bottom:8px;display:block}
+.dtags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}.dtags .tag{margin:0}
+.drow{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line)}
+.drow span{color:var(--muted);font-weight:600}.drow b{text-align:right;overflow-wrap:anywhere}
+.ddesc{padding:10px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rvrow{display:flex;gap:8px;margin:6px 0}
+.btn.rv{flex:1;padding:10px;background:var(--surface)}
+.btn.rv.ok{color:#168a4a;border-color:#168a4a}.btn.rv.ok.on{background:#168a4a;color:#fff}
+.btn.rv.no{color:#d23b30;border-color:#d23b30}.btn.rv.no.on{background:#d23b30;color:#fff}
+
 /* ---- Утас: хүснэгт → карт, хажуу тийш гүйлгэхгүй ---- */
 html,body{max-width:100%;overflow-x:hidden}
 @media(max-width:700px){
@@ -150,9 +174,9 @@ html,body{max-width:100%;overflow-x:hidden}
 <div id="app" hidden>
   <header><h1>Selenge<span>Zar</span> · Админ</h1><button class="me" id="me" title="Профайл засах"><span class="mav" id="mav"></span><span id="mname"></span></button><a class="btn sm" href="/" target="_blank" style="text-decoration:none;color:inherit">Сайт харах</a><button class="btn sm" id="logout">Гарах</button></header>
   <nav id="tabs">
-    <button data-tab="dash" class="on">Самбар</button>
-    <button data-tab="ads">Зарууд</button>
-    <button data-tab="promo">Реклам <span class="badge" id="promo-badge" hidden></span></button>
+    <button data-tab="ads" class="on">Зарууд <span class="badge" id="ads-badge" hidden></span></button>
+    <button data-tab="promo">Онцгой <span class="badge" id="promo-badge" hidden></span></button>
+    <button data-tab="dash">Самбар</button>
     <button data-tab="chat">Чат <span class="badge" id="chat-badge" hidden></span></button>
     <button data-tab="users">Хэрэглэгчид</button>
   </nav>
@@ -172,7 +196,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const sb = supabase.createClient(SUPABASE_URL, KEY, { auth: { storageKey: "sz-admin-auth", persistSession: true, autoRefreshToken: true } });
 
-let meName = "", meAvatar = "", ads = [], users = null, stats = null, tab = "dash", adminId = null;
+let meName = "", meAvatar = "", ads = [], users = null, stats = null, tab = "ads", adminId = null;
 const isFeat = a => a.featured === true && (!a.featured_until || new Date(a.featured_until) > new Date());
 const fmt = iso => { if (!iso) return "—"; const d = new Date(iso); return isNaN(d) ? "—" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
 const code = id => "ZAR-" + (String(id).length > 8 ? String(id).replace(/-/g, "").slice(0, 6).toUpperCase() : id);
@@ -226,6 +250,8 @@ async function refresh() {
   } catch (e) { toast("Алдаа: " + e.message + " (admin-setup.sql ажилласан эсэхээ шалгана уу)"); }
   const pend = ads.filter(a => a.feature_requested).length;
   $("promo-badge").hidden = !pend; $("promo-badge").textContent = pend;
+  const unrev = ads.filter(a => !a.reviewed).length;
+  $("ads-badge").hidden = !unrev; $("ads-badge").textContent = unrev;
   draw();
 }
 $("tabs").addEventListener("click", async e => {
@@ -256,7 +282,18 @@ function adRow(a) {
       <button class="btn sm danger" data-act="del-ad" data-id="${esc(a.id)}">Устгах</button>
     </div></td></tr>`;
 }
-const adTable = list => list.length
+const revTag = a => a.reviewed ? '<span class="tag ok">Шалгагдсан</span>' : '<span class="tag bad">Шалгагдаагүй</span>';
+function adItem(a) {
+  const extra = (isFeat(a) ? '<span class="tag gold">Онцлох</span>' : "") + (a.feature_requested ? '<span class="tag gold">Төлбөр хүлээж байна</span>' : "") +
+    (a.status === "hidden" ? '<span class="tag bad">Нуусан</span>' : a.status === "pending" ? '<span class="tag gold">Нийтлэгдээгүй</span>' : "");
+  return `<div class="aitem" data-act="open-ad" data-id="${esc(a.id)}" role="button" tabindex="0">
+    <img class="thumb" src="${esc(a.img || "")}" alt="" onerror="this.style.visibility='hidden'">
+    <div class="ab"><div class="l1">${revTag(a)}${extra}<span class="ph">${esc(a.phone || "—")}</span><b class="pr">${Number(a.price || 0).toLocaleString()}₮</b></div>
+    <div class="l2">${fmt(a.created_at)} · ${esc(a.title)}</div></div></div>`;
+}
+const adTable = list => list.length ? `<div class="alistbox">${list.map(adItem).join("")}</div>`
+  : '<div class="empty">Зар алга</div>';
+const adTableOld = list => list.length
   ? `<div class="tbl"><table><thead><tr><th></th><th>Зар</th><th>Үнэ</th><th>Утас</th><th>Нэмсэн</th><th>Төлөв</th><th></th></tr></thead><tbody>${list.map(adRow).join("")}</tbody></table></div>`
   : '<div class="empty">Зар алга</div>';
 
@@ -268,6 +305,7 @@ function draw() {
     const pend = ads.filter(a => a.feature_requested);
     p.innerHTML = `
       <div class="stats">
+        <div class="stat ${ads.some(a => !a.reviewed) ? "warn" : ""}"><b>${ads.filter(a => !a.reviewed).length}</b><span>Шалгагдаагүй зар</span></div>
         <div class="stat"><b>${s.ads_total ?? "–"}</b><span>Нийт зар</span></div>
         <div class="stat"><b>${s.ads_today ?? "–"}</b><span>Өнөөдөр нэмэгдсэн</span></div>
         <div class="stat"><b>${s.ads_7d ?? "–"}</b><span>7 хоногт нэмэгдсэн</span></div>
@@ -282,7 +320,7 @@ function draw() {
   } else if (tab === "ads") {
     const q = ($("aq") || {}).value || "", f = ($("af") || {}).value || "all";
     p.innerHTML = `<div class="tools"><input id="aq" placeholder="Нэр, утас, байршлаар хайх" value="${esc(q)}">
-      <select id="af"><option value="all">Бүх төлөв</option><option value="active">Идэвхтэй</option><option value="hidden">Нуусан</option><option value="featured">Онцлох</option><option value="pending">Төлбөр хүлээж буй</option></select></div>
+      <select id="af"><option value="all">Бүх төлөв</option><option value="active">Идэвхтэй</option><option value="hidden">Нуусан</option><option value="featured">Онцлох</option><option value="pending">Төлбөр хүлээж буй</option><option value="unrev">Шалгагдаагүй</option><option value="rev">Шалгагдсан</option></select></div>
       <div id="alist"></div>`;
     $("af").value = f;
     $("aq").oninput = $("af").onchange = drawAds;
@@ -302,7 +340,7 @@ function drawAds() {
   const q = $("aq").value.trim().toLowerCase(), f = $("af").value;
   const list = ads.filter(a =>
     (!q || [a.title, a.phone, a.loc, a.description].some(t => String(t || "").toLowerCase().includes(q))) &&
-    (f === "all" || (f === "active" && a.status !== "hidden") || (f === "hidden" && a.status === "hidden") || (f === "featured" && isFeat(a)) || (f === "pending" && a.feature_requested)));
+    (f === "all" || (f === "active" && a.status !== "hidden") || (f === "hidden" && a.status === "hidden") || (f === "featured" && isFeat(a)) || (f === "pending" && a.feature_requested) || (f === "unrev" && !a.reviewed) || (f === "rev" && a.reviewed)));
   $("alist").innerHTML = adTable(list);
 }
 function promoPending(list) {
@@ -336,9 +374,11 @@ document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const id = b.dataset.id, a = findAd(id);
   switch (b.dataset.act) {
+    case "open-ad": return openAd(a);
+    case "review-yes": case "review-no": { const v = b.dataset.act === "review-yes"; closeModal(); return act(() => upd(id, { reviewed: v }), v ? "Шалгасан гэж тэмдэглэлээ" : "Шалгаагүй гэж тэмдэглэлээ"); }
     case "edit-ad": return editAd(a);
-    case "toggle-ad": return act(() => upd(id, { status: a.status === "hidden" ? "active" : "hidden" }), a.status === "hidden" ? "Зар гарлаа" : "Зар нуугдлаа");
-    case "del-ad": if (confirm("«" + a.title + "» зарыг бүр мөсөн устгах уу?")) act(() => rpc("admin_delete_ad", { p_id: String(id) }), "Зар устлаа"); return;
+    case "toggle-ad": closeModal(); return act(() => upd(id, { status: a.status === "hidden" ? "active" : "hidden" }), a.status === "hidden" ? "Зар гарлаа" : "Зар нуугдлаа");
+    case "del-ad": if (confirm("«" + a.title + "» зарыг бүр мөсөн устгах уу?")) { closeModal(); act(() => rpc("admin_delete_ad", { p_id: String(id) }), "Зар устлаа"); } return;
     case "approve": { const d = Number($("days-" + id).value);
       return act(() => upd(id, { featured: true, status: "active", featured_until: new Date(Date.now() + d * 864e5).toISOString(), feature_requested: false }), "Зар нийтлэгдэж, онцлох боллоо (" + d + " хоног)"); }
     case "reject": if (confirm(a.status === "pending" ? "Онцлох хүсэлтийг татгалзаад зарыг энгийн зар болгон нийтлэх үү?" : "Онцлох хүсэлтийг татгалзах уу?")) act(() => upd(id, { feature_requested: false, status: a.status === "pending" ? "active" : a.status }), "Хүсэлт татгалзагдлаа"); return;
@@ -357,6 +397,21 @@ $("modal").addEventListener("mousedown", e => { if (e.target === $("modal")) clo
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
 window.closeModal = closeModal;
 
+function openAd(a) {
+  const row = (k, v) => `<div class="drow"><span>${k}</span><b>${v}</b></div>`;
+  modal(`<div class="dhead"><h3>${esc(a.title)}</h3><button class="btn sm" onclick="closeModal()" aria-label="Хаах">✕</button></div>
+    ${a.img ? `<img class="dimg" src="${esc(a.img)}" alt="" onerror="this.style.display='none'">` : ""}
+    <div class="dtags">${revTag(a)}${adTags(a)}</div>
+    ${row("Код", esc(code(a.id)))}${row("Үнэ", Number(a.price || 0).toLocaleString() + "₮")}${row("Ангилал", esc(a.cat || "—"))}
+    ${row("Утас", esc(a.phone || "—"))}${row("Байршил", esc(a.loc || "—"))}${row("Нэмсэн", fmt(a.created_at))}
+    ${a.featured_until ? row("Онцлох дуусах", fmt(a.featured_until)) : ""}
+    <div class="ddesc">${a.description ? esc(a.description) : '<span style="color:var(--muted)">Тайлбар оруулаагүй</span>'}</div>
+    <div class="rvrow"><button class="btn rv ok${a.reviewed ? " on" : ""}" data-act="review-yes" data-id="${esc(a.id)}">✓ Шалгасан</button>
+    <button class="btn rv no${!a.reviewed ? " on" : ""}" data-act="review-no" data-id="${esc(a.id)}">✕ Шалгаагүй</button></div>
+    <div class="mfoot" style="justify-content:stretch;flex-wrap:wrap"><button class="btn" style="flex:1" data-act="edit-ad" data-id="${esc(a.id)}">Засах</button>
+    <button class="btn" style="flex:1" data-act="toggle-ad" data-id="${esc(a.id)}">${a.status === "hidden" ? "Гаргах" : "Нуух"}</button>
+    <button class="btn danger" style="flex:1" data-act="del-ad" data-id="${esc(a.id)}">Устгах</button></div>`);
+}
 function editAd(a) {
   const cats = ["Утас", "Машин", "Байр", "Тавилга", "Хувцас", "Бусад"];
   const until = a.featured_until ? new Date(new Date(a.featured_until).getTime() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16) : "";
