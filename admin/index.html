@@ -2,7 +2,7 @@
 <html lang="mn">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="robots" content="noindex,nofollow">
 <title>SelengeZar · Админ</title>
 <style>
@@ -97,6 +97,39 @@ tr:last-child td{border-bottom:0}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:30}
 #toast.show{opacity:1}
 @media(max-width:600px){.row2{grid-template-columns:1fr}}
+
+/* ---- Утас: хүснэгт → карт, хажуу тийш гүйлгэхгүй ---- */
+html,body{max-width:100%;overflow-x:hidden}
+@media(max-width:700px){
+  main{padding:0 10px 32px}
+  header{padding:10px 12px;gap:8px}
+  header h1{font-size:15px;white-space:nowrap}
+  header .btn{padding:5px 9px;white-space:nowrap}
+  nav{overflow:visible;padding:8px 10px 0;gap:2px}
+  nav button{flex:1 1 0;min-width:0;padding:9px 0;font-size:11.5px;letter-spacing:-.2px;text-align:center;white-space:normal;line-height:1.2}
+  nav .badge{margin-left:2px;padding:1px 5px;font-size:10px}
+  .panel{padding:12px;border-radius:0 0 var(--r) var(--r)}
+  .tools input{max-width:none;flex:1 1 100%}
+  .tbl{overflow:visible;border:0;border-radius:0}
+  table,thead,tbody,tr,td{display:block;min-width:0;width:100%}
+  table{min-width:0}
+  thead{display:none}
+  tr{border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px;background:var(--surface)}
+  td{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 0;border:0;text-align:right;overflow-wrap:anywhere}
+  td[data-l]::before{content:attr(data-l);color:var(--muted);font-size:12px;font-weight:700;text-align:left;flex:none}
+  td.brk{text-align:right}
+  td.c-ttl{display:block;text-align:left;padding:2px 0 6px}
+  .ttl{max-width:none;white-space:normal;overflow:visible;text-overflow:clip}
+  tr:has(.c-img){display:grid;grid-template-columns:52px minmax(0,1fr);column-gap:10px}
+  tr:has(.c-img) > td{grid-column:1/-1}
+  tr:has(.c-img) > td.c-img{grid-column:1;grid-row:1;padding:0}
+  tr:has(.c-img) > td.c-ttl{grid-column:2;grid-row:1;padding:0}
+  td.c-acts{display:block;padding-top:8px;margin-top:4px;border-top:1px solid var(--line)}
+  .acts .btn{flex:1 1 auto}
+  td select{max-width:60%}
+  .chatwrap{height:calc(100dvh - 190px)}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 </style>
 </head>
 <body>
@@ -207,17 +240,17 @@ $("tabs").addEventListener("click", async e => {
 function adTags(a) {
   return (isFeat(a) ? '<span class="tag gold">Онцлох</span>' : "") +
     (a.feature_requested ? '<span class="tag gold">Төлбөр хүлээж байна</span>' : "") +
-    (a.status === "hidden" ? '<span class="tag bad">Нуусан</span>' : '<span class="tag ok">Идэвхтэй</span>');
+    (a.status === "hidden" ? '<span class="tag bad">Нуусан</span>' : a.status === "pending" ? '<span class="tag gold">Нийтлэгдээгүй · зөвшөөрөл хүлээж байна</span>' : '<span class="tag ok">Идэвхтэй</span>');
 }
 function adRow(a) {
   return `<tr>
-    <td><img class="thumb" src="${esc(a.img || "")}" alt="" onerror="this.style.visibility='hidden'"></td>
-    <td><div class="ttl" title="${esc(a.title)}">${esc(a.title)}</div><div style="color:var(--muted);font-size:12px">${esc(a.cat || "")} · ${esc(a.loc || "")}</div></td>
-    <td>${Number(a.price || 0).toLocaleString()}₮</td>
-    <td>${esc(a.phone || "—")}</td>
-    <td>${fmt(a.created_at)}</td>
-    <td>${adTags(a)}</td>
-    <td><div class="acts">
+    <td class="c-img"><img class="thumb" src="${esc(a.img || "")}" alt="" onerror="this.style.visibility='hidden'"></td>
+    <td class="c-ttl"><div class="ttl" title="${esc(a.title)}">${esc(a.title)}</div><div style="color:var(--muted);font-size:12px">${esc(a.cat || "")} · ${esc(a.loc || "")}</div></td>
+    <td data-l="Үнэ">${Number(a.price || 0).toLocaleString()}₮</td>
+    <td data-l="Утас">${esc(a.phone || "—")}</td>
+    <td data-l="Нэмсэн">${fmt(a.created_at)}</td>
+    <td data-l="Төлөв">${adTags(a)}</td>
+    <td class="c-acts"><div class="acts">
       <button class="btn sm" data-act="edit-ad" data-id="${esc(a.id)}">Засах</button>
       <button class="btn sm" data-act="toggle-ad" data-id="${esc(a.id)}">${a.status === "hidden" ? "Гаргах" : "Нуух"}</button>
       <button class="btn sm danger" data-act="del-ad" data-id="${esc(a.id)}">Устгах</button>
@@ -274,25 +307,25 @@ function drawAds() {
 }
 function promoPending(list) {
   return `<div class="tbl"><table><thead><tr><th>Код</th><th>Зар</th><th>Утас</th><th>Нэмсэн</th><th>Хугацаа</th><th></th></tr></thead><tbody>${list.map(a => `<tr>
-    <td><b>${esc(code(a.id))}</b></td><td><div class="ttl">${esc(a.title)}</div></td><td>${esc(a.phone || "—")}</td><td>${fmt(a.created_at)}</td>
-    <td><select id="days-${esc(a.id)}" style="width:auto"><option value="7">7 хоног</option><option value="14">14 хоног</option><option value="30">30 хоног</option></select></td>
-    <td><div class="acts"><button class="btn sm primary" data-act="approve" data-id="${esc(a.id)}">Төлбөр орсон, онцлох</button>
-    <button class="btn sm" data-act="reject" data-id="${esc(a.id)}">Татгалзах</button></div></td></tr>`).join("")}</tbody></table></div>`;
+    <td data-l="Код"><b>${esc(code(a.id))}</b></td><td class="c-ttl"><div class="ttl">${esc(a.title)}</div></td><td data-l="Утас">${esc(a.phone || "—")}</td><td data-l="Нэмсэн">${fmt(a.created_at)}</td>
+    <td data-l="Хугацаа"><select id="days-${esc(a.id)}" style="width:auto"><option value="7">7 хоног</option><option value="14">14 хоног</option><option value="30">30 хоног</option></select></td>
+    <td class="c-acts"><div class="acts"><button class="btn sm primary" data-act="approve" data-id="${esc(a.id)}">Төлбөр орсон, нийтлэх</button>
+    <button class="btn sm" data-act="reject" data-id="${esc(a.id)}">Энгийнээр нийтлэх</button></div></td></tr>`).join("")}</tbody></table></div>`;
 }
 function promoActive(list) {
   return `<div class="tbl"><table><thead><tr><th>Код</th><th>Зар</th><th>Дуусах</th><th></th></tr></thead><tbody>${list.map(a => `<tr>
-    <td><b>${esc(code(a.id))}</b></td><td><div class="ttl">${esc(a.title)}</div></td><td>${a.featured_until ? fmt(a.featured_until) : "Хугацаагүй"}</td>
-    <td><div class="acts"><button class="btn sm" data-act="extend" data-id="${esc(a.id)}">+7 хоног</button>
+    <td data-l="Код"><b>${esc(code(a.id))}</b></td><td class="c-ttl"><div class="ttl">${esc(a.title)}</div></td><td data-l="Дуусах">${a.featured_until ? fmt(a.featured_until) : "Хугацаагүй"}</td>
+    <td class="c-acts"><div class="acts"><button class="btn sm" data-act="extend" data-id="${esc(a.id)}">+7 хоног</button>
     <button class="btn sm danger" data-act="unfeature" data-id="${esc(a.id)}">Цуцлах</button></div></td></tr>`).join("")}</tbody></table></div>`;
 }
 function drawUsers() {
   const q = $("uq").value.trim().toLowerCase();
   const list = users.filter(u => !q || [u.name, u.email, u.phone].some(t => String(t || "").toLowerCase().includes(q)));
   $("ulist").innerHTML = list.length ? `<div class="tbl"><table><thead><tr><th>Нэр</th><th>И-мэйл / Утас</th><th>Нэвтрэлт</th><th>Бүртгүүлсэн</th><th>Сүүлд</th><th>Зар</th><th></th></tr></thead><tbody>${list.map(u => `<tr>
-    <td><div class="uname"><img class="uav" src="${esc(u.avatar || DEFAULT_AV)}" alt="" onerror="this.onerror=null;this.src=DEFAULT_AV"><span><b>${esc(u.name || "—")}</b> ${u.banned ? '<span class="tag bad">Хоригдсон</span>' : ""}</span></div></td>
-    <td>${esc(u.email || "")}${u.email && u.phone ? "<br>" : ""}${esc(u.phone || "")}</td>
-    <td>${esc(u.provider || "")}</td><td>${fmt(u.created_at)}</td><td>${fmt(u.last_sign_in_at)}</td><td>${u.ads_count}</td>
-    <td><div class="acts"><button class="btn sm primary" data-act="chat-user" data-id="${esc(u.id)}">Чат</button><button class="btn sm" data-act="edit-user" data-id="${esc(u.id)}">Засах</button>
+    <td class="c-ttl"><div class="uname"><img class="uav" src="${esc(u.avatar || DEFAULT_AV)}" alt="" onerror="this.onerror=null;this.src=DEFAULT_AV"><span><b>${esc(u.name || "—")}</b> ${u.banned ? '<span class="tag bad">Хоригдсон</span>' : ""}</span></div></td>
+    <td data-l="И-мэйл / Утас" class="brk">${esc(u.email || "")}${u.email && u.phone ? "<br>" : ""}${esc(u.phone || "")}</td>
+    <td data-l="Нэвтрэлт">${esc(u.provider || "")}</td><td data-l="Бүртгүүлсэн">${fmt(u.created_at)}</td><td data-l="Сүүлд">${fmt(u.last_sign_in_at)}</td><td data-l="Зар">${u.ads_count}</td>
+    <td class="c-acts"><div class="acts"><button class="btn sm primary" data-act="chat-user" data-id="${esc(u.id)}">Чат</button><button class="btn sm" data-act="edit-user" data-id="${esc(u.id)}">Засах</button>
     <button class="btn sm danger" data-act="del-user" data-id="${esc(u.id)}">Устгах</button></div></td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">Хэрэглэгч алга</div>';
 }
 
@@ -307,8 +340,8 @@ document.addEventListener("click", e => {
     case "toggle-ad": return act(() => upd(id, { status: a.status === "hidden" ? "active" : "hidden" }), a.status === "hidden" ? "Зар гарлаа" : "Зар нуугдлаа");
     case "del-ad": if (confirm("«" + a.title + "» зарыг бүр мөсөн устгах уу?")) act(() => rpc("admin_delete_ad", { p_id: String(id) }), "Зар устлаа"); return;
     case "approve": { const d = Number($("days-" + id).value);
-      return act(() => upd(id, { featured: true, featured_until: new Date(Date.now() + d * 864e5).toISOString(), feature_requested: false }), "Онцлох боллоо (" + d + " хоног)"); }
-    case "reject": if (confirm("Онцлох хүсэлтийг татгалзах уу?")) act(() => upd(id, { feature_requested: false }), "Хүсэлт татгалзагдлаа"); return;
+      return act(() => upd(id, { featured: true, status: "active", featured_until: new Date(Date.now() + d * 864e5).toISOString(), feature_requested: false }), "Зар нийтлэгдэж, онцлох боллоо (" + d + " хоног)"); }
+    case "reject": if (confirm(a.status === "pending" ? "Онцлох хүсэлтийг татгалзаад зарыг энгийн зар болгон нийтлэх үү?" : "Онцлох хүсэлтийг татгалзах уу?")) act(() => upd(id, { feature_requested: false, status: a.status === "pending" ? "active" : a.status }), "Хүсэлт татгалзагдлаа"); return;
     case "extend": { const base = a.featured_until && new Date(a.featured_until) > new Date() ? new Date(a.featured_until).getTime() : Date.now();
       return act(() => upd(id, { featured_until: new Date(base + 7 * 864e5).toISOString() }), "7 хоног нэмэгдлээ"); }
     case "unfeature": if (confirm("Онцлохыг цуцлах уу?")) act(() => upd(id, { featured: false, featured_until: "", feature_requested: false }), "Онцлох цуцлагдлаа"); return;
@@ -334,7 +367,7 @@ function editAd(a) {
     <div class="row2"><div><label>Утас</label><input id="m-phone" value="${esc(a.phone)}"></div>
     <div><label>Байршил</label><input id="m-loc" value="${esc(a.loc)}"></div></div>
     <label>Тайлбар</label><textarea id="m-desc" rows="4">${esc(a.description)}</textarea>
-    <div class="row2"><div><label>Төлөв</label><select id="m-status"><option value="active"${a.status !== "hidden" ? " selected" : ""}>Идэвхтэй</option><option value="hidden"${a.status === "hidden" ? " selected" : ""}>Нуусан</option></select></div>
+    <div class="row2"><div><label>Төлөв</label><select id="m-status"><option value="active"${a.status !== "hidden" ? " selected" : ""}>Идэвхтэй</option><option value="pending"${a.status === "pending" ? " selected" : ""}>Хүлээгдэж байна (нийтлэгдээгүй)</option><option value="hidden"${a.status === "hidden" ? " selected" : ""}>Нуусан</option></select></div>
     <div><label>Онцлох дуусах</label><input id="m-until" type="datetime-local" value="${until}"></div></div>
     <label class="chk"><input type="checkbox" id="m-feat"${a.featured ? " checked" : ""}> Онцлох зар</label>
     <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn primary" id="m-save">Хадгалах</button></div>`);
