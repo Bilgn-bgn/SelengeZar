@@ -980,6 +980,8 @@ function runCooldown(btn, label) {
 function smsErrText(error) {
   const m = (error && error.message || "").toLowerCase();
   if (m.includes("already") || m.includes("registered") || m.includes("exists")) return "Энэ дугаар өөр бүртгэлд байна. Өмнө нь дугаараар нэвтэрч байсан бол «Утасны дугаараар нэвтрэх»-ээр орж, Профайл дээрээс Google/Facebook холбоорой";
+  if (m.includes("sms_daily_limit")) return "Энэ дугаарт өнөөдөр хэт олон код илгээлээ. Маргааш дахин оролдоно уу";
+  if (m.includes("sms_global_limit")) return "Систем түр ачаалалтай байна. Хэсэг хугацааны дараа дахин оролдоно уу";
   if (m.includes("rate") || m.includes("seconds") || m.includes("too many")) return "Хэт олон удаа оролдлоо. Түр хүлээгээд дахин оролдоно уу";
   if (m.includes("trial") || m.includes("unsupported")) return "Энэ дугаар руу код илгээх боломжгүй байна";
   return "Алдаа: " + (error && error.message || "");
