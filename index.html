@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0E6B5C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="style.css?v=20261128">
+<link rel="stylesheet" href="style.css?v=20261129">
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
@@ -144,7 +144,7 @@
     </div>
     <div class="plan-note" id="plan-note" hidden>Нүүр хуудасны дээд хэсэгт ногоон хүрээтэй, «Онцлох» тэмдэгтэй гарна. Төлбөр баталгаажсаны дараа л зар нийтлэгдэнэ.</div>
     <input id="f-title" placeholder="Нэр *">
-    <input id="f-price" type="number" min="0" placeholder="Үнэ *">
+    <input id="f-price" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="off" placeholder="Үнэ *">
     <select id="f-cat">
       <option value="" disabled selected>Ангилал сонгох *</option><option>Утас</option><option>Машин</option><option>Байр</option>
       <option>Тавилга</option><option>Хувцас</option><option>Бусад</option>
@@ -305,6 +305,6 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261128"></script>
+<script src="app.js?v=20261129"></script>
 </body>
 </html>

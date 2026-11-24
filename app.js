@@ -532,7 +532,7 @@ function editAd(id) {
   setPlan(a.feature_requested ? "featured" : "normal");
   syncAdPhone();
   $("f-title").value = a.title || "";
-  $("f-price").value = a.price ?? "";
+  $("f-price").value = String(a.price ?? "").replace(/\D/g, "");
   $("f-cat").value = a.cat || "Бусад";
   $("f-loc").value = a.loc || "";
   $("f-desc").value = a.description || "";
@@ -544,6 +544,9 @@ function editAd(id) {
 // Зарын утас = зөвхөн хэрэглэгчийн баталгаажсан бүртгэлтэй дугаар (засах боломжгүй)
 function myRegPhone() { return isPhoneVerified() ? localPhone(localStorage.getItem("userPhone") || "") : ""; }
 function syncAdPhone() { $("f-phone").value = myRegPhone(); }
+// Үнэ: зөвхөн тоо (цэг, зураас, таслал, "e" оруулахгүй)
+$("f-price").addEventListener("input", e => { const v = e.target.value.replace(/\D/g, ""); if (v !== e.target.value) e.target.value = v; });
+$("f-price").addEventListener("keydown", e => { if (e.key.length === 1 && !/\d/.test(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); });
 $("f-phone").addEventListener("focus", e => e.target.blur());   // босоо зураас (курсор) гарахгүй
 function resetAdForm() {
   ["f-title", "f-price", "f-loc", "f-desc"].forEach(id => $(id).value = "");
