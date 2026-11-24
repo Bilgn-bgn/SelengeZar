@@ -121,18 +121,28 @@ const heroApi = (function initHero() {
   hero.addEventListener("pointercancel", () => { holding = false; });
   hero.addEventListener("pointerleave", () => { holding = false; });
 
-  setSlides([...track.querySelectorAll("img")].map(i => i.getAttribute("src")));   // анхны (сайтын) зургууд
   return { setSlides };
 })();
 
-// Админаас тохируулсан рекламын зургууд (banners хүснэгт). Хүснэгт байхгүй/алдаа бол анхны зургууд хэвээр.
+// Рекламын зургууд: админаас (banners хүснэгт). Хуучин зураг түр харагдахаас сэргийлж
+// сүүлд харуулсан жагсаалтыг хөтөч дээр хадгалж, нэн түрүүнд тэрийг үзүүлнэ.
 (async function loadBanners() {
+  const DEFAULTS = ["zurag1.jpg", "zurag2.jpg", "zurag3.jpg", "zurag4.jpg"];
+  const KEY_C = "heroBanners";
+  let shown = null;
+  const show = list => { const sig = JSON.stringify(list); if (sig === shown) return; shown = sig; heroApi.setSlides(list); };
+  try { const c = JSON.parse(localStorage.getItem(KEY_C) || "null"); if (Array.isArray(c)) show(c); } catch (e) {}
   try {
     const r = await fetch(SUPABASE_URL + "/rest/v1/banners?select=img,ends_at&order=id.asc", { headers: { apikey: KEY, Authorization: "Bearer " + KEY } });
-    if (!r.ok) return;
+    if (!r.ok) throw new Error("banners " + r.status);
     const rows = (await r.json()).filter(b => !b.ends_at || new Date(b.ends_at) > new Date());
-    heroApi.setSlides(rows.map(b => /^https?:/i.test(b.img) ? b.img : "/" + String(b.img).replace(/^\//, "")));
-  } catch (e) { console.warn("banners", e); }
+    const list = rows.map(b => /^https?:/i.test(b.img) ? b.img : "/" + String(b.img).replace(/^\//, ""));
+    try { localStorage.setItem(KEY_C, JSON.stringify(list)); } catch (e) {}
+    show(list);
+  } catch (e) {
+    console.warn("banners", e);
+    if (shown === null) show(DEFAULTS);   // хүснэгт байхгүй / сүлжээ тасарсан үед анхны зургууд
+  }
 })();
 
 // =====================================================
