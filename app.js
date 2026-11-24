@@ -9,6 +9,21 @@ const DEFAULT_IMG = "https://images.unsplash.com/photo-1523275335684-37898b6baf3
 // Зураг оруулаагүй хэрэглэгчийн анхдагч зураг
 const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2096%2096%27%3E%3Crect%20width=%2796%27%20height=%2796%27%20fill=%27%23E2F2EE%27/%3E%3Ccircle%20cx=%2748%27%20cy=%2737%27%20r=%2716%27%20fill=%27%230E6B5C%27/%3E%3Cpath%20d=%27M15%2096c0-19%2015-31%2033-31s33%2012%2033%2031z%27%20fill=%27%230E6B5C%27/%3E%3C/svg%3E";
 const DEFAULT_LOC = "Сүхбаатар, Сэлэнгэ";
+// Сэлэнгэ аймгийн сумд (зар оруулах, нүүрийн шүүлтүүрт ижил дараалал)
+const SOUMS = [
+  ["Сүхбаатар", "Сүхбаатар (аймгийн төв)"], ["Шаамар", "Шаамар"], ["Алтанбулаг", "Алтанбулаг"], ["Мандал", "Мандал (Зүүнхараа)"],
+  ["Ерөө", "Ерөө"], ["Зүүнбүрэн", "Зүүнбүрэн"], ["Цагааннуур", "Цагааннуур"], ["Хүдэр", "Хүдэр"], ["Сайхан", "Сайхан"],
+  ["Баянгол", "Баянгол"], ["Жавхлант", "Жавхлант"], ["Орхонтуул", "Орхонтуул"], ["Орхон", "Орхон"], ["Баруунбүрэн", "Баруунбүрэн"],
+  ["Түшиг", "Түшиг"], ["Сант", "Сант"], ["Хушаат", "Хушаат"]
+];
+const locValue = k => k === "Сүхбаатар" ? DEFAULT_LOC : k + ", Сэлэнгэ";
+// Зарын байршлаас сумын нэрийг олно (эхний хэсэг нь сумын нэртэй таарвал)
+function soumOf(loc) {
+  const t = String(loc || "").trim().toLowerCase();
+  const first = t.split(",")[0].trim();
+  const hit = SOUMS.find(([k]) => k.toLowerCase() === first) || SOUMS.find(([k]) => t.startsWith(k.toLowerCase() + " "));
+  return hit ? hit[0] : "";
+}
 // Онцлох зарын төлбөр (өөрчлөхдөө энд засна)
 const PAY = { bank: "Хаан банк", account: "5688106076", name: "Билгүүн", price: 5000, days: 7 };
 const CATS = ["Бүгд", "Утас", "Машин", "Байр", "Тавилга", "Хувцас", "Бусад"];
@@ -107,7 +122,7 @@ try {
 // =====================================================
 // 2. ЗАРУУД
 // =====================================================
-let ads = [], cat = "Бүгд", file = null;
+let ads = [], cat = "Бүгд", locSel = "", file = null;
 
 const catsEl = $("cats");
 CATS.forEach(c => {
@@ -116,12 +131,30 @@ CATS.forEach(c => {
   b.textContent = c;
   b.onclick = () => {
     cat = c;
-    document.querySelectorAll(".cat").forEach(x => x.classList.remove("active"));
+    document.querySelectorAll("#cats .cat").forEach(x => x.classList.remove("active"));
     b.classList.add("active");
     render();
   };
   catsEl.appendChild(b);
 });
+// Байршлын шүүлтүүр (анхдагчаар бүх байршил)
+const locsEl = $("locs");
+[["", "Бүх байршил"], ...SOUMS.map(([k, l]) => [k, k === "Сүхбаатар" ? "Сүхбаатар" : l])].forEach(([k, l]) => {
+  const b = document.createElement("button");
+  b.className = "cat" + (k === locSel ? " active" : "");
+  b.dataset.loc = k;
+  b.textContent = l;
+  b.onclick = () => {
+    locSel = k;
+    document.querySelectorAll("#locs .cat").forEach(x => x.classList.toggle("active", x === b));
+    render();
+  };
+  locsEl.appendChild(b);
+});
+// Ad form: сумын сонголт
+$("f-loc").innerHTML = SOUMS.map(([k, l]) => `<option value="${k}">${l}</option>`).join("");
+$("set-loc").innerHTML = $("f-loc").innerHTML;   // тохиргооны байршил: ижил сумын жагсаалт
+$("f-loc").value = "Сүхбаатар";
 $("q").addEventListener("input", render);
 
 async function load() {
@@ -301,6 +334,7 @@ function render() {
     isPublic(a) &&
     (view !== "saved" || saved.includes(String(a.id))) &&
     (cat === "Бүгд" || (a.cat || "Бусад") === cat) &&
+    (!locSel || soumOf(a.loc) === locSel) &&
     [a.title, a.description, a.loc].some(t => (t || "").toLowerCase().includes(q))
   );
   // Онцлох зарууд нүүрэнд тусдаа хэсэгт (хадгалсан харагдацад бүгд нэг дор)
@@ -418,6 +452,7 @@ function openModal() {
   }
   if (editingId) { resetAdForm(); setFormMode(null); }   // өмнөх засварын үлдэгдэл арилгана
   syncAdPhone();
+  if (!editingId) $("f-loc").value = myDefaultSoum();
   go("#/add");
 }
 // Зар оруулах/засах хуудсаас буцах
@@ -534,7 +569,7 @@ function editAd(id) {
   $("f-title").value = a.title || "";
   $("f-price").value = String(a.price ?? "").replace(/\D/g, "");
   $("f-cat").value = a.cat || "Бусад";
-  $("f-loc").value = a.loc || "";
+  $("f-loc").value = soumOf(a.loc) || "Сүхбаатар";
   $("f-desc").value = a.description || "";
   if (a.img) { $("preview").src = a.img; $("preview").style.display = "block"; }
   $("err").textContent = "Зураг солихгүй бол хуучнаараа үлдэнэ.";
@@ -544,12 +579,15 @@ function editAd(id) {
 // Зарын утас = зөвхөн хэрэглэгчийн баталгаажсан бүртгэлтэй дугаар (засах боломжгүй)
 function myRegPhone() { return isPhoneVerified() ? localPhone(localStorage.getItem("userPhone") || "") : ""; }
 function syncAdPhone() { $("f-phone").value = myRegPhone(); }
+// Шинэ зарын анхдагч байршил = тохиргоонд сонгосон сум
+const myDefaultSoum = () => soumOf(localStorage.getItem("userLoc")) || "Сүхбаатар";
 // Үнэ: зөвхөн тоо (цэг, зураас, таслал, "e" оруулахгүй)
 $("f-price").addEventListener("input", e => { const v = e.target.value.replace(/\D/g, ""); if (v !== e.target.value) e.target.value = v; });
 $("f-price").addEventListener("keydown", e => { if (e.key.length === 1 && !/\d/.test(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); });
 $("f-phone").addEventListener("focus", e => e.target.blur());   // босоо зураас (курсор) гарахгүй
 function resetAdForm() {
-  ["f-title", "f-price", "f-loc", "f-desc"].forEach(id => $(id).value = "");
+  ["f-title", "f-price", "f-desc"].forEach(id => $(id).value = "");
+  $("f-loc").value = myDefaultSoum();   // анхдагч: тохиргоонд сонгосон сум
   $("f-cat").value = "";   // ангилалыг заавал сонгуулна
   $("f-file").value = "";
   $("preview").style.display = "none";
@@ -634,7 +672,7 @@ $("publishBtn").onclick = async () => {
       const patch = {
         title, price: Number(price), cat: $("f-cat").value,
         phone: regPhone,
-        loc: $("f-loc").value.trim() || DEFAULT_LOC,
+        loc: locValue($("f-loc").value),
         description: $("f-desc").value.trim()
       };
       if (imgUrl) patch.img = imgUrl;
@@ -668,7 +706,7 @@ $("publishBtn").onclick = async () => {
       price: Number(price),
       cat: $("f-cat").value,
       phone: regPhone,
-      loc: $("f-loc").value.trim() || DEFAULT_LOC,
+      loc: locValue($("f-loc").value),
       img: imgUrl,
       description: $("f-desc").value.trim()
     };
@@ -729,6 +767,7 @@ function saveUserLocal(u, fallbackPhone) {
   localStorage.setItem("userEmail", u.email || "");
   localStorage.setItem("userPhone", phone);
   localStorage.setItem("userCustomName", customName);
+  if (meta.custom_loc) localStorage.setItem("userLoc", meta.custom_loc);
   const baseName = providerName || u.email || phone || "";
   localStorage.setItem("userProviderName", baseName);
   localStorage.setItem("userName", customName || baseName);
@@ -788,7 +827,7 @@ function showProfile(name) {
   $("set-name").value = displayName;
   $("set-phone").value = phone;
   syncPhoneBtn();
-  $("set-loc").value = loc;
+  $("set-loc").value = soumOf(loc) || "Сүхбаатар";
 }
 
 function showTab(tab) {
@@ -808,7 +847,7 @@ function closeProfile() {
 async function saveSettings() {
   const name = $("set-name").value.trim();
   const phone = localPhone(localStorage.getItem("userPhone") || "");   // дугаарыг зөвхөн баталгаажуулалтаар солино
-  const loc = $("set-loc").value.trim() || DEFAULT_LOC;
+  const loc = locValue($("set-loc").value || "Сүхбаатар");
 
   // Нэр нь Google/Facebook/и-мэйлийн анхны нэрээс өөр бол "өөрийн нэр" гэж тооцно
   const base = localStorage.getItem("userProviderName") || "";
@@ -817,7 +856,7 @@ async function saveSettings() {
   if (name) localStorage.setItem("userName", name);
   localStorage.setItem("userLoc", loc);
 
-  try { if (sb) await sb.auth.updateUser({ data: { custom_name: custom } }); } catch (e) { console.warn(e); }
+  try { if (sb) await sb.auth.updateUser({ data: { custom_name: custom, custom_loc: loc } }); } catch (e) { console.warn(e); }
 
   const typedRaw = $("set-phone").value;   // баталгаажуулаагүй шинэ дугаарыг хадгалахад арилгахгүй
   showProfile(name);
@@ -1360,7 +1399,9 @@ window.addEventListener("hashchange", route);
 function goHome(btn) {
   view = "all";
   cat = "Бүгд";
-  document.querySelectorAll(".cat").forEach(x => x.classList.toggle("active", x.textContent === "Бүгд"));
+  locSel = "";
+  document.querySelectorAll("#cats .cat").forEach(x => x.classList.toggle("active", x.textContent === "Бүгд"));
+  document.querySelectorAll("#locs .cat").forEach(x => x.classList.toggle("active", x.dataset.loc === ""));
   $("q").value = "";
   render();
   go("#/");

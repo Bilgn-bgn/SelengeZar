@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0E6B5C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="style.css?v=20261202">
+<link rel="stylesheet" href="style.css?v=20261205">
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
@@ -61,6 +61,7 @@
   </section>
 
   <div class="cats" id="cats"></div>
+  <div class="cats locs" id="locs" aria-label="Байршил"></div>
   <div class="status" id="status">Холбогдож байна...</div>
   <div id="featured-wrap" hidden>
     <h3 class="sec-title"><svg class="i fill" aria-hidden="true"><use href="#i-star"/></svg> Онцлох зар</h3>
@@ -150,7 +151,7 @@
       <option>Тавилга</option><option>Хувцас</option><option>Бусад</option>
     </select>
     <input id="f-phone" inputmode="tel" placeholder="Бүртгэлтэй утас" readonly style="opacity:.75;cursor:default" title="Бүртгэлтэй дугаар. Өөрчлөх боломжгүй">
-    <input id="f-loc" placeholder="Байршил - жишээ: Сүхбаатар, Сэлэнгэ">
+    <select id="f-loc" aria-label="Байршил"></select>
     <div class="upload">
       <div class="upload-title"><svg class="i" aria-hidden="true"><use href="#i-camera"/></svg> Зураг сонгох</div>
       <div class="upload-hint">Утаснаасаа зураг сонгоно уу</div>
@@ -237,7 +238,7 @@
           <button class="btn btn-sm" id="change-phone-btn" style="display:none" onclick="startPhoneVerify()">Баталгаажуулах</button>
         </div>
         <label for="set-loc">Байршил</label>
-        <input id="set-loc" placeholder="Байршил">
+        <select id="set-loc"></select>
         <div class="form-msg ok" id="settings-err"></div>
         <div class="settings-actions">
           <button class="btn" onclick="saveSettings()">Хадгалах</button>
@@ -305,6 +306,6 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261202"></script>
+<script src="app.js?v=20261205"></script>
 </body>
 </html>

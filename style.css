@@ -564,3 +564,5 @@ html:has(body[data-page]:not([data-page="home"]):not([data-page="chat"])){oversc
 /* Утасны дугаар унших горимтой: курсор, босоо зураас, фокусын хүрээ гарахгүй */
 #f-phone{caret-color:transparent;outline:none;user-select:none;-webkit-user-select:none}
 #f-phone:focus{outline:none;box-shadow:none;border-color:var(--line)}
+
+.cats.locs{margin-top:0}
