@@ -100,6 +100,22 @@ tr:last-child td{border-bottom:0}
 @media(max-width:600px){.row2{grid-template-columns:1fr}}
 
 
+
+/* ---- Өөрийн загвартай сонголт ---- */
+.csel-native{display:none!important}
+.csel{position:relative;margin:0}
+.csel-btn{display:flex;align-items:center;width:100%;height:42px;padding:0 38px 0 12px;text-align:left;border:1px solid var(--line2);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238AA3A5' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center}
+.csel-btn.ph{color:var(--muted)}
+.csel.open .csel-btn,.csel-btn:focus-visible{outline:0;border-color:var(--brand);box-shadow:0 0 0 3px rgba(14,107,92,.2)}
+.csel-list{position:absolute;left:0;right:0;min-width:180px;top:calc(100% + 6px);z-index:40;max-height:240px;overflow-y:auto;overscroll-behavior:contain;padding:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.25)}
+.csel-opt{display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 12px;border:0;border-radius:9px;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.csel-opt:hover,.csel-opt:focus-visible{background:var(--s2);outline:0}
+.csel-opt.on{background:var(--soft);color:var(--brand);font-weight:700}
+.csel-opt.on::after{content:"✓";margin-left:10px}
+.tools .csel{min-width:170px;flex:0 1 auto}
+.modal label+.csel,.modal .row2 .csel{margin-top:0}
+
 /* ---- Зарын жагсаалт (1 зар = 1 мөр) ---- */
 .alistbox{display:grid;gap:8px}
 .aitem{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer;min-width:0}
@@ -332,6 +348,7 @@ function draw() {
       <select id="al"><option value="">Бүх байршил</option>${SOUMS.map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select>
       <select id="af"><option value="all">Бүх төлөв</option><option value="active">Идэвхтэй</option><option value="hidden">Нуусан</option><option value="featured">Онцлох</option><option value="pending">Төлбөр хүлээж буй</option><option value="unrev">Шалгагдаагүй</option><option value="rev">Шалгагдсан</option></select></div>
       <div id="alist"></div>`;
+    enhanceAll(p.querySelector(".tools"));
     $("af").value = f; $("al").value = lf;
     $("aq").oninput = $("af").onchange = $("al").onchange = drawAds;
     drawAds();
@@ -414,7 +431,50 @@ document.addEventListener("click", e => {
   }
 });
 
-const modal = html => { $("modal-card").innerHTML = html; $("modal").classList.add("open"); };
+// Өөрийн загвартай сонголт (dropdown)
+function enhanceSelect(sel) {
+  const wrap = document.createElement("div");
+  wrap.className = "csel";
+  const btn = document.createElement("button");
+  btn.type = "button"; btn.className = "csel-btn";
+  btn.setAttribute("aria-haspopup", "listbox"); btn.setAttribute("aria-expanded", "false");
+  const list = document.createElement("div");
+  list.className = "csel-list"; list.setAttribute("role", "listbox"); list.hidden = true;
+  wrap.append(btn, list);
+  sel.parentNode.insertBefore(wrap, sel);
+  sel.classList.add("csel-native"); sel.tabIndex = -1; sel.setAttribute("aria-hidden", "true");
+  const desc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
+  const sync = () => {
+    const o = sel.options[sel.selectedIndex];
+    btn.textContent = o ? o.textContent : "";
+    btn.classList.toggle("ph", !sel.value);
+    [...list.children].forEach(x => { const on = x.dataset.v === sel.value; x.classList.toggle("on", on); x.setAttribute("aria-selected", on); });
+  };
+  const build = () => {
+    list.innerHTML = "";
+    [...sel.options].filter(o => !o.disabled).forEach(o => {
+      const it = document.createElement("button");
+      it.type = "button"; it.className = "csel-opt"; it.setAttribute("role", "option");
+      it.dataset.v = o.value; it.textContent = o.textContent;
+      it.onclick = () => { desc.set.call(sel, o.value); sync(); close(); sel.dispatchEvent(new Event("change", { bubbles: true })); btn.focus(); };
+      list.appendChild(it);
+    });
+    sync();
+  };
+  const close = () => { list.hidden = true; wrap.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); };
+  const open = () => {
+    document.querySelectorAll(".csel.open").forEach(w => w !== wrap && w.querySelector(".csel-btn").click());
+    list.hidden = false; wrap.classList.add("open"); btn.setAttribute("aria-expanded", "true");
+    const on = list.querySelector(".on"); if (on) list.scrollTop = Math.max(0, on.offsetTop - 60);
+  };
+  btn.onclick = () => (list.hidden ? open() : close());
+  document.addEventListener("click", e => { if (!wrap.contains(e.target)) close(); });
+  wrap.addEventListener("keydown", e => { if (e.key === "Escape") { close(); btn.focus(); } });
+  Object.defineProperty(sel, "value", { configurable: true, get() { return desc.get.call(this); }, set(v) { desc.set.call(this, v); sync(); } });
+  build();
+}
+const enhanceAll = root => root.querySelectorAll("select:not(.csel-native)").forEach(enhanceSelect);
+const modal = html => { $("modal-card").innerHTML = html; enhanceAll($("modal-card")); $("modal").classList.add("open"); };
 const closeModal = () => $("modal").classList.remove("open");
 $("modal").addEventListener("mousedown", e => { if (e.target === $("modal")) closeModal(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
