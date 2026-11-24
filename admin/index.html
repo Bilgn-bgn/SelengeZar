@@ -41,6 +41,7 @@ main{max-width:1200px;margin:0 auto;padding:0 16px 40px}
 .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:18px}
 .stat{background:var(--s2);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
 .stat b{display:block;font-size:26px;line-height:1.1}.stat span{color:var(--muted);font-size:12px;font-weight:600}
+.stat.money{grid-column:1/-1;background:var(--soft);border-color:transparent}.stat.money b{color:var(--brand)}
 .stat.warn{background:#FFF6E0;border-color:var(--gold);color:#6b4600}.stat.warn span{color:#8a5d00}
 h2{font-size:15px;margin:18px 0 8px}h2:first-child{margin-top:0}
 .tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.tools input{max-width:280px}.tools select{width:auto}
@@ -196,6 +197,13 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const sb = supabase.createClient(SUPABASE_URL, KEY, { auth: { storageKey: "sz-admin-auth", persistSession: true, autoRefreshToken: true } });
 
+const SOUMS = [["Сүхбаатар", "Сүхбаатар (аймгийн төв)"], ["Шаамар", "Шаамар"], ["Алтанбулаг", "Алтанбулаг"], ["Мандал", "Мандал (Зүүнхараа)"], ["Ерөө", "Ерөө"], ["Зүүнбүрэн", "Зүүнбүрэн"], ["Цагааннуур", "Цагааннуур"], ["Хүдэр", "Хүдэр"], ["Сайхан", "Сайхан"], ["Баянгол", "Баянгол"], ["Жавхлант", "Жавхлант"], ["Орхонтуул", "Орхонтуул"], ["Орхон", "Орхон"], ["Баруунбүрэн", "Баруунбүрэн"], ["Түшиг", "Түшиг"], ["Сант", "Сант"], ["Хушаат", "Хушаат"]];
+const locValue = k => k + ", Сэлэнгэ";
+function soumOf(loc) {
+  const t = String(loc || "").trim().toLowerCase(), first = t.split(",")[0].trim();
+  const hit = SOUMS.find(([k]) => k.toLowerCase() === first) || SOUMS.find(([k]) => t.startsWith(k.toLowerCase() + " "));
+  return hit ? hit[0] : "";
+}
 let meName = "", meAvatar = "", ads = [], users = null, stats = null, tab = "ads", adminId = null;
 const isFeat = a => a.featured === true && (!a.featured_until || new Date(a.featured_until) > new Date());
 const fmt = iso => { if (!iso) return "—"; const d = new Date(iso); return isNaN(d) ? "—" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
@@ -302,7 +310,8 @@ function draw() {
   if (tab === "chat") { if (!$("chat-shell")) buildChatShell(); renderChat(); return; }
   if (tab === "dash") {
     const s = stats || {};
-    const pend = ads.filter(a => a.feature_requested);
+    const everFeat = ads.filter(a => isFeat(a) || Number(a.paid_total) > 0 || a.featured_until);
+    const money = ads.reduce((t, a) => t + (Number(a.paid_total) || 0), 0);
     p.innerHTML = `
       <div class="stats">
         <div class="stat ${ads.some(a => !a.reviewed) ? "warn" : ""}"><b>${ads.filter(a => !a.reviewed).length}</b><span>Шалгагдаагүй зар</span></div>
@@ -314,15 +323,16 @@ function draw() {
         <div class="stat"><b>${s.ads_hidden ?? "–"}</b><span>Нуусан зар</span></div>
         <div class="stat"><b>${s.users_total ?? "–"}</b><span>Хэрэглэгч</span></div>
         <div class="stat"><b>${s.users_7d ?? "–"}</b><span>7 хоногт бүртгүүлсэн</span></div>
-      </div>
-      <h2>Орж ирсэн төлбөрийн хүсэлт (${pend.length})</h2>${promoList(pend, "pend", "Төлбөр шалгах хүсэлт алга")}`;
+        <div class="stat money"><b>${money.toLocaleString()}₮</b><span>Нийт орж ирсэн мөнгө · ${everFeat.length} онцгой зар</span></div>
+      </div>`;
   } else if (tab === "ads") {
-    const q = ($("aq") || {}).value || "", f = ($("af") || {}).value || "all";
+    const q = ($("aq") || {}).value || "", f = ($("af") || {}).value || "all", lf = ($("al") || {}).value || "";
     p.innerHTML = `<div class="tools"><input id="aq" placeholder="Нэр, утас, байршлаар хайх" value="${esc(q)}">
+      <select id="al"><option value="">Бүх байршил</option>${SOUMS.map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select>
       <select id="af"><option value="all">Бүх төлөв</option><option value="active">Идэвхтэй</option><option value="hidden">Нуусан</option><option value="featured">Онцлох</option><option value="pending">Төлбөр хүлээж буй</option><option value="unrev">Шалгагдаагүй</option><option value="rev">Шалгагдсан</option></select></div>
       <div id="alist"></div>`;
-    $("af").value = f;
-    $("aq").oninput = $("af").onchange = drawAds;
+    $("af").value = f; $("al").value = lf;
+    $("aq").oninput = $("af").onchange = $("al").onchange = drawAds;
     drawAds();
   } else if (tab === "promo") {
     const pend = ads.filter(a => a.feature_requested), act = ads.filter(isFeat);
@@ -336,8 +346,9 @@ function draw() {
   }
 }
 function drawAds() {
-  const q = $("aq").value.trim().toLowerCase(), f = $("af").value;
+  const q = $("aq").value.trim().toLowerCase(), f = $("af").value, lf = $("al").value;
   const list = ads.filter(a =>
+    (!lf || soumOf(a.loc) === lf) &&
     (!q || [a.title, a.phone, a.loc, a.description].some(t => String(t || "").toLowerCase().includes(q))) &&
     (f === "all" || (f === "active" && a.status !== "hidden") || (f === "hidden" && a.status === "hidden") || (f === "featured" && isFeat(a)) || (f === "pending" && a.feature_requested) || (f === "unrev" && !a.reviewed) || (f === "rev" && a.reviewed)));
   $("alist").innerHTML = adTable(list);
@@ -354,7 +365,8 @@ const promoList = (list, mode, emptyMsg) => list.length ? `<div class="alistbox"
 function openPromo(a, mode) {
   const row = (k, v) => `<div class="drow"><span>${k}</span><b>${v}</b></div>`;
   const ctl = mode === "pend"
-    ? `<label>Хугацаа</label><select id="days-${esc(a.id)}"><option value="7">7 хоног</option><option value="14">14 хоног</option><option value="30">30 хоног</option></select>
+    ? `<div class="row2"><div><label>Хугацаа</label><select id="days-${esc(a.id)}" onchange="document.getElementById('amt-${esc(a.id)}').value=({7:5000,14:10000,30:20000})[this.value]"><option value="7">7 хоног</option><option value="14">14 хоног</option><option value="30">30 хоног</option></select></div>
+       <div><label>Орж ирсэн дүн (₮)</label><input id="amt-${esc(a.id)}" inputmode="numeric" value="5000" oninput="this.value=this.value.replace(/\\D/g,'')"></div></div>
        <div class="mfoot" style="justify-content:stretch;flex-wrap:wrap"><button class="btn primary" style="flex:1 1 100%" data-act="approve" data-id="${esc(a.id)}">Төлбөр орсон, нийтлэх</button>
        <button class="btn" style="flex:1 1 100%" data-act="reject" data-id="${esc(a.id)}">Энгийнээр нийтлэх</button></div>`
     : `<div class="mfoot" style="justify-content:stretch;flex-wrap:wrap"><button class="btn" style="flex:1" data-act="extend" data-id="${esc(a.id)}">+7 хоног</button>
@@ -389,8 +401,8 @@ document.addEventListener("click", e => {
     case "edit-ad": return editAd(a);
     case "toggle-ad": closeModal(); return act(() => upd(id, { status: a.status === "hidden" ? "active" : "hidden" }), a.status === "hidden" ? "Зар гарлаа" : "Зар нуугдлаа");
     case "del-ad": if (confirm("«" + a.title + "» зарыг бүр мөсөн устгах уу?")) { closeModal(); act(() => rpc("admin_delete_ad", { p_id: String(id) }), "Зар устлаа"); } return;
-    case "approve": { const d = Number($("days-" + id).value); closeModal();
-      return act(() => upd(id, { featured: true, status: "active", featured_until: new Date(Date.now() + d * 864e5).toISOString(), feature_requested: false }), "Зар нийтлэгдэж, онцлох боллоо (" + d + " хоног)"); }
+    case "approve": { const d = Number($("days-" + id).value); const amtEl = $("amt-" + id); const amt = Number(amtEl ? amtEl.value : 0); closeModal();
+      return act(() => upd(id, { paid_add: amt, featured: true, status: "active", featured_until: new Date(Date.now() + d * 864e5).toISOString(), feature_requested: false }), "Зар нийтлэгдэж, онцлох боллоо (" + d + " хоног)"); }
     case "reject": if (confirm(a.status === "pending" ? "Онцлох хүсэлтийг татгалзаад зарыг энгийн зар болгон нийтлэх үү?" : "Онцлох хүсэлтийг татгалзах уу?")) act(() => upd(id, { feature_requested: false, status: a.status === "pending" ? "active" : a.status }), "Хүсэлт татгалзагдлаа"); return;
     case "extend": { const base = a.featured_until && new Date(a.featured_until) > new Date() ? new Date(a.featured_until).getTime() : Date.now();
       return act(() => upd(id, { featured_until: new Date(base + 7 * 864e5).toISOString() }), "7 хоног нэмэгдлээ"); }
@@ -430,7 +442,7 @@ function editAd(a) {
     <div class="row2"><div><label>Үнэ</label><input id="m-price" type="number" value="${esc(a.price)}"></div>
     <div><label>Ангилал</label><select id="m-cat">${cats.map(c => `<option${c === a.cat ? " selected" : ""}>${c}</option>`).join("")}</select></div></div>
     <div class="row2"><div><label>Утас</label><input id="m-phone" value="${esc(a.phone)}"></div>
-    <div><label>Байршил</label><input id="m-loc" value="${esc(a.loc)}"></div></div>
+    <div><label>Байршил</label><select id="m-loc">${soumOf(a.loc) || !a.loc ? "" : `<option value="${esc(a.loc)}" selected>${esc(a.loc)} (одоогийн)</option>`}${SOUMS.map(([k, l]) => `<option value="${locValue(k)}"${soumOf(a.loc) === k ? " selected" : ""}>${l}</option>`).join("")}</select></div></div>
     <label>Тайлбар</label><textarea id="m-desc" rows="4">${esc(a.description)}</textarea>
     <div class="row2"><div><label>Төлөв</label><select id="m-status"><option value="active"${a.status !== "hidden" ? " selected" : ""}>Идэвхтэй</option><option value="pending"${a.status === "pending" ? " selected" : ""}>Хүлээгдэж байна (нийтлэгдээгүй)</option><option value="hidden"${a.status === "hidden" ? " selected" : ""}>Нуусан</option></select></div>
     <div><label>Онцлох дуусах</label><input id="m-until" type="datetime-local" value="${until}"></div></div>
@@ -439,7 +451,7 @@ function editAd(a) {
   $("m-save").onclick = () => act(async () => {
     const t = $("m-title").value.trim(); if (!t) throw new Error("Нэр хоосон байна");
     await upd(a.id, {
-      title: t, price: $("m-price").value || 0, cat: $("m-cat").value, phone: $("m-phone").value.trim(), loc: $("m-loc").value.trim(),
+      title: t, price: $("m-price").value || 0, cat: $("m-cat").value, phone: $("m-phone").value.trim(), loc: $("m-loc").value,
       description: $("m-desc").value.trim(), status: $("m-status").value, featured: $("m-feat").checked,
       featured_until: $("m-until").value ? new Date($("m-until").value).toISOString() : "",
       feature_requested: $("m-feat").checked ? false : !!a.feature_requested
