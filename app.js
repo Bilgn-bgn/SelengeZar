@@ -544,6 +544,7 @@ function editAd(id) {
 // Зарын утас = зөвхөн хэрэглэгчийн баталгаажсан бүртгэлтэй дугаар (засах боломжгүй)
 function myRegPhone() { return isPhoneVerified() ? localPhone(localStorage.getItem("userPhone") || "") : ""; }
 function syncAdPhone() { $("f-phone").value = myRegPhone(); }
+$("f-phone").addEventListener("focus", e => e.target.blur());   // босоо зураас (курсор) гарахгүй
 function resetAdForm() {
   ["f-title", "f-price", "f-loc", "f-desc"].forEach(id => $(id).value = "");
   $("f-cat").value = "";   // ангилалыг заавал сонгуулна
