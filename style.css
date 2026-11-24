@@ -544,3 +544,16 @@ body[data-page="chat"]{overflow:hidden;padding-bottom:0}
 @media(min-width:640px){.feat-track{--per:3;--gap:14px}}
 @media(min-width:900px){.feat-track{--per:4;--gap:16px}}
 .cav.img{background-size:cover;background-position:center;background-color:var(--line);color:transparent}
+
+/* Лого .mn, зар устгах */
+.logo .tld{font-style:normal;color:var(--muted);font-weight:600}
+.act-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card-actions .act-row .edit-btn{width:100%;margin:0}
+.del-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px 10px;border:1px solid var(--line-strong);
+  border-radius:var(--r-sm);background:transparent;color:#C43D2E;font-size:13px;font-weight:700;cursor:pointer;transition:.15s}
+.del-btn:hover{background:#FCEDEA;border-color:#C43D2E}
+.del-btn .i{width:14px;height:14px}
+@media(prefers-color-scheme:dark){.del-btn{color:#FF8A7A}.del-btn:hover{background:#3A1E1B;border-color:#FF8A7A}}
+.act-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.act-row > button{min-width:0;padding:9px 6px;white-space:nowrap}
+.card-actions{min-width:0}

@@ -213,7 +213,7 @@ function cardHTML(a, opts) {
         <div class="meta">${ico("pin")}<span>${esc(a.loc)}</span></div>
         <div class="time">${ico("clock")}<span>${esc(timeAgo(a.created_at))}</span></div>
       </div>
-      ${opts && opts.edit ? `<div class="card-actions"><button class="edit-btn" data-edit="${esc(a.id)}">${ico("pencil")} Зар засах</button>${featAction(a)}</div>` : ""}
+      ${opts && opts.edit ? `<div class="card-actions"><div class="act-row"><button class="edit-btn" data-edit="${esc(a.id)}">${ico("pencil")} Засах</button><button class="del-btn" data-del="${esc(a.id)}">${ico("trash")} Устгах</button></div>${featAction(a)}</div>` : ""}
     </div>`;
 }
 
@@ -342,6 +342,8 @@ function renderMine() {
 ["grid", "featured-grid", "mine-grid", "saved-grid"].forEach(gid => $(gid).addEventListener("click", e => {
   const pay = e.target.closest("[data-pay]");
   if (pay) { e.stopPropagation(); onFeatureClick(pay.dataset.pay); return; }
+  const dl = e.target.closest("[data-del]");
+  if (dl) { e.stopPropagation(); deleteAd(dl.dataset.del); return; }
   const ed = e.target.closest("[data-edit]");
   if (ed) { e.stopPropagation(); editAd(ed.dataset.edit); return; }
   const sv = e.target.closest("[data-save]");
@@ -419,6 +421,28 @@ function openModal() {
 function closeModal() {
   const dest = editingId ? "#/mine" : "#/";
   go(dest);   // route() нь хуудаснаас гарахад засварын төлөвийг цэвэрлэнэ
+}
+
+// ---------- Өөрийн зарыг устгах ----------
+async function deleteAd(id) {
+  const a = findAd(id);
+  if (!a) return;
+  if (!confirm("«" + (a.title || "Зар") + "» зарыг устгах уу?\nЭнийг буцаах боломжгүй.")) return;
+  try {
+    const { data: sess } = await sb.auth.getSession();
+    const token = sess && sess.session && sess.session.access_token;
+    if (!token) throw new Error("Дахин нэвтэрнэ үү");
+    const r = await fetch(API + "?id=eq." + encodeURIComponent(id), {
+      method: "DELETE",
+      headers: { apikey: KEY, Authorization: "Bearer " + token, Prefer: "return=representation" }
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const rows = await r.json();
+    if (!rows.length) throw new Error("Устгах эрх олгогдоогүй байна (ads-delete.sql ажиллуулсан эсэхээ шалгана уу)");
+    ads = ads.filter(x => String(x.id) !== String(id));
+    render(); renderMine(); renderSaved();
+    toast("Зар устгагдлаа");
+  } catch (e) { toast("Алдаа: " + e.message); }
 }
 
 // ---------- Онцлох зар: сонголт + төлбөрийн мэдээлэл ----------
