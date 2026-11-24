@@ -116,6 +116,14 @@ tr:last-child td{border-bottom:0}
 .tools .csel{min-width:170px;flex:0 1 auto}
 .modal label+.csel,.modal .row2 .csel{margin-top:0}
 
+
+/* ---- Реклам (hero) ---- */
+.bn{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.bn img{width:100%;aspect-ratio:2.4/1;object-fit:cover;border-radius:10px;background:var(--s2)}
+.bn .acts .btn{flex:1 1 auto}
+@media(min-width:701px){.bn{grid-template-columns:260px minmax(0,1fr) auto;align-items:center}}
+nav button{font-size:inherit}
+
 /* ---- Зарын жагсаалт (1 зар = 1 мөр) ---- */
 .alistbox{display:grid;gap:8px}
 .aitem{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer;min-width:0}
@@ -147,7 +155,7 @@ html,body{max-width:100%;overflow-x:hidden}
   header h1{font-size:15px;white-space:nowrap}
   header .btn{padding:5px 9px;white-space:nowrap}
   nav{overflow:visible;padding:8px 10px 0;gap:2px}
-  nav button{flex:1 1 0;min-width:0;padding:9px 0;font-size:11.5px;letter-spacing:-.2px;text-align:center;white-space:normal;line-height:1.2}
+  nav button{flex:1 1 0;min-width:0;padding:9px 0;font-size:10.5px;letter-spacing:-.3px;text-align:center;white-space:normal;line-height:1.2}
   nav .badge{margin-left:2px;padding:1px 5px;font-size:10px}
   .panel{padding:12px;border-radius:0 0 var(--r) var(--r)}
   .tools input{max-width:none;flex:1 1 100%}
@@ -193,9 +201,10 @@ html,body{max-width:100%;overflow-x:hidden}
   <nav id="tabs">
     <button data-tab="ads" class="on">Зарууд <span class="badge" id="ads-badge" hidden></span></button>
     <button data-tab="promo">Онцгой <span class="badge" id="promo-badge" hidden></span></button>
+    <button data-tab="banners">Реклам</button>
     <button data-tab="dash">Самбар</button>
     <button data-tab="chat">Чат <span class="badge" id="chat-badge" hidden></span></button>
-    <button data-tab="users">Хэрэглэгчид</button>
+    <button data-tab="users">Хэрэглэгч</button>
   </nav>
   <main><div class="panel" id="panel"></div></main>
 </div>
@@ -220,6 +229,7 @@ function soumOf(loc) {
   const hit = SOUMS.find(([k]) => k.toLowerCase() === first) || SOUMS.find(([k]) => t.startsWith(k.toLowerCase() + " "));
   return hit ? hit[0] : "";
 }
+let banners = null, bannersErr = "";
 let meName = "", meAvatar = "", ads = [], users = null, stats = null, tab = "ads", adminId = null;
 const isFeat = a => a.featured === true && (!a.featured_until || new Date(a.featured_until) > new Date());
 const fmt = iso => { if (!iso) return "—"; const d = new Date(iso); return isNaN(d) ? "—" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
@@ -282,6 +292,7 @@ $("tabs").addEventListener("click", async e => {
   const b = e.target.closest("[data-tab]"); if (!b) return;
   tab = b.dataset.tab;
   document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  if (tab === "banners") await loadBanners();
   if ((tab === "users" || tab === "chat") && !users) { try { users = await rpc("admin_list_users"); } catch (er) { toast("Алдаа: " + er.message); } }
   draw();
 });
@@ -352,6 +363,8 @@ function draw() {
     $("af").value = f; $("al").value = lf;
     $("aq").oninput = $("af").onchange = $("al").onchange = drawAds;
     drawAds();
+  } else if (tab === "banners") {
+    drawBanners();
   } else if (tab === "promo") {
     const pend = ads.filter(a => a.feature_requested), act = ads.filter(isFeat);
     p.innerHTML = `<h2>Төлбөр хүлээж буй хүсэлт (${pend.length})</h2>${promoList(pend, "pend", "Хүсэлт алга")}
@@ -380,6 +393,78 @@ function promoItem(a, mode) {
     <div class="l2">${when} · ${esc(a.title)}</div></div></div>`;
 }
 const promoList = (list, mode, emptyMsg) => list.length ? `<div class="alistbox">${list.map(a => promoItem(a, mode)).join("")}</div>` : `<div class="empty">${emptyMsg}</div>`;
+// ---------- Реклам (нүүр хуудасны зураг) ----------
+const bannerUrl = b => /^https?:/i.test(b.img) ? b.img : "/" + String(b.img).replace(/^\//, "");
+async function loadBanners() {
+  try {
+    const { data, error } = await sb.from("banners").select("*").order("id", { ascending: true });
+    if (error) throw new Error(error.message);
+    banners = data; bannersErr = "";
+  } catch (e) { banners = []; bannersErr = e.message; }
+  if (tab === "banners") drawBanners();
+}
+function bannerState(b) {
+  if (!b.ends_at) return { t: "Хугацаагүй", cls: "ok" };
+  const ms = new Date(b.ends_at) - Date.now();
+  if (ms <= 0) return { t: "Дууссан · " + fmt(b.ends_at), cls: "bad" };
+  const d = Math.ceil(ms / 864e5);
+  return { t: d + " хоног үлдсэн · " + fmt(b.ends_at), cls: "ok" };
+}
+function drawBanners() {
+  const p = $("panel");
+  if (banners === null) { p.innerHTML = '<div class="empty">Ачаалж байна...</div>'; return; }
+  p.innerHTML = `<div class="tools" style="justify-content:space-between;align-items:center"><h2 style="margin:0">Нүүр хуудасны реклам (${banners.length})</h2><button class="btn primary" data-act="banner-add">+ Реклам нэмэх</button></div>
+    ${bannersErr ? `<div class="empty">Алдаа: ${esc(bannersErr)}<br>banners.sql-ийг Supabase дээр ажиллуулна уу.</div>` : ""}
+    ${!bannersErr && !banners.length ? '<div class="empty">Реклам алга. Нүүр хуудсанд зураг гарахгүй.</div>' : ""}
+    <div class="alistbox">${banners.map(b => { const st = bannerState(b); return `<div class="bn">
+      <img src="${esc(bannerUrl(b))}" alt="" onerror="this.style.visibility='hidden'">
+      <div class="bn-info"><span class="tag ${st.cls}">${esc(st.t)}</span></div>
+      <div class="acts"><button class="btn sm" data-act="banner-img" data-id="${esc(b.id)}">Зураг засах</button>
+      <button class="btn sm" data-act="banner-days" data-id="${esc(b.id)}">Хэд хоног</button>
+      <button class="btn sm danger" data-act="banner-del" data-id="${esc(b.id)}">Устгах</button></div></div>`; }).join("")}</div>
+    <p style="color:var(--muted);font-size:12px;margin:12px 2px 0">Зургийг 1920×800 (урт нь өргөнөөсөө 2.4 дахин бага) харьцаатай оруулбал бүтэн харагдана. Өөр харьцаатай зургийг автоматаар голоос нь тайрна.</p>`;
+}
+// Зургийг 2.4:1 харьцаагаар голоос нь тайрч, 1600 өргөнтэй JPEG болгоно
+function bannerJpeg(file) {
+  return new Promise((ok, no) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const W = 1600, H = Math.round(W / 2.4), c = document.createElement("canvas"); c.width = W; c.height = H;
+      const k = Math.max(W / img.width, H / img.height), w = img.width * k, h = img.height * k;
+      c.getContext("2d").drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+      URL.revokeObjectURL(url); c.toBlob(b => b ? ok(b) : no(new Error("Зураг боловсруулж чадсангүй")), "image/jpeg", 0.86);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); no(new Error("Зураг уншигдсангүй")); };
+    img.src = url;
+  });
+}
+async function uploadBanner(file) {
+  const blob = await bannerJpeg(file), fn = "banner-" + Date.now() + ".jpg";
+  const up = await fetch(SUPABASE_URL + "/storage/v1/object/ads-images/" + fn, { method: "POST", headers: { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "image/jpeg" }, body: blob });
+  if (!up.ok) throw new Error("Зураг хуулахад алдаа: " + await up.text());
+  return SUPABASE_URL + "/storage/v1/object/public/ads-images/" + fn;
+}
+const DAY_OPTS = [[7, "7 хоног"], [14, "14 хоног"], [30, "30 хоног"], [90, "90 хоног"], [0, "Хугацаагүй"]];
+function bannerModal(b, mode) {   // mode: add | img | days
+  const withImg = mode !== "days", withDays = mode !== "img";
+  modal(`<h3>${mode === "add" ? "Реклам нэмэх" : mode === "img" ? "Зураг засах" : "Хэд хоногоор байршуулах"}</h3>
+    ${b ? `<img class="dimg" src="${esc(bannerUrl(b))}" alt="" style="aspect-ratio:2.4/1;object-fit:cover">` : ""}
+    ${withImg ? `<label>Зураг ${mode === "add" ? "*" : "(сонгохгүй бол хуучнаараа)"}</label><input type="file" id="bn-file" accept="image/*">` : ""}
+    ${withDays ? `<label>Хэд хоногоор байршуулах</label><select id="bn-days">${DAY_OPTS.map(([d, l]) => `<option value="${d}"${d === (b ? (b.ends_at ? 30 : 0) : 7) ? " selected" : ""}>${l}</option>`).join("")}</select>` : ""}
+    <div class="err" id="bn-err"></div>
+    <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn primary" id="bn-save">Хадгалах</button></div>`);
+  $("bn-save").onclick = async () => {
+    const btn = $("bn-save"), err = $("bn-err"); err.textContent = ""; btn.disabled = true;
+    try {
+      const f = withImg && $("bn-file").files[0];
+      if (mode === "add" && !f) throw new Error("Зургаа сонгоно уу");
+      const img = f ? (err.textContent = "Зураг хуулж байна...", await uploadBanner(f)) : null;
+      const days = withDays ? Number($("bn-days").value) : null;
+      await rpc("admin_banner_save", { p_id: b ? b.id : null, p_img: img, p_days: days });
+      closeModal(); toast("Хадгаллаа"); await loadBanners();
+    } catch (e) { err.textContent = e.message; btn.disabled = false; }
+  };
+}
 function openPromo(a, mode) {
   const row = (k, v) => `<div class="drow"><span>${k}</span><b>${v}</b></div>`;
   const ctl = mode === "pend"
@@ -412,6 +497,9 @@ document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const id = b.dataset.id, a = findAd(id);
   switch (b.dataset.act) {
+    case "banner-add": return bannerModal(null, "add");
+    case "banner-img": case "banner-days": { const bn = (banners || []).find(x => String(x.id) === String(id)); return bn && bannerModal(bn, b.dataset.act === "banner-img" ? "img" : "days"); }
+    case "banner-del": { const bn = (banners || []).find(x => String(x.id) === String(id)); if (bn && confirm("Энэ рекламын зургийг устгах уу?")) { rpc("admin_banner_delete", { p_id: bn.id }).then(() => { toast("Устлаа"); return loadBanners(); }).catch(e => toast("Алдаа: " + e.message)); } return; }
     case "open-ad": return openAd(a);
     case "open-promo": return openPromo(a, b.dataset.mode);
     case "open-user": return openUser(users.find(u => u.id === id));
