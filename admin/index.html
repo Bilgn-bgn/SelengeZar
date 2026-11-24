@@ -323,7 +323,8 @@ function draw() {
         <div class="stat"><b>${s.ads_hidden ?? "–"}</b><span>Нуусан зар</span></div>
         <div class="stat"><b>${s.users_total ?? "–"}</b><span>Хэрэглэгч</span></div>
         <div class="stat"><b>${s.users_7d ?? "–"}</b><span>7 хоногт бүртгүүлсэн</span></div>
-        <div class="stat money"><b>${money.toLocaleString()}₮</b><span>Нийт орж ирсэн мөнгө · ${everFeat.length} онцгой зар</span></div>
+        <div class="stat"><b>${everFeat.length}</b><span>Нийт онцгой зар</span></div>
+        <div class="stat money"><b>${money.toLocaleString()}₮</b><span>Нийт орж ирсэн мөнгө</span></div>
       </div>`;
   } else if (tab === "ads") {
     const q = ($("aq") || {}).value || "", f = ($("af") || {}).value || "all", lf = ($("al") || {}).value || "";
