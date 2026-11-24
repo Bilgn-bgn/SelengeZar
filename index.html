@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0E6B5C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="style.css?v=20261209">
+<link rel="stylesheet" href="style.css?v=20261213">
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
@@ -175,13 +175,9 @@
     <!-- Нэвтрэх хэсэг -->
     <div id="login-view">
       <h2>Тавтай морил</h2>
-      <p class="sub">Үргэлжлүүлэхийн тулд нэвтэрнэ үү</p>
-      <button class="btn btn-block btn-light" onclick="loginWithGoogle()"><span class="brand-dot">G</span> Google-ээр нэвтрэх</button>
-      <button class="btn btn-block btn-fb btn-stack" onclick="loginWithFacebook()"><span class="brand-dot">f</span> Facebook-ээр нэвтрэх</button>
-      <div class="or">эсвэл</div>
-      <button class="btn btn-block btn-outline" id="phone-toggle" onclick="togglePhoneLogin()"><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg> Утасны дугаараар нэвтрэх</button>
+      <p class="sub">Утасны дугаараараа нэвтэрнэ үү</p>
 
-      <div id="phone-login" style="display:none">
+      <div id="phone-login">
       <div id="step-phone" style="margin-top:8px">
         <input id="login-phone" placeholder="Утасны дугаар" inputmode="numeric">
         <button class="btn btn-block btn-stack" onclick="sendCode()">Код явуулах</button>
@@ -206,7 +202,6 @@
           <input type="file" id="avatar-file" accept="image/*" hidden>
         </div>
         <div class="profile-name" id="profile-name">-</div>
-        <div class="profile-email" id="profile-email"></div>
       </div>
       <div class="tabs">
         <button class="tab-btn active" id="tab-profile-btn" onclick="showTab('profile')">Профайл</button>
@@ -221,11 +216,6 @@
         <div class="info-group">
           <div class="info-row"><span>Утас</span><b id="profile-phone">-</b></div>
           <div class="info-row"><span>Байршил</span><b id="profile-loc">-</b></div>
-        </div>
-        <div class="grp-title">Холбосон бүртгэл</div>
-        <div class="info-group">
-          <div class="info-row"><span>Google</span><b id="st-google">-</b></div>
-          <div class="info-row"><span>Facebook</span><b id="st-facebook">-</b></div>
         </div>
       </div>
 
@@ -306,6 +296,6 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261209"></script>
+<script src="app.js?v=20261213"></script>
 </body>
 </html>

@@ -864,23 +864,15 @@ function showProfile(name) {
   const phone = localPhone(localStorage.getItem("userPhone") || "");
   const loc = localStorage.getItem("userLoc") || DEFAULT_LOC;
   const customName = localStorage.getItem("userCustomName") || "";
-  const displayName = localPhone(name || localStorage.getItem("userName") || email || phone || "Хэрэглэгч");
+  const displayName = localPhone(name || localStorage.getItem("userName") || phone || "Хэрэглэгч");
 
   $("profile-name").textContent = displayName;
-  // Өөрийн нэр өгсөн бол зөвхөн нэр. Үгүй бол нэрний доор и-мэйл / утас / Facebook-ийн аль нэг нь.
-  let provs = [];
-  try { provs = JSON.parse(localStorage.getItem("providers") || "[]"); } catch (e) {}
-  const ident = email || phone || (provs.includes("facebook") ? "Facebook" : "");
-  $("profile-email").textContent = customName || ident === displayName ? "" : ident;
   const verified = isPhoneVerified();
   let prov = [];
   try { prov = JSON.parse(localStorage.getItem("providers") || "[]"); } catch (e) {}
-  const linkBtn = p => `<button class="btn btn-outline btn-sm" onclick="linkProvider('${p}')">Холбох</button>`;
   $("profile-phone").innerHTML = phone
     ? esc(phone) + (verified ? ' <span class="ok">' + ico("check-circle") + '</span>' : ' <button class="btn btn-outline btn-sm" onclick="openVerify(\'verify\')">Баталгаажуулах</button>')
     : '<button class="btn btn-outline btn-sm" onclick="openVerify(\'verify\')">Баталгаажуулах</button>';
-  $("st-google").innerHTML = prov.includes("google") ? '<span class="ok">' + ico("check") + ' Холбогдсон</span>' : linkBtn("google");
-  $("st-facebook").innerHTML = prov.includes("facebook") ? '<span class="ok">' + ico("check") + ' Холбогдсон</span>' : linkBtn("facebook");
   updateMyCount();
   $("profile-loc").textContent = loc;
   renderAvatar(displayName);
@@ -940,18 +932,6 @@ async function logout() {
   go("#/");
 }
 
-// ---------- Google / Facebook ----------
-async function oauth(provider) {
-  if (!sb) { alert("Supabase сан ачаалагдаагүй байна. Хуудсаа дахин ачаална уу."); return; }
-  const { error } = await sb.auth.signInWithOAuth({
-    provider,
-    options: { redirectTo: window.location.origin + window.location.pathname }
-  });
-  if (error) alert(provider + " алдаа: " + error.message);
-}
-const loginWithGoogle = () => oauth("google");
-const loginWithFacebook = () => oauth("facebook");
-
 // ---------- Утасны дугаараар (SMS) ----------
 function formatPhone(p) {
   p = p.replace(/\D/g, "");
@@ -979,32 +959,15 @@ function runCooldown(btn, label) {
 }
 function smsErrText(error) {
   const m = (error && error.message || "").toLowerCase();
-  if (m.includes("already") || m.includes("registered") || m.includes("exists")) return "Энэ дугаар өөр бүртгэлд байна. Өмнө нь дугаараар нэвтэрч байсан бол «Утасны дугаараар нэвтрэх»-ээр орж, Профайл дээрээс Google/Facebook холбоорой";
+  if (m.includes("already") || m.includes("registered") || m.includes("exists")) return "Энэ дугаар өөр бүртгэл дээр бүртгэлтэй байна. Өмнө нь дугаараар нэвтэрч байсан бол «Утасны дугаараар нэвтрэх»-ээр орно уу";
   if (m.includes("sms_daily_limit")) return "Энэ дугаарт өнөөдөр хэт олон код илгээлээ. Маргааш дахин оролдоно уу";
   if (m.includes("sms_global_limit")) return "Систем түр ачаалалтай байна. Хэсэг хугацааны дараа дахин оролдоно уу";
   if (m.includes("rate") || m.includes("seconds") || m.includes("too many")) return "Хэт олон удаа оролдлоо. Түр хүлээгээд дахин оролдоно уу";
   if (m.includes("trial") || m.includes("unsupported")) return "Энэ дугаар руу код илгээх боломжгүй байна";
   return "Алдаа: " + (error && error.message || "");
 }
-// Нэг бүртгэлд Google / Facebook / утсыг холбох (Supabase identity linking)
-async function linkProvider(provider) {
-  if (!sb) return;
-  const { error } = await sb.auth.linkIdentity({
-    provider,
-    options: { redirectTo: window.location.origin + window.location.pathname }
-  });
-  if (error) {
-    const m = (error.message || "").toLowerCase();
-    toast(m.includes("manual linking") ? "Supabase дээр «Allow manual linking»-г асаана уу" : "Холбож чадсангүй: " + error.message);
-  }
-}
 
-function togglePhoneLogin() {
-  const box = $("phone-login");
-  const open = box.style.display === "none";
-  box.style.display = open ? "block" : "none";
-  $("phone-toggle").style.display = open ? "none" : "block";
-}
+function togglePhoneLogin() {}   // утасны нэвтрэлт үргэлж нээлттэй
 
 let sendingCode = false;
 // Supabase "N секундын дараа дахин хүсэх" гэвэл код саяхан явсан гэсэн үг - код оруулах алхам руу шилжинэ
