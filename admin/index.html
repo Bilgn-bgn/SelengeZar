@@ -315,8 +315,7 @@ function draw() {
         <div class="stat"><b>${s.users_total ?? "–"}</b><span>Хэрэглэгч</span></div>
         <div class="stat"><b>${s.users_7d ?? "–"}</b><span>7 хоногт бүртгүүлсэн</span></div>
       </div>
-      ${pend.length ? `<h2>Төлбөр шалгах хүсэлтүүд</h2>${promoPending(pend)}` : ""}
-      <h2>Шинээр нэмэгдсэн зарууд</h2>${adTable(ads.slice(0, 10))}`;
+      <h2>Орж ирсэн төлбөрийн хүсэлт (${pend.length})</h2>${promoList(pend, "pend", "Төлбөр шалгах хүсэлт алга")}`;
   } else if (tab === "ads") {
     const q = ($("aq") || {}).value || "", f = ($("af") || {}).value || "all";
     p.innerHTML = `<div class="tools"><input id="aq" placeholder="Нэр, утас, байршлаар хайх" value="${esc(q)}">
@@ -327,8 +326,8 @@ function draw() {
     drawAds();
   } else if (tab === "promo") {
     const pend = ads.filter(a => a.feature_requested), act = ads.filter(isFeat);
-    p.innerHTML = `<h2>Төлбөр хүлээж буй хүсэлт (${pend.length})</h2>${pend.length ? promoPending(pend) : '<div class="empty">Хүсэлт алга</div>'}
-      <h2>Идэвхтэй онцлох зар (${act.length})</h2>${act.length ? promoActive(act) : '<div class="empty">Онцлох зар алга</div>'}`;
+    p.innerHTML = `<h2>Төлбөр хүлээж буй хүсэлт (${pend.length})</h2>${promoList(pend, "pend", "Хүсэлт алга")}
+      <h2>Идэвхтэй онцгой зар (${act.length})</h2>${promoList(act, "act", "Онцгой зар алга")}`;
   } else {
     if (!users) { p.innerHTML = '<div class="empty">Ачаалж байна...</div>'; return; }
     const q = ($("uq") || {}).value || "";
@@ -343,49 +342,60 @@ function drawAds() {
     (f === "all" || (f === "active" && a.status !== "hidden") || (f === "hidden" && a.status === "hidden") || (f === "featured" && isFeat(a)) || (f === "pending" && a.feature_requested) || (f === "unrev" && !a.reviewed) || (f === "rev" && a.reviewed)));
   $("alist").innerHTML = adTable(list);
 }
-function promoPending(list) {
-  return `<div class="tbl"><table><thead><tr><th>Код</th><th>Зар</th><th>Утас</th><th>Нэмсэн</th><th>Хугацаа</th><th></th></tr></thead><tbody>${list.map(a => `<tr>
-    <td data-l="Код"><b>${esc(code(a.id))}</b></td><td class="c-ttl"><div class="ttl">${esc(a.title)}</div></td><td data-l="Утас">${esc(a.phone || "—")}</td><td data-l="Нэмсэн">${fmt(a.created_at)}</td>
-    <td data-l="Хугацаа"><select id="days-${esc(a.id)}" style="width:auto"><option value="7">7 хоног</option><option value="14">14 хоног</option><option value="30">30 хоног</option></select></td>
-    <td class="c-acts"><div class="acts"><button class="btn sm primary" data-act="approve" data-id="${esc(a.id)}">Төлбөр орсон, нийтлэх</button>
-    <button class="btn sm" data-act="reject" data-id="${esc(a.id)}">Энгийнээр нийтлэх</button></div></td></tr>`).join("")}</tbody></table></div>`;
+function promoItem(a, mode) {
+  const tag = mode === "pend" ? '<span class="tag gold">Төлбөр хүлээж байна</span>' : '<span class="tag ok">Онцгой</span>';
+  const when = mode === "pend" ? fmt(a.created_at) : "Дуусах: " + (a.featured_until ? fmt(a.featured_until) : "Хугацаагүй");
+  return `<div class="aitem" data-act="open-promo" data-id="${esc(a.id)}" data-mode="${mode}" role="button" tabindex="0">
+    <img class="thumb" src="${esc(a.img || "")}" alt="" onerror="this.style.visibility='hidden'">
+    <div class="ab"><div class="l1">${tag}<b>${esc(code(a.id))}</b><span class="ph">${esc(a.phone || "—")}</span><b class="pr">${Number(a.price || 0).toLocaleString()}₮</b></div>
+    <div class="l2">${when} · ${esc(a.title)}</div></div></div>`;
 }
-function promoActive(list) {
-  return `<div class="tbl"><table><thead><tr><th>Код</th><th>Зар</th><th>Дуусах</th><th></th></tr></thead><tbody>${list.map(a => `<tr>
-    <td data-l="Код"><b>${esc(code(a.id))}</b></td><td class="c-ttl"><div class="ttl">${esc(a.title)}</div></td><td data-l="Дуусах">${a.featured_until ? fmt(a.featured_until) : "Хугацаагүй"}</td>
-    <td class="c-acts"><div class="acts"><button class="btn sm" data-act="extend" data-id="${esc(a.id)}">+7 хоног</button>
-    <button class="btn sm danger" data-act="unfeature" data-id="${esc(a.id)}">Цуцлах</button></div></td></tr>`).join("")}</tbody></table></div>`;
+const promoList = (list, mode, emptyMsg) => list.length ? `<div class="alistbox">${list.map(a => promoItem(a, mode)).join("")}</div>` : `<div class="empty">${emptyMsg}</div>`;
+function openPromo(a, mode) {
+  const row = (k, v) => `<div class="drow"><span>${k}</span><b>${v}</b></div>`;
+  const ctl = mode === "pend"
+    ? `<label>Хугацаа</label><select id="days-${esc(a.id)}"><option value="7">7 хоног</option><option value="14">14 хоног</option><option value="30">30 хоног</option></select>
+       <div class="mfoot" style="justify-content:stretch;flex-wrap:wrap"><button class="btn primary" style="flex:1 1 100%" data-act="approve" data-id="${esc(a.id)}">Төлбөр орсон, нийтлэх</button>
+       <button class="btn" style="flex:1 1 100%" data-act="reject" data-id="${esc(a.id)}">Энгийнээр нийтлэх</button></div>`
+    : `<div class="mfoot" style="justify-content:stretch;flex-wrap:wrap"><button class="btn" style="flex:1" data-act="extend" data-id="${esc(a.id)}">+7 хоног</button>
+       <button class="btn danger" style="flex:1" data-act="unfeature" data-id="${esc(a.id)}">Цуцлах</button></div>`;
+  modal(`<div class="dhead"><h3>${esc(a.title)}</h3><button class="btn sm" onclick="closeModal()" aria-label="Хаах">✕</button></div>
+    ${a.img ? `<img class="dimg" src="${esc(a.img)}" alt="" onerror="this.style.display='none'">` : ""}
+    ${row("Гүйлгээний утга (код)", esc(code(a.id)))}${row("Үнэ", Number(a.price || 0).toLocaleString() + "₮")}${row("Утас", esc(a.phone || "—"))}
+    ${row("Зар нэмсэн", fmt(a.created_at))}${mode === "act" ? row("Онцгой дуусах", a.featured_until ? fmt(a.featured_until) : "Хугацаагүй") : ""}
+    ${ctl}
+    <button class="btn" style="width:100%;margin-top:8px" data-act="open-ad" data-id="${esc(a.id)}">Зарыг бүтнээр нь харах</button>`);
 }
 function drawUsers() {
   const q = $("uq").value.trim().toLowerCase();
   const list = users.filter(u => !q || [u.name, u.email, u.phone].some(t => String(t || "").toLowerCase().includes(q)));
-  $("ulist").innerHTML = list.length ? `<div class="tbl"><table><thead><tr><th>Нэр</th><th>И-мэйл / Утас</th><th>Нэвтрэлт</th><th>Бүртгүүлсэн</th><th>Сүүлд</th><th>Зар</th><th></th></tr></thead><tbody>${list.map(u => `<tr>
-    <td class="c-ttl"><div class="uname"><img class="uav" src="${esc(u.avatar || DEFAULT_AV)}" alt="" onerror="this.onerror=null;this.src=DEFAULT_AV"><span><b>${esc(u.name || "—")}</b> ${u.banned ? '<span class="tag bad">Хоригдсон</span>' : ""}</span></div></td>
-    <td data-l="И-мэйл / Утас" class="brk">${esc(u.email || "")}${u.email && u.phone ? "<br>" : ""}${esc(u.phone || "")}</td>
-    <td data-l="Нэвтрэлт">${esc(u.provider || "")}</td><td data-l="Бүртгүүлсэн">${fmt(u.created_at)}</td><td data-l="Сүүлд">${fmt(u.last_sign_in_at)}</td><td data-l="Зар">${u.ads_count}</td>
-    <td class="c-acts"><div class="acts"><button class="btn sm primary" data-act="chat-user" data-id="${esc(u.id)}">Чат</button><button class="btn sm" data-act="edit-user" data-id="${esc(u.id)}">Засах</button>
-    <button class="btn sm danger" data-act="del-user" data-id="${esc(u.id)}">Устгах</button></div></td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">Хэрэглэгч алга</div>';
+  $("ulist").innerHTML = list.length ? `<div class="alistbox">${list.map(u => `<div class="aitem" data-act="open-user" data-id="${esc(u.id)}" role="button" tabindex="0">
+    <img class="uav" style="width:44px;height:44px" src="${esc(u.avatar || DEFAULT_AV)}" alt="" onerror="this.onerror=null;this.src=DEFAULT_AV">
+    <div class="ab"><div class="l1"><b>${esc(u.name || "—")}</b>${u.banned ? '<span class="tag bad">Хоригдсон</span>' : ""}<b class="pr">${u.ads_count} зар</b></div>
+    <div class="l2">${esc(u.email || u.phone || "—")}${u.email && u.phone ? " · " + esc(u.phone) : ""}</div></div></div>`).join("")}</div>` : '<div class="empty">Хэрэглэгч алга</div>';
 }
 
 // ---------- Үйлдлүүд ----------
-async function act(fn, okMsg) { try { await fn(); toast(okMsg); await refresh(); } catch (e) { toast("Алдаа: " + e.message); } }
+async function act(fn, okMsg) { try { await fn(); closeModal(); toast(okMsg); await refresh(); } catch (e) { toast("Алдаа: " + e.message); } }
 const upd = (id, data) => rpc("admin_update_ad", { p_id: String(id), p_data: data });
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const id = b.dataset.id, a = findAd(id);
   switch (b.dataset.act) {
     case "open-ad": return openAd(a);
+    case "open-promo": return openPromo(a, b.dataset.mode);
+    case "open-user": return openUser(users.find(u => u.id === id));
     case "review-yes": case "review-no": { const v = b.dataset.act === "review-yes"; closeModal(); return act(() => upd(id, { reviewed: v }), v ? "Шалгасан гэж тэмдэглэлээ" : "Шалгаагүй гэж тэмдэглэлээ"); }
     case "edit-ad": return editAd(a);
     case "toggle-ad": closeModal(); return act(() => upd(id, { status: a.status === "hidden" ? "active" : "hidden" }), a.status === "hidden" ? "Зар гарлаа" : "Зар нуугдлаа");
     case "del-ad": if (confirm("«" + a.title + "» зарыг бүр мөсөн устгах уу?")) { closeModal(); act(() => rpc("admin_delete_ad", { p_id: String(id) }), "Зар устлаа"); } return;
-    case "approve": { const d = Number($("days-" + id).value);
+    case "approve": { const d = Number($("days-" + id).value); closeModal();
       return act(() => upd(id, { featured: true, status: "active", featured_until: new Date(Date.now() + d * 864e5).toISOString(), feature_requested: false }), "Зар нийтлэгдэж, онцлох боллоо (" + d + " хоног)"); }
     case "reject": if (confirm(a.status === "pending" ? "Онцлох хүсэлтийг татгалзаад зарыг энгийн зар болгон нийтлэх үү?" : "Онцлох хүсэлтийг татгалзах уу?")) act(() => upd(id, { feature_requested: false, status: a.status === "pending" ? "active" : a.status }), "Хүсэлт татгалзагдлаа"); return;
     case "extend": { const base = a.featured_until && new Date(a.featured_until) > new Date() ? new Date(a.featured_until).getTime() : Date.now();
       return act(() => upd(id, { featured_until: new Date(base + 7 * 864e5).toISOString() }), "7 хоног нэмэгдлээ"); }
     case "unfeature": if (confirm("Онцлохыг цуцлах уу?")) act(() => upd(id, { featured: false, featured_until: "", feature_requested: false }), "Онцлох цуцлагдлаа"); return;
-    case "chat-user": return openChatWith(id);
+    case "chat-user": closeModal(); return openChatWith(id);
     case "edit-user": return editUser(users.find(u => u.id === id));
     case "del-user": return delUser(users.find(u => u.id === id));
   }
@@ -435,6 +445,16 @@ function editAd(a) {
       feature_requested: $("m-feat").checked ? false : !!a.feature_requested
     }); closeModal();
   }, "Хадгаллаа");
+}
+function openUser(u) {
+  const row = (k, v) => `<div class="drow"><span>${k}</span><b>${v}</b></div>`;
+  modal(`<div class="dhead"><div class="uname"><img class="uav" style="width:56px;height:56px" src="${esc(u.avatar || DEFAULT_AV)}" alt="" onerror="this.onerror=null;this.src=DEFAULT_AV"><h3 style="margin:0">${esc(u.name || "—")}</h3></div><button class="btn sm" onclick="closeModal()" aria-label="Хаах">✕</button></div>
+    <div class="dtags" style="margin-top:8px">${u.banned ? '<span class="tag bad">Хоригдсон</span>' : '<span class="tag ok">Идэвхтэй</span>'}</div>
+    ${row("И-мэйл", esc(u.email || "—"))}${row("Утас", esc(u.phone || "—"))}${row("Нэвтрэлт", esc(u.provider || "—"))}
+    ${row("Бүртгүүлсэн", fmt(u.created_at))}${row("Сүүлд нэвтэрсэн", fmt(u.last_sign_in_at))}${row("Зарын тоо", u.ads_count)}
+    <div class="mfoot" style="justify-content:stretch;flex-wrap:wrap"><button class="btn primary" style="flex:1" data-act="chat-user" data-id="${esc(u.id)}">Чат</button>
+    <button class="btn" style="flex:1" data-act="edit-user" data-id="${esc(u.id)}">Засах</button>
+    <button class="btn danger" style="flex:1" data-act="del-user" data-id="${esc(u.id)}">Устгах</button></div>`);
 }
 function editUser(u) {
   modal(`<h3>Хэрэглэгч засах</h3><img class="uav" style="width:64px;height:64px;margin:6px 0" src="${esc(u.avatar || DEFAULT_AV)}" alt="" onerror="this.onerror=null;this.src=DEFAULT_AV"><p style="color:var(--muted);margin:0">${esc(u.email || u.phone || u.id)}</p>
