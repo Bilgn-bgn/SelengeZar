@@ -417,8 +417,7 @@ function openModal() {
     return;
   }
   if (editingId) { resetAdForm(); setFormMode(null); }   // өмнөх засварын үлдэгдэл арилгана
-  const ph = localStorage.getItem("userPhone");
-  if (ph && !$("f-phone").value) $("f-phone").value = ph;
+  syncAdPhone();
   go("#/add");
 }
 // Зар оруулах/засах хуудсаас буцах
@@ -531,10 +530,10 @@ function editAd(id) {
   setFormMode(String(a.id));
   $("plan-pick").hidden = isFeat(a) || a.status === "pending";
   setPlan(a.feature_requested ? "featured" : "normal");
+  syncAdPhone();
   $("f-title").value = a.title || "";
   $("f-price").value = a.price ?? "";
   $("f-cat").value = a.cat || "Бусад";
-  $("f-phone").value = a.phone || "";
   $("f-loc").value = a.loc || "";
   $("f-desc").value = a.description || "";
   if (a.img) { $("preview").src = a.img; $("preview").style.display = "block"; }
@@ -542,15 +541,19 @@ function editAd(id) {
   go("#/add");
 }
 
+// Зарын утас = зөвхөн хэрэглэгчийн баталгаажсан бүртгэлтэй дугаар (засах боломжгүй)
+function myRegPhone() { return isPhoneVerified() ? localPhone(localStorage.getItem("userPhone") || "") : ""; }
+function syncAdPhone() { $("f-phone").value = myRegPhone(); }
 function resetAdForm() {
-  ["f-title", "f-price", "f-phone", "f-loc", "f-desc"].forEach(id => $(id).value = "");
-  $("f-cat").selectedIndex = 0;
+  ["f-title", "f-price", "f-loc", "f-desc"].forEach(id => $(id).value = "");
+  $("f-cat").value = "";   // ангилалыг заавал сонгуулна
   $("f-file").value = "";
   $("preview").style.display = "none";
   $("preview").removeAttribute("src");
   $("err").textContent = "";
   file = null;
   setPlan("normal");
+  syncAdPhone();
 }
 
 $("f-file").addEventListener("change", e => {
@@ -602,6 +605,9 @@ $("publishBtn").onclick = async () => {
   const price = $("f-price").value.trim();
   if (!title) { err.textContent = "Нэрийг бичнэ үү"; return; }
   if (!price) { err.textContent = "Үнийг бичнэ үү"; return; }
+  if (!$("f-cat").value) { err.textContent = "Ангилал сонгоно уу"; return; }
+  const regPhone = myRegPhone();
+  if (!regPhone) { openVerify(); return; }
 
   btn.disabled = true;
   err.textContent = editingId ? "Хадгалж байна..." : "Зар оруулж байна...";
@@ -623,7 +629,7 @@ $("publishBtn").onclick = async () => {
     if (editingId) {   // ---- Одоо байгаа зарыг засах (нэвтэрсэн хэрэглэгчийн token-оор, зөвхөн өөрийн зар) ----
       const patch = {
         title, price: Number(price), cat: $("f-cat").value,
-        phone: $("f-phone").value.trim(),
+        phone: regPhone,
         loc: $("f-loc").value.trim() || DEFAULT_LOC,
         description: $("f-desc").value.trim()
       };
@@ -657,7 +663,7 @@ $("publishBtn").onclick = async () => {
       title,
       price: Number(price),
       cat: $("f-cat").value,
-      phone: $("f-phone").value.trim(),
+      phone: regPhone,
       loc: $("f-loc").value.trim() || DEFAULT_LOC,
       img: imgUrl,
       description: $("f-desc").value.trim()

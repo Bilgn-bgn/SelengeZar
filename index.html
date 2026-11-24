@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0E6B5C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="style.css?v=20261125">
+<link rel="stylesheet" href="style.css?v=20261126">
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
@@ -146,10 +146,10 @@
     <input id="f-title" placeholder="Нэр *">
     <input id="f-price" type="number" min="0" placeholder="Үнэ *">
     <select id="f-cat">
-      <option>Утас</option><option>Машин</option><option>Байр</option>
+      <option value="" disabled selected>Ангилал сонгох *</option><option>Утас</option><option>Машин</option><option>Байр</option>
       <option>Тавилга</option><option>Хувцас</option><option>Бусад</option>
     </select>
-    <input id="f-phone" inputmode="tel" placeholder="Утас">
+    <input id="f-phone" inputmode="tel" placeholder="Бүртгэлтэй утас" readonly style="opacity:.75;cursor:not-allowed" title="Бүртгэлтэй дугаар. Өөрчлөх боломжгүй">
     <input id="f-loc" placeholder="Байршил - жишээ: Сүхбаатар, Сэлэнгэ">
     <div class="upload">
       <div class="upload-title"><svg class="i" aria-hidden="true"><use href="#i-camera"/></svg> Зураг сонгох</div>
@@ -305,6 +305,6 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261125"></script>
+<script src="app.js?v=20261126"></script>
 </body>
 </html>
