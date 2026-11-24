@@ -130,7 +130,7 @@ async function load() {
       { headers: { apikey: KEY, Authorization: "Bearer " + KEY } });
     if (!r.ok) throw new Error("HTTP " + r.status);
     ads = (await r.json()).filter(a => a.status !== "hidden");   // админ нуусан зар харагдахгүй
-    statusText = "Нийт " + ads.length + " зар";
+    statusText = "Нийт " + ads.filter(isPublic).length + " зар";
   } catch (e) {
     statusText = "Серверт холбогдож чадсангүй: " + e.message;
     ads = [];
@@ -191,11 +191,13 @@ function updateMyCount() { const el = $("my-ads-count"); if (el) el.textContent 
 function showMyAds() { go("#/mine"); }
 const findAd = id => ads.find(a => String(a.id) === String(id));
 
+// Төлбөр баталгаажаагүй шинэ онцлох зар (status = "pending") нийтэд харагдахгүй, зөвхөн эзэнд харагдана
+const isPublic = a => a.status !== "pending";
 const isFeat = a => a.featured === true && (!a.featured_until || new Date(a.featured_until) > new Date());
 const fmtDate = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 function featAction(a) {
   if (isFeat(a)) return `<div class="feat-note">${ico("star")} Онцлох${a.featured_until ? " · " + fmtDate(a.featured_until) + " хүртэл" : ""}</div>`;
-  if (a.feature_requested) return `<button class="feat-btn pending" data-pay="${esc(a.id)}">${ico("clock")} Төлбөр хүлээгдэж байна</button>`;
+  if (a.feature_requested) return `<button class="feat-btn pending" data-pay="${esc(a.id)}">${ico("clock")} ${a.status === "pending" ? "Төлбөр хүлээж байна · Нийтлэгдээгүй" : "Төлбөр хүлээгдэж байна"}</button>`;
   return `<button class="feat-btn" data-pay="${esc(a.id)}">${ico("star")} Онцлох болгох</button>`;
 }
 function cardHTML(a, opts) {
@@ -296,6 +298,7 @@ function render() {
   const q = ($("q").value || "").trim().toLowerCase();
   const saved = savedIds();
   const base = ads.filter(a =>
+    isPublic(a) &&
     (view !== "saved" || saved.includes(String(a.id))) &&
     (cat === "Бүгд" || (a.cat || "Бусад") === cat) &&
     [a.title, a.description, a.loc].some(t => (t || "").toLowerCase().includes(q))
@@ -321,7 +324,7 @@ function render() {
 // ---------- "Хадгалсан" хуудас ----------
 function renderSaved() {
   const ids = savedIds();
-  const list = ids.map(findAd).filter(Boolean);   // хамгийн сүүлд хадгалсан нь эхэнд
+  const list = ids.map(findAd).filter(a => a && isPublic(a));   // хамгийн сүүлд хадгалсан нь эхэнд
   $("saved-title").textContent = "Хадгалсан зар (" + list.length + ")";
   $("saved-grid").innerHTML = list.length
     ? list.map(a => cardHTML(a)).join("")
@@ -360,7 +363,8 @@ function adBack() { if (cameFromApp && history.length > 1) history.back(); else 
 
 // Зарын хуудсыг бөглөх (route() дуудна)
 function renderAd(id) {
-  const a = findAd(id);
+  const a0 = findAd(id);
+  const a = a0 && (isPublic(a0) || (myUid && String(a0.user_id) === String(myUid))) ? a0 : null;
   curAd = a || null;
   if (!a) {
     if (adsLoaded) { toast("Зар олдсонгүй"); go("#/"); }
@@ -525,7 +529,7 @@ function editAd(id) {
   if (!myUid || String(a.user_id) !== String(myUid)) { toast("Зөвхөн өөрийн зарыг засна"); return; }
   resetAdForm();
   setFormMode(String(a.id));
-  $("plan-pick").hidden = isFeat(a);
+  $("plan-pick").hidden = isFeat(a) || a.status === "pending";
   setPlan(a.feature_requested ? "featured" : "normal");
   $("f-title").value = a.title || "";
   $("f-price").value = a.price ?? "";
@@ -659,7 +663,7 @@ $("publishBtn").onclick = async () => {
       description: $("f-desc").value.trim()
     };
     const wantFeat = plan === "featured";
-    if (wantFeat) body.feature_requested = true;
+    if (wantFeat) { body.feature_requested = true; body.status = "pending"; }   // админ зөвшөөрөх хүртэл нийтэд харагдахгүй
     const post = b => fetch(API, {
       method: "POST",
       headers: {
@@ -671,19 +675,21 @@ $("publishBtn").onclick = async () => {
     let r = await post(body);
     for (let k = 0; k < 2 && !r.ok; k++) {   // багана хараахан нэмээгүй бол түүнгүйгээр оруулна
       const t = await r.text();
-      const col = ["feature_requested", "user_id"].find(c => c in body && t.includes(c));
+      const col = ["feature_requested", "status", "user_id"].find(c => c in body && t.includes(c));
       if (!col) throw new Error("Алдаа: " + t);
       delete body[col];
+      if (col === "feature_requested") delete body.status;   // хүсэлтгүй, нуугдсан зар үлдэхээс сэргийлнэ
       r = await post(body);
     }
     if (!r.ok) throw new Error("Алдаа: " + await r.text());
     const d = await r.json();
     ads.unshift(d[0]);
-    statusText = "Нийт " + ads.length + " зар";
+    statusText = "Нийт " + ads.filter(isPublic).length + " зар";
     render();
+    renderMine();
     resetAdForm();
     closeModal();
-    toast("Зар амжилттай нийтлэгдлээ!");
+    toast(body.status === "pending" ? "Зар хүлээн авлаа. Төлбөр баталгаажсаны дараа нийтлэгдэнэ" : "Зар амжилттай нийтлэгдлээ!");
     if (wantFeat && body.feature_requested) setTimeout(() => openPay(d[0]), 200);
   } catch (e) {
     err.textContent = e.message;

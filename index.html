@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0E6B5C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20261125">
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
@@ -38,7 +38,7 @@
 
 
 <header>
-  <div class="logo">Selenge<span>Zar</span><i class="tld">.mn</i></div>
+  <div class="logo">Selenge<span>Zar</span><span class="tld" style="font-style:normal;font-weight:600;color:var(--muted)">.mn</span></div>
   <div class="search">
     <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
     <input id="q" placeholder="Утас, машин, байр хайх" aria-label="Хайх">
@@ -142,7 +142,7 @@
         <b><svg class="i fill" aria-hidden="true"><use href="#i-star"/></svg> Онцлох</b><span id="plan-price"></span>
       </button>
     </div>
-    <div class="plan-note" id="plan-note" hidden>Нүүр хуудасны дээд хэсэгт ногоон хүрээтэй, «Онцлох» тэмдэгтэй гарна. Нийтлэсний дараа төлбөрийн мэдээлэл харагдана.</div>
+    <div class="plan-note" id="plan-note" hidden>Нүүр хуудасны дээд хэсэгт ногоон хүрээтэй, «Онцлох» тэмдэгтэй гарна. Төлбөр баталгаажсаны дараа л зар нийтлэгдэнэ.</div>
     <input id="f-title" placeholder="Нэр *">
     <input id="f-price" type="number" min="0" placeholder="Үнэ *">
     <select id="f-cat">
@@ -270,7 +270,7 @@
       <div class="pay-row"><span>Хүлээн авагч</span><b id="pay-name"></b></div>
       <div class="pay-row key"><span>Гүйлгээний утга</span><b id="pay-code"></b><button class="copy-btn" data-copy="code" aria-label="Хуулах"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg></button></div>
     </div>
-    <p class="pay-help">Гүйлгээний утга дээр дээрх кодыг <b>заавал</b> бичнэ үү. Төлбөр орсны дараа зар онцлох хэсэгт орно (ихэвчлэн хэдхэн минутын дотор).</p>
+    <p class="pay-help">Гүйлгээний утга дээр дээрх кодыг <b>заавал</b> бичнэ үү. Төлбөр орсны дараа зар нийтлэгдэж, онцлох хэсэгт орно (ихэвчлэн хэдхэн минутын дотор).</p>
     <button class="btn btn-block" onclick="closePay()">Ойлголоо</button>
   </div>
 </div>
@@ -305,6 +305,6 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js"></script>
+<script src="app.js?v=20261125"></script>
 </body>
 </html>
