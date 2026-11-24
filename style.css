@@ -566,3 +566,15 @@ html:has(body[data-page]:not([data-page="home"]):not([data-page="chat"])){oversc
 #f-phone:focus{outline:none;box-shadow:none;border-color:var(--line)}
 
 .cats.locs{margin-top:0}
+
+/* Зар оруулах: input, select нэг хэмжээ, нэг загвартай */
+.add-box input:not([type=file]),.add-box select{height:48px;padding:0 14px;line-height:48px}
+.add-box select{
+  -webkit-appearance:none;appearance:none;cursor:pointer;padding-right:40px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238AA3A5' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 15px center;
+  text-overflow:ellipsis;white-space:nowrap;overflow:hidden;
+}
+.add-box select:invalid{color:var(--muted)}
+.add-box select option{color:var(--ink)}
+.add-box textarea{padding:12px 14px}

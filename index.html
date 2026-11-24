@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0E6B5C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="style.css?v=20261205">
+<link rel="stylesheet" href="style.css?v=20261206">
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
@@ -144,16 +144,16 @@
       </button>
     </div>
     <div class="plan-note" id="plan-note" hidden>Нүүр хуудасны дээд хэсэгт ногоон хүрээтэй, «Онцлох» тэмдэгтэй гарна. Төлбөр баталгаажсаны дараа л зар нийтлэгдэнэ.</div>
-    <input id="f-title" placeholder="Нэр *">
-    <input id="f-price" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="off" placeholder="Үнэ *">
-    <select id="f-cat">
+    <select id="f-cat" required>
       <option value="" disabled selected>Ангилал сонгох *</option><option>Утас</option><option>Машин</option><option>Байр</option>
       <option>Тавилга</option><option>Хувцас</option><option>Бусад</option>
     </select>
-    <input id="f-phone" inputmode="tel" placeholder="Бүртгэлтэй утас" readonly style="opacity:.75;cursor:default" title="Бүртгэлтэй дугаар. Өөрчлөх боломжгүй">
+    <input id="f-title" placeholder="Зарын нэр *">
+    <input id="f-price" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="off" placeholder="Үнэ *">
     <select id="f-loc" aria-label="Байршил"></select>
+    <input id="f-phone" inputmode="tel" placeholder="Бүртгэлтэй утас" readonly style="opacity:.75;cursor:default" title="Бүртгэлтэй дугаар. Өөрчлөх боломжгүй">
     <div class="upload">
-      <div class="upload-title"><svg class="i" aria-hidden="true"><use href="#i-camera"/></svg> Зураг сонгох</div>
+      <div class="upload-title"><svg class="i" aria-hidden="true"><use href="#i-camera"/></svg> Зураг нэмэх</div>
       <div class="upload-hint">Утаснаасаа зураг сонгоно уу</div>
       <input type="file" id="f-file" accept="image/*">
       <img id="preview" alt="">
@@ -306,6 +306,6 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261205"></script>
+<script src="app.js?v=20261206"></script>
 </body>
 </html>
