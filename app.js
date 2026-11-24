@@ -58,24 +58,31 @@ try {
 // =====================================================
 // 1. HERO СЛАЙД
 // =====================================================
-(function initHero() {
+const heroApi = (function initHero() {
   const hero = $("hero"), track = $("heroTrack"), dotsBox = $("heroDots");
-  const slides = [...track.querySelectorAll("img")];
-  const n = slides.length;
-  if (!n) return;
+  let n = 0, dots = [], index = 0, timer = null, holding = false, startX = 0;
 
-  track.appendChild(slides[0].cloneNode(true)); // төгсгөлд эхний зургийн хуулбар
-  let index = 0, timer = null, holding = false, startX = 0;
-
-  const dots = slides.map((_, i) => {
-    const b = document.createElement("button");
-    b.setAttribute("aria-label", "Зураг " + (i + 1));
-    b.addEventListener("pointerdown", e => e.stopPropagation());
-    b.onclick = () => { index = i; update(); restart(); };
-    dotsBox.appendChild(b);
-    return b;
-  });
-
+  // Зургуудыг (дахин) байрлуулна: админаас ирсэн жагсаалтаар солигдоно
+  function setSlides(urls) {
+    stop();
+    track.innerHTML = ""; dotsBox.innerHTML = ""; index = 0;
+    n = urls.length;
+    hero.hidden = n === 0;
+    if (!n) return;
+    urls.forEach(u => { const im = document.createElement("img"); im.src = u; im.alt = ""; track.appendChild(im); });
+    if (n > 1) track.appendChild(track.firstElementChild.cloneNode(true)); // төгсгөлд эхний зургийн хуулбар
+    dots = urls.map((_, i) => {
+      const b = document.createElement("button");
+      b.setAttribute("aria-label", "Зураг " + (i + 1));
+      b.addEventListener("pointerdown", e => e.stopPropagation());
+      b.onclick = () => { index = i; update(); restart(); };
+      dotsBox.appendChild(b);
+      return b;
+    });
+    dotsBox.hidden = n < 2;
+    jump(0);
+    if (n > 1) start();
+  }
   function update() {
     track.style.transform = `translateX(-${index * 100}%)`;
     dots.forEach((d, i) => d.classList.toggle("active", i === index % n));
@@ -96,27 +103,36 @@ try {
 
   // Хуулбар зураг дээр ирмэгц чимээгүйхэн эхэнд буцна
   track.addEventListener("transitionend", e => {
-    if (e.target === track && index >= n) jump(0);
+    if (e.target === track && n > 1 && index >= n) jump(0);
   });
 
-  function start() { stop(); timer = setInterval(() => { if (!holding) next(); }, 3000); }
+  function start() { stop(); timer = setInterval(() => { if (!holding && n > 1) next(); }, 3000); }
   function stop() { clearInterval(timer); }
-  function restart() { stop(); start(); }
+  function restart() { stop(); if (n > 1) start(); }
 
   hero.addEventListener("pointerdown", e => { holding = true; startX = e.clientX; });
   hero.addEventListener("pointerup", e => {
     if (!holding) return;
     holding = false;
     const diff = e.clientX - startX;
-    if (diff < -50) next();
-    else if (diff > 50) prev();
+    if (n > 1) { if (diff < -50) next(); else if (diff > 50) prev(); }
     restart();
   });
   hero.addEventListener("pointercancel", () => { holding = false; });
   hero.addEventListener("pointerleave", () => { holding = false; });
 
-  update();
-  start();
+  setSlides([...track.querySelectorAll("img")].map(i => i.getAttribute("src")));   // анхны (сайтын) зургууд
+  return { setSlides };
+})();
+
+// Админаас тохируулсан рекламын зургууд (banners хүснэгт). Хүснэгт байхгүй/алдаа бол анхны зургууд хэвээр.
+(async function loadBanners() {
+  try {
+    const r = await fetch(SUPABASE_URL + "/rest/v1/banners?select=img,ends_at&order=id.asc", { headers: { apikey: KEY, Authorization: "Bearer " + KEY } });
+    if (!r.ok) return;
+    const rows = (await r.json()).filter(b => !b.ends_at || new Date(b.ends_at) > new Date());
+    heroApi.setSlides(rows.map(b => /^https?:/i.test(b.img) ? b.img : "/" + String(b.img).replace(/^\//, "")));
+  } catch (e) { console.warn("banners", e); }
 })();
 
 // =====================================================
