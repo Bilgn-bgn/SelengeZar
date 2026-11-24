@@ -372,7 +372,7 @@ function draw() {
   } else {
     if (!users) { p.innerHTML = '<div class="empty">Ачаалж байна...</div>'; return; }
     const q = ($("uq") || {}).value || "";
-    p.innerHTML = `<div class="tools"><input id="uq" placeholder="Нэр, и-мэйл, утсаар хайх" value="${esc(q)}"></div><div id="ulist"></div>`;
+    p.innerHTML = `<div class="tools"><input id="uq" placeholder="Нэр, утсаар хайх" value="${esc(q)}"></div><div id="ulist"></div>`;
     $("uq").oninput = drawUsers; drawUsers();
   }
 }
@@ -483,11 +483,11 @@ function openPromo(a, mode) {
 }
 function drawUsers() {
   const q = $("uq").value.trim().toLowerCase();
-  const list = users.filter(u => !q || [u.name, u.email, u.phone].some(t => String(t || "").toLowerCase().includes(q)));
+  const list = users.filter(u => !q || [u.name, u.phone].some(t => String(t || "").toLowerCase().includes(q)));
   $("ulist").innerHTML = list.length ? `<div class="alistbox">${list.map(u => `<div class="aitem" data-act="open-user" data-id="${esc(u.id)}" role="button" tabindex="0">
     <img class="uav" style="width:44px;height:44px" src="${esc(u.avatar || DEFAULT_AV)}" alt="" onerror="this.onerror=null;this.src=DEFAULT_AV">
     <div class="ab"><div class="l1"><b>${esc(u.name || "—")}</b>${u.banned ? '<span class="tag bad">Хоригдсон</span>' : ""}<b class="pr">${u.ads_count} зар</b></div>
-    <div class="l2">${esc(u.email || u.phone || "—")}${u.email && u.phone ? " · " + esc(u.phone) : ""}</div></div></div>`).join("")}</div>` : '<div class="empty">Хэрэглэгч алга</div>';
+    <div class="l2">${esc(u.phone || "—")}</div></div></div>`).join("")}</div>` : '<div class="empty">Хэрэглэгч алга</div>';
 }
 
 // ---------- Үйлдлүүд ----------
@@ -611,21 +611,21 @@ function openUser(u) {
   const row = (k, v) => `<div class="drow"><span>${k}</span><b>${v}</b></div>`;
   modal(`<div class="dhead"><div class="uname"><img class="uav" style="width:56px;height:56px" src="${esc(u.avatar || DEFAULT_AV)}" alt="" onerror="this.onerror=null;this.src=DEFAULT_AV"><h3 style="margin:0">${esc(u.name || "—")}</h3></div><button class="btn sm" onclick="closeModal()" aria-label="Хаах">✕</button></div>
     <div class="dtags" style="margin-top:8px">${u.banned ? '<span class="tag bad">Хоригдсон</span>' : '<span class="tag ok">Идэвхтэй</span>'}</div>
-    ${row("И-мэйл", esc(u.email || "—"))}${row("Утас", esc(u.phone || "—"))}${row("Нэвтрэлт", esc(u.provider || "—"))}
+    ${row("Утас", esc(u.phone || "—"))}
     ${row("Бүртгүүлсэн", fmt(u.created_at))}${row("Сүүлд нэвтэрсэн", fmt(u.last_sign_in_at))}${row("Зарын тоо", u.ads_count)}
     <div class="mfoot" style="justify-content:stretch;flex-wrap:wrap"><button class="btn primary" style="flex:1" data-act="chat-user" data-id="${esc(u.id)}">Чат</button>
     <button class="btn" style="flex:1" data-act="edit-user" data-id="${esc(u.id)}">Засах</button>
     <button class="btn danger" style="flex:1" data-act="del-user" data-id="${esc(u.id)}">Устгах</button></div>`);
 }
 function editUser(u) {
-  modal(`<h3>Хэрэглэгч засах</h3><img class="uav" style="width:64px;height:64px;margin:6px 0" src="${esc(u.avatar || DEFAULT_AV)}" alt="" onerror="this.onerror=null;this.src=DEFAULT_AV"><p style="color:var(--muted);margin:0">${esc(u.email || u.phone || u.id)}</p>
+  modal(`<h3>Хэрэглэгч засах</h3><img class="uav" style="width:64px;height:64px;margin:6px 0" src="${esc(u.avatar || DEFAULT_AV)}" alt="" onerror="this.onerror=null;this.src=DEFAULT_AV"><p style="color:var(--muted);margin:0">${esc(u.phone || u.id)}</p>
     <label>Нэр</label><input id="m-name" value="${esc(u.name || "")}">
     <label class="chk"><input type="checkbox" id="m-ban"${u.banned ? " checked" : ""}> Хориглох (нэвтэрч чадахгүй)</label>
     <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn primary" id="m-save">Хадгалах</button></div>`);
   $("m-save").onclick = () => act(async () => { await rpc("admin_update_user", { p_id: u.id, p_name: $("m-name").value.trim(), p_banned: $("m-ban").checked }); closeModal(); }, "Хадгаллаа");
 }
 function delUser(u) {
-  modal(`<h3>Хэрэглэгч устгах</h3><p>«${esc(u.name || u.email || u.phone || u.id)}» бүртгэлийг бүр мөсөн устгана. Энэ үйлдлийг буцаах боломжгүй.</p>
+  modal(`<h3>Хэрэглэгч устгах</h3><p>«${esc(u.name || u.phone || u.id)}» бүртгэлийг бүр мөсөн устгана. Энэ үйлдлийг буцаах боломжгүй.</p>
     <label class="chk"><input type="checkbox" id="m-delads"> Түүний ${u.ads_count} зарыг хамт устгах</label>
     <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn danger" id="m-del">Устгах</button></div>`);
   $("m-del").onclick = () => act(async () => { await rpc("admin_delete_user", { p_id: u.id, p_delete_ads: $("m-delads").checked }); users = null; closeModal(); }, "Хэрэглэгч устлаа");
@@ -633,7 +633,7 @@ function delUser(u) {
 
 // ---------- Чат ----------
 let cmsgs = [], cother = null, cpoll = null;
-const uname = id => { const u = (users || []).find(x => x.id === id); return u ? (u.name || u.email || u.phone || id.slice(0, 8)) : id.slice(0, 8); };
+const uname = id => { const u = (users || []).find(x => x.id === id); return u ? (u.name || u.phone || id.slice(0, 8)) : id.slice(0, 8); };
 const avOf = id => { const u = (users || []).find(x => x.id === id); return (u && u.avatar) || DEFAULT_AV; };
 const ini = t => (String(t || "?").trim().charAt(0) || "?").toUpperCase();
 const hm = iso => { const d = new Date(iso); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
@@ -673,7 +673,7 @@ function renderChat() {
   const q = $("cq").value.trim().toLowerCase();
   let items;
   if (q) {   // хайлт: бүх хэрэглэгчээс
-    items = (users || []).filter(u => [u.name, u.email, u.phone].some(t => String(t || "").toLowerCase().includes(q))).slice(0, 30)
+    items = (users || []).filter(u => [u.name, u.phone].some(t => String(t || "").toLowerCase().includes(q))).slice(0, 30)
       .map(u => ({ id: u.id, last: null, unread: 0 }));
   } else items = convList();
   $("clist").innerHTML = items.length ? items.map(c => `<button class="citem${c.id === cother ? " on" : ""}" data-uid="${esc(c.id)}">
