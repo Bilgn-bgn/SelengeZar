@@ -155,6 +155,50 @@ const locsEl = $("locs");
 $("f-loc").innerHTML = SOUMS.map(([k, l]) => `<option value="${k}">${l}</option>`).join("");
 $("set-loc").innerHTML = $("f-loc").innerHTML;   // тохиргооны байршил: ижил сумын жагсаалт
 $("f-loc").value = "Сүхбаатар";
+
+// Өөрийн загвартай сонголт (dropdown): утсан дээр бүтэн дэлгэц биш, талбарын доор нээгдэнэ
+function enhanceSelect(sel) {
+  const wrap = document.createElement("div");
+  wrap.className = "csel";
+  const btn = document.createElement("button");
+  btn.type = "button"; btn.className = "csel-btn";
+  btn.setAttribute("aria-haspopup", "listbox"); btn.setAttribute("aria-expanded", "false");
+  const list = document.createElement("div");
+  list.className = "csel-list"; list.setAttribute("role", "listbox"); list.hidden = true;
+  wrap.append(btn, list);
+  sel.parentNode.insertBefore(wrap, sel);
+  sel.classList.add("csel-native"); sel.tabIndex = -1; sel.setAttribute("aria-hidden", "true");
+  const desc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
+  const sync = () => {
+    const o = sel.options[sel.selectedIndex];
+    btn.textContent = o ? o.textContent : "";
+    btn.classList.toggle("ph", !sel.value);
+    [...list.children].forEach(x => { const on = x.dataset.v === sel.value; x.classList.toggle("on", on); x.setAttribute("aria-selected", on); });
+  };
+  const build = () => {
+    list.innerHTML = "";
+    [...sel.options].filter(o => !o.disabled).forEach(o => {
+      const it = document.createElement("button");
+      it.type = "button"; it.className = "csel-opt"; it.setAttribute("role", "option");
+      it.dataset.v = o.value; it.textContent = o.textContent;
+      it.onclick = () => { desc.set.call(sel, o.value); sync(); close(); sel.dispatchEvent(new Event("change", { bubbles: true })); btn.focus(); };
+      list.appendChild(it);
+    });
+    sync();
+  };
+  const close = () => { list.hidden = true; wrap.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); };
+  const open = () => {
+    document.querySelectorAll(".csel.open").forEach(w => w !== wrap && w.querySelector(".csel-btn").click());
+    list.hidden = false; wrap.classList.add("open"); btn.setAttribute("aria-expanded", "true");
+    const on = list.querySelector(".on"); if (on) list.scrollTop = Math.max(0, on.offsetTop - 60);
+  };
+  btn.onclick = () => (list.hidden ? open() : close());
+  document.addEventListener("click", e => { if (!wrap.contains(e.target)) close(); });
+  wrap.addEventListener("keydown", e => { if (e.key === "Escape") { close(); btn.focus(); } });
+  Object.defineProperty(sel, "value", { configurable: true, get() { return desc.get.call(this); }, set(v) { desc.set.call(this, v); sync(); } });
+  build();
+}
+["f-cat", "f-loc", "set-loc"].forEach(id => enhanceSelect($(id)));
 $("q").addEventListener("input", render);
 
 async function load() {
