@@ -558,12 +558,8 @@ body[data-page="chat"]{overflow:hidden;padding-bottom:0}
 .act-row > button{min-width:0;padding:9px 6px;white-space:nowrap}
 .card-actions{min-width:0}
 
-/* Нүүр болон чатаас бусад хуудсанд доош татаж дахин ачаалахгүй */
-html:has(body[data-page]:not([data-page="home"]):not([data-page="chat"])),
-body[data-page]:not([data-page="home"]):not([data-page="chat"]){overscroll-behavior-y:none}
-
-/* Томруулахгүй (double-tap, pinch) */
-html,body{touch-action:pan-x pan-y}
+/* Нүүр болон чатаас бусад хуудсанд доош татаж дахин ачаалахгүй (гүйлгэхэд саадгүй) */
+html:has(body[data-page]:not([data-page="home"]):not([data-page="chat"])){overscroll-behavior-y:contain}
 
 /* Утасны дугаар унших горимтой: курсор, босоо зураас, фокусын хүрээ гарахгүй */
 #f-phone{caret-color:transparent;outline:none;user-select:none;-webkit-user-select:none}
