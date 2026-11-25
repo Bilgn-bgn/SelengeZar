@@ -720,6 +720,8 @@ function renderPhotos() {
     `<div class="ph-item"><img src="${esc(p.url || p.prev)}" alt="">${i === 0 ? '<span class="ph-cov">Нүүр</span>' : ""}<button type="button" class="ph-del" data-i="${i}" aria-label="Зураг устгах">${ico("x")}</button></div>`).join("") +
     (photos.length < MAX_PHOTOS ? `<button type="button" class="ph-add" data-add="1" aria-label="Зураг нэмэх">${ico("plus")}<span>Нэмэх</span></button>` : "");
 }
+renderPhotos();   // «Нэмэх» товч эхнээс харагдана
+$("photo-grid").parentElement.querySelector(".upload-title").addEventListener("click", () => { if (photos.length < MAX_PHOTOS) $("f-file").click(); });
 $("photo-grid").addEventListener("click", e => {
   const d = e.target.closest(".ph-del");
   if (d) { const [r] = photos.splice(Number(d.dataset.i), 1); if (r && r.prev) URL.revokeObjectURL(r.prev); renderPhotos(); $("err").textContent = ""; return; }
