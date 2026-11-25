@@ -636,3 +636,8 @@ html:has(body[data-page]:not([data-page="home"]):not([data-page="chat"])){oversc
 .lb-x .i{width:22px;height:22px}
 .lb-count{bottom:max(16px,env(safe-area-inset-bottom));right:50%;transform:translateX(50%)}
 body.lb-open{overflow:hidden}
+.gal-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:40px;height:40px;border:0;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;display:none;place-items:center;cursor:pointer}
+.gal-nav .i{width:20px;height:20px}
+.gal-nav.prev{left:10px}.gal-nav.next{right:10px}.gal-nav.next .i{transform:scaleX(-1)}
+.gal-nav:hover{background:rgba(0,0,0,.75)}
+@media (hover:hover) and (pointer:fine){.gal-nav{display:grid}.gal-nav[hidden]{display:none}}

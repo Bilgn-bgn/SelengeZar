@@ -232,7 +232,7 @@ async function load() {
     const r = await fetch(API + "?select=*&order=created_at.desc",
       { headers: { apikey: KEY, Authorization: "Bearer " + KEY } });
     if (!r.ok) throw new Error("HTTP " + r.status);
-    ads = (await r.json()).filter(a => a.status !== "hidden");   // админ нуусан зар харагдахгүй
+    ads = (await r.json()).filter(a => a.status !== "hidden" && a.status !== "deleted");   // админ нуусан зар харагдахгүй
     statusText = "Нийт " + ads.filter(isPublic).length + " зар";
   } catch (e) {
     statusText = "Серверт холбогдож чадсангүй: " + e.message;
@@ -490,7 +490,14 @@ const adImages = a => (Array.isArray(a.imgs) && a.imgs.length ? a.imgs : (a.img 
 let galList = [], galIdx = 0;
 const slidesHtml = list => list.map(u => `<div class="gal-slide"><img src="${esc(u)}" alt="" draggable="false" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'"></div>`).join("");
 function trackIdx(t) { return Math.max(0, Math.min(galList.length - 1, Math.round(t.scrollLeft / (t.clientWidth || 1)))); }
-function setCount(el, i) { el.hidden = galList.length < 2; el.textContent = (i + 1) + " / " + galList.length; }
+function setCount(el, i) {
+  el.hidden = galList.length < 2; el.textContent = (i + 1) + " / " + galList.length;
+  const pre = el.id === "lb-count" ? "lb" : "gal";
+  $(pre + "-prev").hidden = galList.length < 2 || i <= 0;
+  $(pre + "-next").hidden = galList.length < 2 || i >= galList.length - 1;
+}
+function navStep(trackId, d) { const t = $(trackId); trackTo(t, Math.max(0, Math.min(galList.length - 1, trackIdx(t) + d)), true); }
+["gal", "lb"].forEach(p => { const tr = p + "-track"; $(p + "-prev").addEventListener("click", e => { e.stopPropagation(); navStep(tr, -1); }); $(p + "-next").addEventListener("click", e => { e.stopPropagation(); navStep(tr, 1); }); });
 function trackTo(t, i, smooth) { t.scrollTo({ left: i * t.clientWidth, behavior: smooth ? "smooth" : "auto" }); }
 function showGallery(list) {
   galList = list.length ? list : [DEFAULT_IMG]; galIdx = 0;
