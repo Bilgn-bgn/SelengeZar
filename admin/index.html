@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>SelengeZar · Админ</title>
 <style>
 :root{--bg:#F1F5F4;--surface:#fff;--s2:#F6F9F8;--ink:#10262B;--ink2:#2F474C;--muted:#667C81;--line:#E1E9E8;--line2:#CBD8D6;
@@ -201,7 +205,7 @@ html,body{max-width:100%;overflow-x:hidden}
 .agslide img[data-zoom]{cursor:zoom-in}
 .agslide .eph-x{top:8px;right:8px;width:34px;height:34px;font-size:15px}
 .agslide .eph-c{left:8px;bottom:8px;font-size:12px;padding:2px 9px}
-.agempty{padding:50px 0;text-align:center;color:var(--muted);font-size:14px}
+.agempty{padding:22px 0;text-align:center;color:var(--muted);font-size:14px}
 .eph-addbtn{width:100%;margin-bottom:8px}.eph-addbtn[hidden]{display:none}
 .alb{position:fixed;inset:0;z-index:1000;background:#000;display:flex;align-items:center}
 .alb-g{width:100%;height:100%;margin:0;border-radius:0;background:#000}
@@ -211,6 +215,7 @@ html,body{max-width:100%;overflow-x:hidden}
 .agal .agslide img{object-fit:cover}
 .alb-g .agslide img{object-fit:contain}
 .stat.vis{background:var(--soft);border-color:transparent}.stat.vis b{color:var(--brand)}
+.addbar{margin-bottom:10px}.addbar .btn{width:100%}
 </style>
 </head>
 <body>
@@ -396,7 +401,7 @@ function draw() {
       </div>`;
   } else if (tab === "ads") {
     const q = ($("aq") || {}).value || "", f = ($("af") || {}).value || "all", lf = ($("al") || {}).value || "";
-    p.innerHTML = `<div class="tools"><input id="aq" placeholder="Нэр, утас, байршлаар хайх" value="${esc(q)}">
+    p.innerHTML = `<div class="addbar"><button class="btn primary" data-act="add-ad">+ Хэрэглэгчийн өмнөөс зар нэмэх</button></div><div class="tools"><input id="aq" placeholder="Нэр, утас, байршлаар хайх" value="${esc(q)}">
       <select id="al"><option value="">Бүх байршил</option>${SOUMS.map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select>
       <select id="af"><option value="all">Бүх төлөв</option><option value="active">Идэвхтэй</option><option value="hidden">Нуусан</option><option value="featured">Онцлох</option><option value="pending">Төлбөр хүлээж буй</option><option value="unrev">Шалгагдаагүй</option><option value="rev">Шалгагдсан</option></select></div>
       <div id="alist"></div>`;
@@ -569,6 +574,7 @@ document.addEventListener("click", e => {
     case "banner-add": return bannerModal(null, "add");
     case "banner-img": case "banner-days": { const bn = (banners || []).find(x => String(x.id) === String(id)); return bn && bannerModal(bn, b.dataset.act === "banner-img" ? "img" : "days"); }
     case "banner-del": { const bn = (banners || []).find(x => String(x.id) === String(id)); if (bn && confirm("Энэ рекламын зургийг устгах уу?")) { rpc("admin_banner_delete", { p_id: bn.id }).then(() => { toast("Устлаа"); return loadBanners(); }).catch(e => toast("Алдаа: " + e.message)); } return; }
+    case "add-ad": return addAd();
     case "open-ad": return openAd(a);
     case "open-promo": return openPromo(a, b.dataset.mode);
     case "open-user": return openUser(users.find(u => u.id === id));
@@ -704,23 +710,7 @@ function openAd(a) {
     <button class="btn" style="flex:1" data-act="toggle-ad" data-id="${esc(a.id)}">${a.status === "hidden" ? "Гаргах" : "Нуух"}</button>
     <button class="btn danger" style="flex:1" data-act="del-ad" data-id="${esc(a.id)}">Устгах</button></div>`);
 }
-function editAd(a) {
-  const cats = ["Утас", "Машин", "Байр", "Тавилга", "Хувцас", "Бусад"];
-  const until = a.featured_until ? new Date(new Date(a.featured_until).getTime() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16) : "";
-  modal(`<h3>Зар засах · ${esc(code(a.id))}</h3>
-    <label>Нэр</label><input id="m-title" value="${esc(a.title)}">
-    <div class="row2"><div><label>Үнэ</label><input id="m-price" type="number" value="${esc(a.price)}"></div>
-    <div><label>Ангилал</label><select id="m-cat">${cats.map(c => `<option${c === a.cat ? " selected" : ""}>${c}</option>`).join("")}</select></div></div>
-    <div class="row2"><div><label>Утас</label><input id="m-phone" value="${esc(a.phone)}"></div>
-    <div><label>Байршил</label><select id="m-loc">${soumOf(a.loc) || !a.loc ? "" : `<option value="${esc(a.loc)}" selected>${esc(a.loc)} (одоогийн)</option>`}${SOUMS.map(([k, l]) => `<option value="${locValue(k)}"${soumOf(a.loc) === k ? " selected" : ""}>${l}</option>`).join("")}</select></div></div>
-    <label>Зураг (дээд тал нь 4 · эхнийх нь нүүр зураг)</label><div id="eph"></div><button type="button" class="btn eph-addbtn" id="eph-add">+ Зураг нэмэх</button><input type="file" id="eph-file" accept="image/*" multiple hidden>
-    <label>Тайлбар</label><textarea id="m-desc" rows="4">${esc(a.description)}</textarea>
-    <div class="row2"><div><label>Төлөв</label><select id="m-status"><option value="active"${a.status !== "hidden" ? " selected" : ""}>Идэвхтэй</option><option value="pending"${a.status === "pending" ? " selected" : ""}>Хүлээгдэж байна (нийтлэгдээгүй)</option><option value="expired"${a.status === "expired" ? " selected" : ""}>Хугацаа дууссан</option><option value="hidden"${a.status === "hidden" ? " selected" : ""}>Нуусан</option></select></div>
-    <div><label>Онцлох дуусах</label><input id="m-until" type="datetime-local" value="${until}"></div></div>
-    <label class="chk"><input type="checkbox" id="m-feat"${a.featured ? " checked" : ""}> Онцлох зар</label>
-    <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn primary" id="m-save">Хадгалах</button></div>`);
-  let pics = adPics(a).slice();
-  const orig = pics.slice();
+function bindPics(pics) {
   const drawPics = (keep) => {
     $("eph").innerHTML = gallery(pics, true);
     const b = $("eph-add"); b.hidden = pics.length >= 4; b.textContent = "+ Зураг нэмэх (" + pics.length + "/4)";
@@ -740,6 +730,25 @@ function editAd(a) {
     try { for (const f of fs) pics.push(await uploadAdPhoto(f)); } catch (er) { toast("Алдаа: " + er.message); }
     add.disabled = false; drawPics(pics.length - 1);
   };
+}
+function editAd(a) {
+  const cats = ["Утас", "Машин", "Байр", "Тавилга", "Хувцас", "Бусад"];
+  const until = a.featured_until ? new Date(new Date(a.featured_until).getTime() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16) : "";
+  modal(`<h3>Зар засах · ${esc(code(a.id))}</h3>
+    <label>Нэр</label><input id="m-title" value="${esc(a.title)}">
+    <div class="row2"><div><label>Үнэ</label><input id="m-price" type="number" value="${esc(a.price)}"></div>
+    <div><label>Ангилал</label><select id="m-cat">${cats.map(c => `<option${c === a.cat ? " selected" : ""}>${c}</option>`).join("")}</select></div></div>
+    <div class="row2"><div><label>Утас</label><input id="m-phone" value="${esc(a.phone)}"></div>
+    <div><label>Байршил</label><select id="m-loc">${soumOf(a.loc) || !a.loc ? "" : `<option value="${esc(a.loc)}" selected>${esc(a.loc)} (одоогийн)</option>`}${SOUMS.map(([k, l]) => `<option value="${locValue(k)}"${soumOf(a.loc) === k ? " selected" : ""}>${l}</option>`).join("")}</select></div></div>
+    <label>Зураг (дээд тал нь 4 · эхнийх нь нүүр зураг)</label><div id="eph"></div><button type="button" class="btn eph-addbtn" id="eph-add">+ Зураг нэмэх</button><input type="file" id="eph-file" accept="image/*" multiple hidden>
+    <label>Тайлбар</label><textarea id="m-desc" rows="4">${esc(a.description)}</textarea>
+    <div class="row2"><div><label>Төлөв</label><select id="m-status"><option value="active"${a.status !== "hidden" ? " selected" : ""}>Идэвхтэй</option><option value="pending"${a.status === "pending" ? " selected" : ""}>Хүлээгдэж байна (нийтлэгдээгүй)</option><option value="expired"${a.status === "expired" ? " selected" : ""}>Хугацаа дууссан</option><option value="hidden"${a.status === "hidden" ? " selected" : ""}>Нуусан</option></select></div>
+    <div><label>Онцлох дуусах</label><input id="m-until" type="datetime-local" value="${until}"></div></div>
+    <label class="chk"><input type="checkbox" id="m-feat"${a.featured ? " checked" : ""}> Онцлох зар</label>
+    <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn primary" id="m-save">Хадгалах</button></div>`);
+  let pics = adPics(a).slice();
+  const orig = pics.slice();
+  bindPics(pics);
   $("m-save").onclick = () => act(async () => {
     const t = $("m-title").value.trim(); if (!t) throw new Error("Нэр хоосон байна");
     await upd(a.id, {
@@ -753,6 +762,28 @@ function editAd(a) {
     if (gone.length) { try { await sb.storage.from("ads-images").remove(gone); } catch (_) {} }
     closeModal();
   }, "Хадгаллаа");
+}
+function addAd() {
+  const cats = ["Утас", "Машин", "Байр", "Тавилга", "Хувцас", "Бусад"];
+  modal(`<h3>Хэрэглэгчийн өмнөөс зар нэмэх</h3>
+    <label>Ангилал</label><select id="m-cat"><option value="">Ангилал сонгох</option>${cats.map(c => `<option>${c}</option>`).join("")}</select>
+    <label>Зарын нэр</label><input id="m-title" placeholder="Жишээ: iPhone 13 128GB">
+    <div class="row2"><div><label>Үнэ (₮)</label><input id="m-price" inputmode="numeric" placeholder="0"></div>
+    <div><label>Байршил</label><select id="m-loc">${SOUMS.map(([k, l]) => `<option value="${locValue(k)}">${l}</option>`).join("")}</select></div></div>
+    <label>Борлуулагчийн утас</label><input id="m-phone" inputmode="tel" placeholder="8 оронтой дугаар">
+    <div style="color:var(--muted);font-size:12px;margin:-4px 2px 8px">Энэ дугаараар бүртгэлтэй хэрэглэгч байвал зар түүний нэр дээр орж, өөрөө засах, сунгах боломжтой болно.</div>
+    <label>Зураг (дээд тал нь 4 · эхнийх нь нүүр зураг)</label><div id="eph"></div><button type="button" class="btn eph-addbtn" id="eph-add">+ Зураг нэмэх</button><input type="file" id="eph-file" accept="image/*" multiple hidden>
+    <label>Тайлбар</label><textarea id="m-desc" rows="4"></textarea>
+    <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn primary" id="m-save">Нийтлэх</button></div>`);
+  const pics = []; bindPics(pics);
+  $("m-price").oninput = e => { e.target.value = e.target.value.replace(/\D/g, ""); };
+  $("m-save").onclick = () => act(async () => {
+    const t = $("m-title").value.trim(), ph = $("m-phone").value.replace(/\D/g, "").slice(-8);
+    if (!$("m-cat").value) throw new Error("Ангилал сонгоно уу");
+    if (!t) throw new Error("Зарын нэр хоосон байна");
+    if (ph.length !== 8) throw new Error("Утасны дугаар 8 оронтой байх ёстой");
+    await rpc("admin_create_ad", { p_data: { title: t, price: $("m-price").value || "0", cat: $("m-cat").value, loc: $("m-loc").value, phone: ph, description: $("m-desc").value.trim(), img: pics[0] || "", imgs: pics } });
+  }, "Зар нийтлэгдлээ");
 }
 function openUser(u) {
   const row = (k, v) => `<div class="drow"><span>${k}</span><b>${v}</b></div>`;
