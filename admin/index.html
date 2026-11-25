@@ -181,6 +181,22 @@ html,body{max-width:100%;overflow-x:hidden}
 }
 .btn.danger.solid{background:#dc2626;border-color:#dc2626;color:#fff}.btn.danger.solid:hover{background:#b91c1c}
 .titem{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}.trow{display:flex;gap:8px}.trow .btn{flex:1}.btn.restore{background:#16a34a;border-color:#16a34a;color:#fff}.btn.restore:hover{background:#15803d}
+.agal{position:relative;margin-bottom:8px;border-radius:12px;overflow:hidden;background:var(--s2)}
+.agtrack{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.agtrack::-webkit-scrollbar{display:none}.agtrack.one{overflow-x:hidden}
+.agslide{flex:0 0 100%;scroll-snap-align:center;scroll-snap-stop:always;height:260px;display:flex;align-items:center;justify-content:center}
+.agslide img{max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;user-select:none}
+.agcount{position:absolute;right:8px;bottom:8px;padding:2px 9px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;font-weight:600}
+.agnav{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;border:0;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:24px;line-height:1;display:none;cursor:pointer}
+.agnav.prev{left:8px}.agnav.next{right:8px}
+@media (hover:hover) and (pointer:fine){.agnav{display:block}.agnav[hidden]{display:none}}
+.eph{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
+.eph-i,.eph-add{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--s2)}
+.eph-i img{width:100%;height:100%;object-fit:cover;display:block}
+.eph-x{position:absolute;top:3px;right:3px;width:24px;height:24px;border:0;border-radius:50%;background:#dc2626;color:#fff;font-size:12px;cursor:pointer;padding:0}
+.eph-c{position:absolute;left:3px;bottom:3px;padding:1px 6px;border-radius:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px}
+.eph-add{display:flex;flex-direction:column;align-items:center;justify-content:center;border-style:dashed;color:var(--brand);font-size:24px;cursor:pointer;gap:0}
+.eph-add small{font-size:11px}
 </style>
 </head>
 <body>
@@ -459,6 +475,24 @@ async function uploadBanner(file) {
   if (!up.ok) throw new Error("Зураг хуулахад алдаа: " + await up.text());
   return SUPABASE_URL + "/storage/v1/object/public/ads-images/" + fn;
 }
+// Зарын зургийг 1280px хүртэл жижигрүүлж JPEG болгоод хуулна
+async function uploadAdPhoto(file) {
+  const blob = await new Promise((ok, no) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 1280 / Math.max(img.width, img.height)), c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      c.toBlob(b => b ? ok(b) : no(new Error("Зураг боловсруулж чадсангүй")), "image/jpeg", 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); no(new Error("Зураг уншигдсангүй")); };
+    img.src = url;
+  });
+  const fn = "ad-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7) + ".jpg";
+  const up = await fetch(SUPABASE_URL + "/storage/v1/object/ads-images/" + fn, { method: "POST", headers: { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "image/jpeg" }, body: blob });
+  if (!up.ok) throw new Error("Зураг хуулахад алдаа: " + await up.text());
+  return SUPABASE_URL + "/storage/v1/object/public/ads-images/" + fn;
+}
 const DAY_OPTS = [[7, "7 хоног"], [14, "14 хоног"], [30, "30 хоног"], [90, "90 хоног"], [0, "Хугацаагүй"]];
 function bannerModal(b, mode) {   // mode: add | img | days
   const withImg = mode !== "days", withDays = mode !== "img";
@@ -490,7 +524,7 @@ function openPromo(a, mode) {
     : `<div class="mfoot" style="justify-content:stretch;flex-wrap:wrap"><button class="btn" style="flex:1" data-act="extend" data-id="${esc(a.id)}">+7 хоног</button>
        <button class="btn danger" style="flex:1" data-act="unfeature" data-id="${esc(a.id)}">Цуцлах</button></div>`;
   modal(`<div class="dhead"><h3>${esc(a.title)}</h3><button class="btn sm" onclick="closeModal()" aria-label="Хаах">✕</button></div>
-    ${a.img ? `<img class="dimg" src="${esc(a.img)}" alt="" onerror="this.style.display='none'">` : ""}
+    ${gallery(a)}
     ${row("Гүйлгээний утга (код)", esc(code(a.id)))}${row("Үнэ", Number(a.price || 0).toLocaleString() + "₮")}${row("Утас", esc(a.phone || "—"))}
     ${row("Зар нэмсэн", fmt(a.created_at))}${mode === "act" ? row("Онцгой дуусах", a.featured_until ? fmt(a.featured_until) : "Хугацаагүй") : ""}
     ${ctl}
@@ -606,10 +640,26 @@ $("modal").addEventListener("mousedown", e => { if (e.target === $("modal")) clo
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
 window.closeModal = closeModal;
 
+const adPics = a => (Array.isArray(a.imgs) && a.imgs.length ? a.imgs : (a.img ? [a.img] : [])).filter(Boolean).slice(0, 4);
+function gallery(a) {
+  const l = adPics(a); if (!l.length) return "";
+  return `<div class="agal"><div class="agtrack${l.length < 2 ? " one" : ""}">${l.map(u => `<div class="agslide"><img src="${esc(u)}" alt="" draggable="false" onerror="this.style.visibility='hidden'"></div>`).join("")}</div>
+    ${l.length > 1 ? `<span class="agcount">1 / ${l.length}</span><button type="button" class="agnav prev" data-gal="-1" hidden aria-label="Өмнөх">‹</button><button type="button" class="agnav next" data-gal="1" aria-label="Дараагийн">›</button>` : ""}</div>`;
+}
+function galSync(g) {
+  const t = g.querySelector(".agtrack"), n = t.children.length, i = Math.max(0, Math.min(n - 1, Math.round(t.scrollLeft / (t.clientWidth || 1))));
+  const c = g.querySelector(".agcount"); if (c) c.textContent = (i + 1) + " / " + n;
+  const p = g.querySelector(".agnav.prev"), x = g.querySelector(".agnav.next"); if (p) p.hidden = i <= 0; if (x) x.hidden = i >= n - 1;
+}
+document.addEventListener("scroll", e => { const t = e.target; if (t && t.classList && t.classList.contains("agtrack")) galSync(t.parentElement); }, true);
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-gal]"); if (!b) return;
+  const g = b.closest(".agal"), t = g.querySelector(".agtrack"); t.scrollBy({ left: Number(b.dataset.gal) * t.clientWidth, behavior: "smooth" });
+});
 function openAd(a) {
   const row = (k, v) => `<div class="drow"><span>${k}</span><b>${v}</b></div>`;
   modal(`<div class="dhead"><h3>${esc(a.title)}</h3><button class="btn sm" onclick="closeModal()" aria-label="Хаах">✕</button></div>
-    ${a.img ? `<img class="dimg" src="${esc(a.img)}" alt="" onerror="this.style.display='none'">` : ""}
+    ${gallery(a)}
     <div class="dtags">${revTag(a)}${adTags(a)}</div>
     ${row("Код", esc(code(a.id)))}${row("Үнэ", Number(a.price || 0).toLocaleString() + "₮")}${row("Ангилал", esc(a.cat || "—"))}
     ${row("Утас", esc(a.phone || "—"))}${row("Байршил", esc(a.loc || "—"))}${row("Нэмсэн", fmt(a.created_at))}
@@ -630,19 +680,42 @@ function editAd(a) {
     <div><label>Ангилал</label><select id="m-cat">${cats.map(c => `<option${c === a.cat ? " selected" : ""}>${c}</option>`).join("")}</select></div></div>
     <div class="row2"><div><label>Утас</label><input id="m-phone" value="${esc(a.phone)}"></div>
     <div><label>Байршил</label><select id="m-loc">${soumOf(a.loc) || !a.loc ? "" : `<option value="${esc(a.loc)}" selected>${esc(a.loc)} (одоогийн)</option>`}${SOUMS.map(([k, l]) => `<option value="${locValue(k)}"${soumOf(a.loc) === k ? " selected" : ""}>${l}</option>`).join("")}</select></div></div>
+    <label>Зураг (дээд тал нь 4 · эхнийх нь нүүр зураг)</label><div class="eph" id="eph"></div><input type="file" id="eph-file" accept="image/*" multiple hidden>
     <label>Тайлбар</label><textarea id="m-desc" rows="4">${esc(a.description)}</textarea>
     <div class="row2"><div><label>Төлөв</label><select id="m-status"><option value="active"${a.status !== "hidden" ? " selected" : ""}>Идэвхтэй</option><option value="pending"${a.status === "pending" ? " selected" : ""}>Хүлээгдэж байна (нийтлэгдээгүй)</option><option value="expired"${a.status === "expired" ? " selected" : ""}>Хугацаа дууссан</option><option value="hidden"${a.status === "hidden" ? " selected" : ""}>Нуусан</option></select></div>
     <div><label>Онцлох дуусах</label><input id="m-until" type="datetime-local" value="${until}"></div></div>
     <label class="chk"><input type="checkbox" id="m-feat"${a.featured ? " checked" : ""}> Онцлох зар</label>
     <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn primary" id="m-save">Хадгалах</button></div>`);
+  let pics = adPics(a).slice();
+  const orig = pics.slice();
+  const drawPics = () => {
+    $("eph").innerHTML = pics.map((u, i) => `<div class="eph-i"><img src="${esc(u)}" alt="" onerror="this.style.visibility='hidden'">${i === 0 ? '<span class="eph-c">Нүүр</span>' : ""}<button type="button" class="eph-x" data-i="${i}" aria-label="Зураг устгах">✕</button></div>`).join("") +
+      (pics.length < 4 ? '<button type="button" class="eph-add" id="eph-add">+<small>Нэмэх</small></button>' : "");
+  };
+  drawPics();
+  $("eph").onclick = e => {
+    const x = e.target.closest(".eph-x"); if (x) { pics.splice(Number(x.dataset.i), 1); drawPics(); return; }
+    if (e.target.closest("#eph-add")) $("eph-file").click();
+  };
+  $("eph-file").onchange = async () => {
+    const fs = [...$("eph-file").files].slice(0, 4 - pics.length); $("eph-file").value = "";
+    if (!fs.length) return;
+    const add = $("eph-add"); if (add) { add.disabled = true; add.firstChild.textContent = "…"; }
+    try { for (const f of fs) pics.push(await uploadAdPhoto(f)); } catch (er) { toast("Алдаа: " + er.message); }
+    drawPics();
+  };
   $("m-save").onclick = () => act(async () => {
     const t = $("m-title").value.trim(); if (!t) throw new Error("Нэр хоосон байна");
     await upd(a.id, {
+      img: pics[0] || "", imgs: pics,
       title: t, price: $("m-price").value || 0, cat: $("m-cat").value, phone: $("m-phone").value.trim(), loc: $("m-loc").value,
       description: $("m-desc").value.trim(), status: $("m-status").value, featured: $("m-feat").checked,
       featured_until: $("m-until").value ? new Date($("m-until").value).toISOString() : "",
       feature_requested: $("m-feat").checked ? false : !!a.feature_requested
-    }); closeModal();
+    });
+    const gone = orig.filter(u => !pics.includes(u)).map(u => { const m = String(u).match(/\/ads-images\/([^?#]+)/); return m ? decodeURIComponent(m[1]) : null; }).filter(Boolean);
+    if (gone.length) { try { await sb.storage.from("ads-images").remove(gone); } catch (_) {} }
+    closeModal();
   }, "Хадгаллаа");
 }
 function openUser(u) {
