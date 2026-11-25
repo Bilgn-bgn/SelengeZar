@@ -736,16 +736,17 @@ function renderPhotos() {
   $("ph-count").textContent = photos.length + "/" + MAX_PHOTOS;
   $("photo-grid").innerHTML = photos.map((p, i) =>
     `<div class="ph-item"><img src="${esc(p.url || p.prev)}" alt="">${i === 0 ? '<span class="ph-cov">Нүүр</span>' : ""}<button type="button" class="ph-del" data-i="${i}" aria-label="Зураг устгах">${ico("x")}</button></div>`).join("") +
-    (photos.length < MAX_PHOTOS ? `<button type="button" class="ph-add" data-add="1" aria-label="Зураг нэмэх">${ico("plus")}<span>Нэмэх</span></button>` : "");
+    (photos.length < MAX_PHOTOS ? `<button type="button" class="ph-add" data-add="1" aria-label="Файлаас зураг нэмэх">${ico("plus")}<span>Файл</span></button><button type="button" class="ph-add" data-cam="1" aria-label="Камераар зураг авах">${ico("camera")}<span>Камер</span></button>` : "");
 }
 renderPhotos();   // «Нэмэх» товч эхнээс харагдана
 $("photo-grid").parentElement.querySelector(".upload-title").addEventListener("click", () => { if (photos.length < MAX_PHOTOS) $("f-file").click(); });
 $("photo-grid").addEventListener("click", e => {
   const d = e.target.closest(".ph-del");
   if (d) { const [r] = photos.splice(Number(d.dataset.i), 1); if (r && r.prev) URL.revokeObjectURL(r.prev); renderPhotos(); $("err").textContent = ""; return; }
+  if (e.target.closest("[data-cam]")) { $("f-cam").click(); return; }
   if (e.target.closest("[data-add]")) $("f-file").click();
 });
-$("f-file").addEventListener("change", e => {
+["f-file", "f-cam"].forEach(id => $(id).addEventListener("change", e => {
   const files = [...e.target.files];
   e.target.value = "";   // ижил зургийг дахин сонгож болно
   let skipped = 0;
@@ -756,7 +757,7 @@ $("f-file").addEventListener("change", e => {
   });
   renderPhotos();
   $("err").textContent = skipped ? "Дээд тал нь " + MAX_PHOTOS + " зураг оруулна" : "";
-});
+}));
 
 // Том зургийг автоматаар жижигрүүлэх
 function compressImage(f) {
