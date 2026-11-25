@@ -197,6 +197,17 @@ html,body{max-width:100%;overflow-x:hidden}
 .eph-c{position:absolute;left:3px;bottom:3px;padding:1px 6px;border-radius:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px}
 .eph-add{display:flex;flex-direction:column;align-items:center;justify-content:center;border-style:dashed;color:var(--brand);font-size:24px;cursor:pointer;gap:0}
 .eph-add small{font-size:11px}
+.agslide{position:relative}
+.agslide img[data-zoom]{cursor:zoom-in}
+.agslide .eph-x{top:8px;right:8px;width:34px;height:34px;font-size:15px}
+.agslide .eph-c{left:8px;bottom:8px;font-size:12px;padding:2px 9px}
+.agempty{padding:50px 0;text-align:center;color:var(--muted);font-size:14px}
+.eph-addbtn{width:100%;margin-bottom:8px}.eph-addbtn[hidden]{display:none}
+.alb{position:fixed;inset:0;z-index:1000;background:#000;display:flex;align-items:center}
+.alb-g{width:100%;height:100%;margin:0;border-radius:0;background:#000}
+.alb-g .agtrack{height:100%}.alb-g .agslide{height:100%}.alb-g .agslide img{cursor:default}
+.alb-x{position:absolute;top:12px;right:12px;z-index:3;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:18px;cursor:pointer}
+.alb .agcount{bottom:18px;right:50%;transform:translateX(50%)}
 </style>
 </head>
 <body>
@@ -641,9 +652,9 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal()
 window.closeModal = closeModal;
 
 const adPics = a => (Array.isArray(a.imgs) && a.imgs.length ? a.imgs : (a.img ? [a.img] : [])).filter(Boolean).slice(0, 4);
-function gallery(a) {
-  const l = adPics(a); if (!l.length) return "";
-  return `<div class="agal"><div class="agtrack${l.length < 2 ? " one" : ""}">${l.map(u => `<div class="agslide"><img src="${esc(u)}" alt="" draggable="false" onerror="this.style.visibility='hidden'"></div>`).join("")}</div>
+function gallery(a, edit) {
+  const l = Array.isArray(a) ? a : adPics(a); if (!l.length) return edit ? '<div class="agal agempty">Зураг алга</div>' : "";
+  return `<div class="agal"><div class="agtrack${l.length < 2 ? " one" : ""}">${l.map((u, i) => `<div class="agslide"><img src="${esc(u)}" alt="" draggable="false" data-zoom="${i}" onerror="this.style.visibility='hidden'">${edit ? `${i === 0 ? '<span class="eph-c">Нүүр</span>' : ""}<button type="button" class="eph-x" data-i="${i}" aria-label="Зураг устгах">✕</button>` : ""}</div>`).join("")}</div>
     ${l.length > 1 ? `<span class="agcount">1 / ${l.length}</span><button type="button" class="agnav prev" data-gal="-1" hidden aria-label="Өмнөх">‹</button><button type="button" class="agnav next" data-gal="1" aria-label="Дараагийн">›</button>` : ""}</div>`;
 }
 function galSync(g) {
@@ -652,7 +663,20 @@ function galSync(g) {
   const p = g.querySelector(".agnav.prev"), x = g.querySelector(".agnav.next"); if (p) p.hidden = i <= 0; if (x) x.hidden = i >= n - 1;
 }
 document.addEventListener("scroll", e => { const t = e.target; if (t && t.classList && t.classList.contains("agtrack")) galSync(t.parentElement); }, true);
+function openLb(list, i) {
+  closeLb();
+  const d = document.createElement("div"); d.id = "alb"; d.className = "alb";
+  d.innerHTML = `<button type="button" class="alb-x" aria-label="Хаах">✕</button><div class="agal alb-g">${list.length > 1 ? "" : ""}<div class="agtrack${list.length < 2 ? " one" : ""}">${list.map(u => `<div class="agslide"><img src="${esc(u)}" alt="" draggable="false"></div>`).join("")}</div>
+    ${list.length > 1 ? `<span class="agcount">${i + 1} / ${list.length}</span><button type="button" class="agnav prev" data-gal="-1" hidden aria-label="Өмнөх">‹</button><button type="button" class="agnav next" data-gal="1" aria-label="Дараагийн">›</button>` : ""}</div>`;
+  document.body.appendChild(d);
+  const t = d.querySelector(".agtrack"); t.scrollLeft = i * t.clientWidth; galSync(d.querySelector(".agal"));
+  d.onclick = e => { if (e.target === d || e.target.classList.contains("agslide") || e.target.closest(".alb-x")) closeLb(); };
+}
+function closeLb() { const d = document.getElementById("alb"); if (d) d.remove(); }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeLb(); });
 document.addEventListener("click", e => {
+  const z = e.target.closest("img[data-zoom]");
+  if (z && !e.target.closest("#alb")) { const l = [...z.closest(".agtrack").querySelectorAll("img")].map(x => x.getAttribute("src")); openLb(l, Number(z.dataset.zoom)); return; }
   const b = e.target.closest("[data-gal]"); if (!b) return;
   const g = b.closest(".agal"), t = g.querySelector(".agtrack"); t.scrollBy({ left: Number(b.dataset.gal) * t.clientWidth, behavior: "smooth" });
 });
@@ -680,7 +704,7 @@ function editAd(a) {
     <div><label>Ангилал</label><select id="m-cat">${cats.map(c => `<option${c === a.cat ? " selected" : ""}>${c}</option>`).join("")}</select></div></div>
     <div class="row2"><div><label>Утас</label><input id="m-phone" value="${esc(a.phone)}"></div>
     <div><label>Байршил</label><select id="m-loc">${soumOf(a.loc) || !a.loc ? "" : `<option value="${esc(a.loc)}" selected>${esc(a.loc)} (одоогийн)</option>`}${SOUMS.map(([k, l]) => `<option value="${locValue(k)}"${soumOf(a.loc) === k ? " selected" : ""}>${l}</option>`).join("")}</select></div></div>
-    <label>Зураг (дээд тал нь 4 · эхнийх нь нүүр зураг)</label><div class="eph" id="eph"></div><input type="file" id="eph-file" accept="image/*" multiple hidden>
+    <label>Зураг (дээд тал нь 4 · эхнийх нь нүүр зураг)</label><div id="eph"></div><button type="button" class="btn eph-addbtn" id="eph-add">+ Зураг нэмэх</button><input type="file" id="eph-file" accept="image/*" multiple hidden>
     <label>Тайлбар</label><textarea id="m-desc" rows="4">${esc(a.description)}</textarea>
     <div class="row2"><div><label>Төлөв</label><select id="m-status"><option value="active"${a.status !== "hidden" ? " selected" : ""}>Идэвхтэй</option><option value="pending"${a.status === "pending" ? " selected" : ""}>Хүлээгдэж байна (нийтлэгдээгүй)</option><option value="expired"${a.status === "expired" ? " selected" : ""}>Хугацаа дууссан</option><option value="hidden"${a.status === "hidden" ? " selected" : ""}>Нуусан</option></select></div>
     <div><label>Онцлох дуусах</label><input id="m-until" type="datetime-local" value="${until}"></div></div>
@@ -688,21 +712,24 @@ function editAd(a) {
     <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn primary" id="m-save">Хадгалах</button></div>`);
   let pics = adPics(a).slice();
   const orig = pics.slice();
-  const drawPics = () => {
-    $("eph").innerHTML = pics.map((u, i) => `<div class="eph-i"><img src="${esc(u)}" alt="" onerror="this.style.visibility='hidden'">${i === 0 ? '<span class="eph-c">Нүүр</span>' : ""}<button type="button" class="eph-x" data-i="${i}" aria-label="Зураг устгах">✕</button></div>`).join("") +
-      (pics.length < 4 ? '<button type="button" class="eph-add" id="eph-add">+<small>Нэмэх</small></button>' : "");
+  const drawPics = (keep) => {
+    $("eph").innerHTML = gallery(pics, true);
+    const b = $("eph-add"); b.hidden = pics.length >= 4; b.textContent = "+ Зураг нэмэх (" + pics.length + "/4)";
+    const g = $("eph").querySelector(".agal"), t = g && g.querySelector(".agtrack");
+    if (t && keep) { t.scrollLeft = Math.min(keep, pics.length - 1) * t.clientWidth; galSync(g); }
   };
   drawPics();
   $("eph").onclick = e => {
-    const x = e.target.closest(".eph-x"); if (x) { pics.splice(Number(x.dataset.i), 1); drawPics(); return; }
-    if (e.target.closest("#eph-add")) $("eph-file").click();
+    const x = e.target.closest(".eph-x"); if (!x) return;
+    e.stopPropagation(); const i = Number(x.dataset.i); pics.splice(i, 1); drawPics(i);
   };
+  $("eph-add").onclick = () => $("eph-file").click();
   $("eph-file").onchange = async () => {
     const fs = [...$("eph-file").files].slice(0, 4 - pics.length); $("eph-file").value = "";
     if (!fs.length) return;
-    const add = $("eph-add"); if (add) { add.disabled = true; add.firstChild.textContent = "…"; }
+    const add = $("eph-add"); add.disabled = true; add.textContent = "Хуулж байна...";
     try { for (const f of fs) pics.push(await uploadAdPhoto(f)); } catch (er) { toast("Алдаа: " + er.message); }
-    drawPics();
+    add.disabled = false; drawPics(pics.length - 1);
   };
   $("m-save").onclick = () => act(async () => {
     const t = $("m-title").value.trim(); if (!t) throw new Error("Нэр хоосон байна");
