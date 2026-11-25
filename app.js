@@ -1083,10 +1083,19 @@ function smsErrText(error) {
   if (m.includes("sms_daily_limit")) return "Энэ дугаарт өнөөдөр хэт олон код илгээлээ. Маргааш дахин оролдоно уу";
   if (m.includes("sms_global_limit")) return "Систем түр ачаалалтай байна. Хэсэг хугацааны дараа дахин оролдоно уу";
   if (m.includes("rate") || m.includes("seconds") || m.includes("too many")) return "Хэт олон удаа оролдлоо. Түр хүлээгээд дахин оролдоно уу";
+  if (m.includes("hook") || m.includes("timed out") || m.includes("timeout") || m.includes("deadline") || m.includes("failed to fetch") || m.includes("network"))
+    return "Код илгээх үйлчилгээ түр саатлаа. Ирсэн код хүчингүй байж болзошгүй тул 1 минутын дараа дахин код авна уу";
   if (m.includes("trial") || m.includes("unsupported")) return "Энэ дугаар руу код илгээх боломжгүй байна";
   return "Алдаа: " + (error && error.message || "");
 }
 
+// Кодыг шалгахад гарсан алдааг тодорхой тайлбарлана
+function otpErrText(error) {
+  const m = (error && error.message || "").toLowerCase();
+  if (m.includes("rate") || m.includes("too many")) return "Хэт олон удаа оролдлоо. Түр хүлээгээд дахин оролдоно уу";
+  if (m.includes("failed to fetch") || m.includes("network") || m.includes("timeout")) return "Холболт тасарлаа. Интернэтээ шалгаад дахин оролдоно уу";
+  return "Код буруу эсвэл хугацаа дууссан байна. Хамгийн сүүлд ирсэн 6 оронтой кодыг оруулна уу, эсвэл «Дахин илгээх»-ийг дарна уу";
+}
 function togglePhoneLogin() {}   // утасны нэвтрэлт үргэлж нээлттэй
 
 let sendingCode = false;
@@ -1128,13 +1137,13 @@ async function sendCode() {
 async function verifyCode() {
   const err = $("login-err");
   const phone = localStorage.getItem("pendingPhone");
-  const token = $("login-code").value.trim();
+  const token = $("login-code").value.replace(/\D/g, "");
   if (token.length !== 6) { err.textContent = "6 оронтой кодыг оруулна уу"; return; }
   if (!sb || !phone) { err.textContent = "Дахин код авна уу"; return; }
 
   err.textContent = "Шалгаж байна...";
   const { data, error } = await sb.auth.verifyOtp({ phone, token, type: "sms" });
-  if (error || !data?.user) { err.textContent = "Код буруу байна"; return; }
+  if (error || !data?.user) { err.textContent = otpErrText(error); return; }
 
   err.textContent = "";
   saveUserLocal(data.user, phone);
@@ -1280,13 +1289,13 @@ async function sendVerify() {
 async function confirmVerify() {
   const err = $("v-err");
   const phone = localStorage.getItem("pendingVerify");
-  const token = $("v-code").value.trim();
+  const token = $("v-code").value.replace(/\D/g, "");
   if (token.length !== 6) { err.textContent = "6 оронтой кодыг оруулна уу"; return; }
   if (!sb || !phone) { err.textContent = "Дахин код авна уу"; return; }
 
   err.textContent = "Шалгаж байна...";
   const { data, error } = await sb.auth.verifyOtp({ phone, token, type: "phone_change" });
-  if (error) { err.textContent = "Код буруу эсвэл хугацаа дууссан байна"; return; }
+  if (error) { err.textContent = otpErrText(error); return; }
 
   if (data && data.user) saveUserLocal(data.user, phone);
   localStorage.setItem("phoneVerified", "1");
