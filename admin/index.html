@@ -317,9 +317,10 @@ function adRow(a) {
       <button class="btn sm danger" data-act="del-ad" data-id="${esc(a.id)}">Устгах</button>
     </div></td></tr>`;
 }
+const isExpired = a => a.status === "expired" || (a.featured_until ? Date.now() > +new Date(a.featured_until) : (!a.featured && a.created_at && Date.now() > +new Date(a.created_at) + 30 * 864e5));
 const revTag = a => a.reviewed ? '<span class="tag ok">Шалгагдсан</span>' : '<span class="tag bad">Шалгагдаагүй</span>';
 function adItem(a) {
-  const extra = (isFeat(a) ? '<span class="tag gold">Онцлох</span>' : "") + (a.feature_requested ? '<span class="tag gold">Төлбөр хүлээж байна</span>' : "") +
+  const extra = (isExpired(a) ? '<span class="tag bad">Хугацаа дууссан</span>' : "") + (isFeat(a) ? '<span class="tag gold">Онцлох</span>' : "") + (a.feature_requested ? '<span class="tag gold">Төлбөр хүлээж байна</span>' : "") +
     (a.status === "hidden" ? '<span class="tag bad">Нуусан</span>' : a.status === "pending" ? '<span class="tag gold">Нийтлэгдээгүй</span>' : "");
   return `<div class="aitem" data-act="open-ad" data-id="${esc(a.id)}" role="button" tabindex="0">
     <img class="thumb" src="${esc(a.img || "")}" alt="" onerror="this.style.visibility='hidden'">
@@ -505,8 +506,20 @@ document.addEventListener("click", e => {
     case "open-user": return openUser(users.find(u => u.id === id));
     case "review-yes": case "review-no": { const v = b.dataset.act === "review-yes"; closeModal(); return act(() => upd(id, { reviewed: v }), v ? "Шалгасан гэж тэмдэглэлээ" : "Шалгаагүй гэж тэмдэглэлээ"); }
     case "edit-ad": return editAd(a);
-    case "toggle-ad": closeModal(); return act(() => upd(id, { status: a.status === "hidden" ? "active" : "hidden" }), a.status === "hidden" ? "Зар гарлаа" : "Зар нуугдлаа");
-    case "del-ad": if (confirm("«" + a.title + "» зарыг бүр мөсөн устгах уу?")) { closeModal(); act(() => rpc("admin_delete_ad", { p_id: String(id) }), "Зар устлаа"); } return;
+    case "toggle-ad": {
+      if (a.status === "hidden") { closeModal(); return act(() => upd(id, { status: "active" }), "Зар гарлаа"); }
+      const why = prompt("Нуух шалтгаан (зарын эзэнд чатаар очно):", REASON_DEFAULT);
+      if (why === null) return;
+      closeModal();
+      return act(async () => { await upd(id, { status: "hidden" }); await notifyOwner(a, "Таны «" + a.title + "» зар дүрэм зөрчсөн тул нуугдлаа. Шалтгаан: " + (why.trim() || REASON_DEFAULT) + ". Засаад дахин нийтлүүлэх бол энд бичнэ үү."); }, "Зар нуугдлаа, эзэнд чат очлоо");
+    }
+    case "del-ad": {
+      if (!confirm("«" + a.title + "» зарыг бүр мөсөн устгах уу?")) return;
+      const why = a.user_id ? prompt("Устгах шалтгаан (зарын эзэнд чатаар очно):", REASON_DEFAULT) : "";
+      if (why === null) return;
+      closeModal();
+      return act(async () => { await rpc("admin_delete_ad", { p_id: String(id) }); if (a.user_id) await notifyOwner(a, "Таны «" + a.title + "» зар дүрэм зөрчсөн тул устгагдлаа. Шалтгаан: " + (why.trim() || REASON_DEFAULT) + "."); }, "Зар устлаа");
+    }
     case "approve": { const d = Number($("days-" + id).value); const amtEl = $("amt-" + id); const amt = Number(amtEl ? amtEl.value : 0); closeModal();
       return act(() => upd(id, { paid_add: amt, featured: true, status: "active", featured_until: new Date(Date.now() + d * 864e5).toISOString(), feature_requested: false }), "Зар нийтлэгдэж, онцлох боллоо (" + d + " хоног)"); }
     case "reject": if (confirm(a.status === "pending" ? "Онцлох хүсэлтийг татгалзаад зарыг энгийн зар болгон нийтлэх үү?" : "Онцлох хүсэлтийг татгалзах уу?")) act(() => upd(id, { feature_requested: false, status: a.status === "pending" ? "active" : a.status }), "Хүсэлт татгалзагдлаа"); return;
@@ -593,7 +606,7 @@ function editAd(a) {
     <div class="row2"><div><label>Утас</label><input id="m-phone" value="${esc(a.phone)}"></div>
     <div><label>Байршил</label><select id="m-loc">${soumOf(a.loc) || !a.loc ? "" : `<option value="${esc(a.loc)}" selected>${esc(a.loc)} (одоогийн)</option>`}${SOUMS.map(([k, l]) => `<option value="${locValue(k)}"${soumOf(a.loc) === k ? " selected" : ""}>${l}</option>`).join("")}</select></div></div>
     <label>Тайлбар</label><textarea id="m-desc" rows="4">${esc(a.description)}</textarea>
-    <div class="row2"><div><label>Төлөв</label><select id="m-status"><option value="active"${a.status !== "hidden" ? " selected" : ""}>Идэвхтэй</option><option value="pending"${a.status === "pending" ? " selected" : ""}>Хүлээгдэж байна (нийтлэгдээгүй)</option><option value="hidden"${a.status === "hidden" ? " selected" : ""}>Нуусан</option></select></div>
+    <div class="row2"><div><label>Төлөв</label><select id="m-status"><option value="active"${a.status !== "hidden" ? " selected" : ""}>Идэвхтэй</option><option value="pending"${a.status === "pending" ? " selected" : ""}>Хүлээгдэж байна (нийтлэгдээгүй)</option><option value="expired"${a.status === "expired" ? " selected" : ""}>Хугацаа дууссан</option><option value="hidden"${a.status === "hidden" ? " selected" : ""}>Нуусан</option></select></div>
     <div><label>Онцлох дуусах</label><input id="m-until" type="datetime-local" value="${until}"></div></div>
     <label class="chk"><input type="checkbox" id="m-feat"${a.featured ? " checked" : ""}> Онцлох зар</label>
     <div class="mfoot"><button class="btn" onclick="closeModal()">Болих</button><button class="btn primary" id="m-save">Хадгалах</button></div>`);
@@ -713,6 +726,13 @@ function openChatWith(uid) {
   buildChatShell(); renderChat();
   setTimeout(() => $("cinput") && $("cinput").focus(), 50);
 }
+// Зарын эзэнд админаас чат илгээх (нуух, устгах үед)
+async function notifyOwner(a, text) {
+  if (!a || !a.user_id || !adminId || String(a.user_id) === String(adminId)) return;
+  const { error } = await sb.from("messages").insert({ ad_id: "admin", ad_title: "SelengeZar · Админ", sender_id: adminId, receiver_id: a.user_id, body: text });
+  if (error) toast("Зар өөрчлөгдсөн ч эзэнд чат очсонгүй: " + error.message);
+}
+const REASON_DEFAULT = "Үйлчилгээний нөхцөл зөрчсөн";
 async function sendAdminMsg() {
   const inp = $("cinput"), body = inp.value.trim();
   if (!body || !cother) return;
