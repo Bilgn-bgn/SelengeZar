@@ -210,6 +210,7 @@ html,body{max-width:100%;overflow-x:hidden}
 .alb .agcount{bottom:18px;right:50%;transform:translateX(50%)}
 .agal .agslide img{object-fit:cover}
 .alb-g .agslide img{object-fit:contain}
+.stat.vis{background:var(--soft);border-color:transparent}.stat.vis b{color:var(--brand)}
 </style>
 </head>
 <body>
@@ -262,7 +263,7 @@ function soumOf(loc) {
   return hit ? hit[0] : "";
 }
 let banners = null, bannersErr = "";
-let meName = "", meAvatar = "", ads = [], trash = [], users = null, stats = null, tab = "ads", adminId = null;
+let meName = "", meAvatar = "", ads = [], trash = [], users = null, stats = null, visits = null, tab = "ads", adminId = null;
 const isFeat = a => a.featured === true && (!a.featured_until || new Date(a.featured_until) > new Date());
 const fmt = iso => { if (!iso) return "—"; const d = new Date(iso); return isNaN(d) ? "—" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
 const code = id => "ZAR-" + (String(id).length > 8 ? String(id).replace(/-/g, "").slice(0, 6).toUpperCase() : id);
@@ -311,6 +312,7 @@ async function refresh() {
       rpc("admin_stats")
     ]);
     if (a.error) throw new Error(a.error.message);
+    try { visits = await rpc("admin_visit_stats"); } catch (_) { visits = null; }
     ads = a.data.filter(x => x.status !== "deleted"); trash = a.data.filter(x => x.status === "deleted"); stats = s;
     if (tab === "users" || users) users = await rpc("admin_list_users");
   } catch (e) { toast("Алдаа: " + e.message + " (admin-setup.sql ажилласан эсэхээ шалгана уу)"); }
@@ -370,11 +372,16 @@ function draw() {
   const p = $("panel");
   if (tab === "chat") { if (!$("chat-shell")) buildChatShell(); renderChat(); return; }
   if (tab === "dash") {
-    const s = stats || {};
+    const s = stats || {}, v = visits || {};
     const everFeat = ads.filter(a => isFeat(a) || Number(a.paid_total) > 0 || a.featured_until);
     const money = ads.concat(trash).reduce((t, a) => t + (Number(a.paid_total) || 0), 0);
     p.innerHTML = `
       <div class="stats">
+        <div class="stat vis"><b>${v.today ?? "–"}</b><span>Өнөөдөр орсон хүн</span></div>
+        <div class="stat vis"><b>${v.d7 ?? "–"}</b><span>7 хоногт орсон</span></div>
+        <div class="stat vis"><b>${v.d30 ?? "–"}</b><span>30 хоногт орсон</span></div>
+        <div class="stat vis"><b>${v.total ?? "–"}</b><span>Нийт орсон хүн</span></div>
+        ${visits ? "" : '<div class="stat warn" style="grid-column:1/-1"><span>Зочдын тоо харагдахгүй байна. visits.sql-ийг ажиллуулна уу.</span></div>'}
         <div class="stat ${ads.some(a => !a.reviewed) ? "warn" : ""}"><b>${ads.filter(a => !a.reviewed).length}</b><span>Шалгагдаагүй зар</span></div>
         <div class="stat"><b>${s.ads_total ?? "–"}</b><span>Нийт зар</span></div>
         <div class="stat"><b>${s.ads_today ?? "–"}</b><span>Өнөөдөр нэмэгдсэн</span></div>
