@@ -179,6 +179,8 @@ html,body{max-width:100%;overflow-x:hidden}
   .chatwrap{height:calc(100dvh - 190px)}
   .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+.btn.danger.solid{background:#dc2626;border-color:#dc2626;color:#fff}.btn.danger.solid:hover{background:#b91c1c}
+.titem{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}.trow{display:flex;gap:8px}.trow .btn{flex:1}.btn.restore{background:#16a34a;border-color:#16a34a;color:#fff}.btn.restore:hover{background:#15803d}
 </style>
 </head>
 <body>
@@ -202,6 +204,7 @@ html,body{max-width:100%;overflow-x:hidden}
     <button data-tab="ads" class="on">Зарууд <span class="badge" id="ads-badge" hidden></span></button>
     <button data-tab="promo">Онцгой <span class="badge" id="promo-badge" hidden></span></button>
     <button data-tab="banners">Реклам</button>
+    <button data-tab="trash">Устгасан <span class="badge" id="trash-badge" hidden></span></button>
     <button data-tab="dash">Самбар</button>
     <button data-tab="chat">Чат <span class="badge" id="chat-badge" hidden></span></button>
     <button data-tab="users">Хэрэглэгч</button>
@@ -230,13 +233,13 @@ function soumOf(loc) {
   return hit ? hit[0] : "";
 }
 let banners = null, bannersErr = "";
-let meName = "", meAvatar = "", ads = [], users = null, stats = null, tab = "ads", adminId = null;
+let meName = "", meAvatar = "", ads = [], trash = [], users = null, stats = null, tab = "ads", adminId = null;
 const isFeat = a => a.featured === true && (!a.featured_until || new Date(a.featured_until) > new Date());
 const fmt = iso => { if (!iso) return "—"; const d = new Date(iso); return isNaN(d) ? "—" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
 const code = id => "ZAR-" + (String(id).length > 8 ? String(id).replace(/-/g, "").slice(0, 6).toUpperCase() : id);
 function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("show"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 3000); }
 async function rpc(fn, args) { const { data, error } = await sb.rpc(fn, args || {}); if (error) throw new Error(error.message); return data; }
-const findAd = id => ads.find(a => String(a.id) === String(id));
+const findAd = id => ads.find(a => String(a.id) === String(id)) || trash.find(a => String(a.id) === String(id));
 
 // ---------- Нэвтрэх ----------
 const withTimeout = (pr, ms, what) => Promise.race([pr, new Promise((_, rej) => setTimeout(() => rej(new Error(what + " хариу ирсэнгүй (" + ms / 1000 + "с)")), ms))]);
@@ -279,11 +282,12 @@ async function refresh() {
       rpc("admin_stats")
     ]);
     if (a.error) throw new Error(a.error.message);
-    ads = a.data; stats = s;
+    ads = a.data.filter(x => x.status !== "deleted"); trash = a.data.filter(x => x.status === "deleted"); stats = s;
     if (tab === "users" || users) users = await rpc("admin_list_users");
   } catch (e) { toast("Алдаа: " + e.message + " (admin-setup.sql ажилласан эсэхээ шалгана уу)"); }
   const pend = ads.filter(a => a.feature_requested).length;
   $("promo-badge").hidden = !pend; $("promo-badge").textContent = pend;
+  $("trash-badge").hidden = !trash.length; $("trash-badge").textContent = trash.length;
   const unrev = ads.filter(a => !a.reviewed).length;
   $("ads-badge").hidden = !unrev; $("ads-badge").textContent = unrev;
   draw();
@@ -339,7 +343,7 @@ function draw() {
   if (tab === "dash") {
     const s = stats || {};
     const everFeat = ads.filter(a => isFeat(a) || Number(a.paid_total) > 0 || a.featured_until);
-    const money = ads.reduce((t, a) => t + (Number(a.paid_total) || 0), 0);
+    const money = ads.concat(trash).reduce((t, a) => t + (Number(a.paid_total) || 0), 0);
     p.innerHTML = `
       <div class="stats">
         <div class="stat ${ads.some(a => !a.reviewed) ? "warn" : ""}"><b>${ads.filter(a => !a.reviewed).length}</b><span>Шалгагдаагүй зар</span></div>
@@ -364,6 +368,8 @@ function draw() {
     $("af").value = f; $("al").value = lf;
     $("aq").oninput = $("af").onchange = $("al").onchange = drawAds;
     drawAds();
+  } else if (tab === "trash") {
+    p.innerHTML = trash.length ? `<div class="alistbox">${trash.map(trashItem).join("")}</div>` : '<div class="empty">Устгасан зар алга</div>';
   } else if (tab === "banners") {
     drawBanners();
   } else if (tab === "promo") {
@@ -376,6 +382,14 @@ function draw() {
     p.innerHTML = `<div class="tools"><input id="uq" placeholder="Нэр, утсаар хайх" value="${esc(q)}"></div><div id="ulist"></div>`;
     $("uq").oninput = drawUsers; drawUsers();
   }
+}
+function trashItem(a) {
+  return `<div class="titem"><div class="aitem" style="cursor:default">
+    <img class="thumb" src="${esc(a.img || "")}" alt="" onerror="this.style.visibility='hidden'">
+    <div class="ab"><div class="l1"><span class="tag bad">Устгасан</span><b>${esc(code(a.id))}</b><span class="ph">${esc(a.phone || "—")}</span><b class="pr">${Number(a.price || 0).toLocaleString()}₮</b></div>
+    <div class="l2">${fmt(a.created_at)} · ${esc(a.title)}</div></div></div>
+    <div class="trow"><button class="btn restore" data-act="restore-ad" data-id="${esc(a.id)}">Сэргээх</button>
+    <button class="btn danger solid" data-act="purge-ad" data-id="${esc(a.id)}">Датанаас арчих</button></div></div>`;
 }
 function drawAds() {
   const q = $("aq").value.trim().toLowerCase(), f = $("af").value, lf = $("al").value;
@@ -514,11 +528,22 @@ document.addEventListener("click", e => {
       return act(async () => { await upd(id, { status: "hidden" }); await notifyOwner(a, "Таны «" + a.title + "» зар дүрэм зөрчсөн тул нуугдлаа. Шалтгаан: " + (why.trim() || REASON_DEFAULT) + ". Засаад дахин нийтлүүлэх бол энд бичнэ үү."); }, "Зар нуугдлаа, эзэнд чат очлоо");
     }
     case "del-ad": {
-      if (!confirm("«" + a.title + "» зарыг бүр мөсөн устгах уу?")) return;
+      if (!confirm("«" + a.title + "» зарыг устгах уу?\n(Зар «Устгасан» хэсэгт орно, хүсвэл сэргээж болно.)")) return;
       const why = a.user_id ? prompt("Устгах шалтгаан (зарын эзэнд чатаар очно):", REASON_DEFAULT) : "";
       if (why === null) return;
       closeModal();
-      return act(async () => { await rpc("admin_delete_ad", { p_id: String(id) }); if (a.user_id) await notifyOwner(a, "Таны «" + a.title + "» зар дүрэм зөрчсөн тул устгагдлаа. Шалтгаан: " + (why.trim() || REASON_DEFAULT) + "."); }, "Зар устлаа");
+      return act(async () => { await upd(id, { status: "deleted", featured: false, feature_requested: false }); if (a.user_id) await notifyOwner(a, "Таны «" + a.title + "» зар дүрэм зөрчсөн тул устгагдлаа. Шалтгаан: " + (why.trim() || REASON_DEFAULT) + "."); }, "Зар «Устгасан» хэсэгт орлоо");
+    }
+    case "restore-ad": return act(() => upd(id, { status: "active" }), "Зар сэргээгдлээ");
+    case "purge-ad": {
+      if (!confirm("«" + a.title + "» зарыг датанаас бүр мөсөн арчих уу?\nЗар болон зургууд Supabase-ээс устна, эзэнд чат очихгүй, буцаах боломжгүй.")) return;
+      const urls = [a.img].concat(Array.isArray(a.imgs) ? a.imgs : []).filter(Boolean);
+      const paths = [...new Set(urls.map(u => { const m = String(u).match(/\/ads-images\/([^?#]+)/); return m ? decodeURIComponent(m[1]) : null; }).filter(Boolean))];
+      closeModal();
+      return act(async () => {
+        await rpc("admin_delete_ad", { p_id: String(id) });
+        if (paths.length) { try { await sb.storage.from("ads-images").remove(paths); } catch (e) { /* зураг устахгүй ч зар устсан */ } }
+      }, "Датанаас арчигдлаа");
     }
     case "approve": { const d = Number($("days-" + id).value); const amtEl = $("amt-" + id); const amt = Number(amtEl ? amtEl.value : 0); closeModal();
       return act(() => upd(id, { paid_add: amt, featured: true, status: "active", featured_until: new Date(Date.now() + d * 864e5).toISOString(), feature_requested: false }), "Зар нийтлэгдэж, онцлох боллоо (" + d + " хоног)"); }
