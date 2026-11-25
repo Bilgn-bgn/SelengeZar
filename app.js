@@ -488,24 +488,37 @@ function adBack() { if (cameFromApp && history.length > 1) history.back(); else 
 // Зарын зургууд: imgs (дээд тал нь 4), байхгүй бол img
 const adImages = a => (Array.isArray(a.imgs) && a.imgs.length ? a.imgs : (a.img && a.img !== DEFAULT_IMG ? [a.img] : [])).slice(0, 4);
 let galList = [], galIdx = 0;
+const slidesHtml = list => list.map(u => `<div class="gal-slide"><img src="${esc(u)}" alt="" draggable="false" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'"></div>`).join("");
+function trackIdx(t) { return Math.max(0, Math.min(galList.length - 1, Math.round(t.scrollLeft / (t.clientWidth || 1)))); }
+function setCount(el, i) { el.hidden = galList.length < 2; el.textContent = (i + 1) + " / " + galList.length; }
+function trackTo(t, i, smooth) { t.scrollTo({ left: i * t.clientWidth, behavior: smooth ? "smooth" : "auto" }); }
 function showGallery(list) {
   galList = list.length ? list : [DEFAULT_IMG]; galIdx = 0;
-  galGo(0);
+  const t = $("gal-track");
+  t.innerHTML = slidesHtml(galList);
+  t.classList.toggle("one", galList.length < 2);
+  t.scrollLeft = 0; setCount($("gal-count"), 0);
 }
-function galGo(i) {
-  galIdx = (i + galList.length) % galList.length;
-  $("ad-img").src = galList[galIdx];
-  const t = $("ad-thumbs");
-  t.hidden = galList.length < 2;
-  t.innerHTML = galList.map((u, k) => `<button type="button" class="${k === galIdx ? "on" : ""}" data-k="${k}" aria-label="Зураг ${k + 1}"><img src="${esc(u)}" alt=""></button>`).join("");
+$("gal-track").addEventListener("scroll", () => { galIdx = trackIdx($("gal-track")); setCount($("gal-count"), galIdx); }, { passive: true });
+$("gal-track").addEventListener("click", () => openLightbox(galIdx));
+function openLightbox(i) {
+  const t = $("lb-track");
+  t.innerHTML = slidesHtml(galList);
+  t.classList.toggle("one", galList.length < 2);
+  $("lb").hidden = false; document.body.classList.add("lb-open");
+  trackTo(t, i, false); setCount($("lb-count"), i);
 }
-$("ad-thumbs").addEventListener("click", e => { const b = e.target.closest("button[data-k]"); if (b) galGo(Number(b.dataset.k)); });
-(function () {   // зүүн/баруун шудрах
-  const m = $("ad-img"); let x0 = null;
-  m.addEventListener("pointerdown", e => { x0 = e.clientX; });
-  m.addEventListener("pointerup", e => { if (x0 === null || galList.length < 2) return; const d = e.clientX - x0; x0 = null; if (d < -40) galGo(galIdx + 1); else if (d > 40) galGo(galIdx - 1); });
-  m.addEventListener("pointercancel", () => { x0 = null; });
-})();
+function closeLightbox() {
+  if ($("lb").hidden) return;
+  const i = trackIdx($("lb-track"));
+  $("lb").hidden = true; document.body.classList.remove("lb-open");
+  galIdx = i; trackTo($("gal-track"), i, false); setCount($("gal-count"), i);
+}
+$("lb-track").addEventListener("scroll", () => setCount($("lb-count"), trackIdx($("lb-track"))), { passive: true });
+$("lb-x").addEventListener("click", closeLightbox);
+$("lb-track").addEventListener("click", e => { if (e.target.classList.contains("gal-slide")) closeLightbox(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeLightbox(); });
+window.addEventListener("hashchange", closeLightbox);
 
 // Зарын хуудсыг бөглөх (route() дуудна)
 function renderAd(id) {
@@ -517,8 +530,6 @@ function renderAd(id) {
     else { $("ad-title").textContent = "Ачаалж байна..."; ["ad-price", "ad-meta", "ad-desc"].forEach(k => { $(k).innerHTML = ""; }); }
     return;
   }
-  const img = $("ad-img");
-  img.onerror = function () { this.onerror = null; this.src = DEFAULT_IMG; };
   showGallery(adImages(a));
   $("ad-price").textContent = Number(a.price || 0).toLocaleString() + "₮";
   $("ad-title").textContent = a.title || "";

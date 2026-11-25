@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0E6B5C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="style.css?v=20261218">
+<link rel="stylesheet" href="style.css?v=20261219">
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
@@ -107,7 +107,7 @@
     <button class="icon-btn" id="ad-save" onclick="saveFromAd()" aria-label="Хадгалах"><svg class="i" aria-hidden="true"><use href="#i-bookmark"/></svg></button>
   </div>
   <div class="ad-layout">
-    <div class="ad-media"><img id="ad-img" alt=""><div class="ad-thumbs" id="ad-thumbs"></div></div>
+    <div class="ad-media"><div class="gal-track" id="gal-track"></div><div class="gal-count" id="gal-count" hidden></div></div>
     <div class="ad-info">
       <div class="price" id="ad-price"></div>
       <h2 id="ad-title"></h2>
@@ -291,6 +291,7 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261218"></script>
+<div class="lb" id="lb" hidden><button type="button" class="lb-x" id="lb-x" aria-label="Хаах"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button><div class="gal-track lb-track" id="lb-track"></div><div class="gal-count lb-count" id="lb-count" hidden></div></div>
+<script src="app.js?v=20261219"></script>
 </body>
 </html>
