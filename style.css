@@ -605,3 +605,21 @@ html:has(body[data-page]:not([data-page="home"]):not([data-page="chat"])){oversc
 .csel-opt.on::after{content:"";width:16px;height:16px;flex:none;margin-left:10px;
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E6B5C' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E") center/contain no-repeat}
 #tab-settings .csel{margin:3px 0 6px}#tab-settings .csel-btn{height:44px}
+
+/* ---- Олон зураг (дээд тал нь 4) ---- */
+.ph-count{margin-left:4px;font-size:12px;font-weight:700;color:var(--muted)}
+.upload .photo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+.upload .photo-grid:empty{display:none}
+.ph-item,.ph-add{position:relative;aspect-ratio:1;border-radius:var(--r-sm);overflow:hidden}
+.upload .ph-item img{display:block;width:100%;height:100%;margin:0;object-fit:cover}
+.ph-del{position:absolute;top:4px;right:4px;width:24px;height:24px;border:0;border-radius:50%;background:rgba(0,0,0,.62);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0}
+.ph-del .i{width:13px;height:13px}
+.ph-cov{position:absolute;left:4px;bottom:4px;padding:2px 7px;border-radius:999px;background:rgba(0,0,0,.62);color:#fff;font-size:10.5px;font-weight:700}
+.ph-add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1.5px dashed var(--line-strong);background:var(--surface);color:var(--brand);font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.ph-add .i{width:20px;height:20px}
+.ad-media{position:relative}
+.ad-thumbs{position:absolute;left:10px;right:10px;bottom:10px;display:flex;gap:8px;overflow-x:auto}
+.ad-thumbs[hidden]{display:none}
+.ad-thumbs button{flex:none;width:48px;height:48px;padding:0;border:2px solid rgba(255,255,255,.7);border-radius:10px;overflow:hidden;background:#000;cursor:pointer;opacity:.85}
+.ad-thumbs button.on{border-color:#fff;opacity:1;box-shadow:0 0 0 2px var(--brand)}
+.ad-thumbs img{display:block;width:100%;height:100%;object-fit:cover}

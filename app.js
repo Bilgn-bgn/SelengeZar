@@ -148,7 +148,7 @@ const heroApi = (function initHero() {
 // =====================================================
 // 2. ЗАРУУД
 // =====================================================
-let ads = [], cat = "Бүгд", locSel = "", file = null;
+let ads = [], cat = "Бүгд", locSel = "";
 
 const catsEl = $("cats");
 CATS.forEach(c => {
@@ -294,11 +294,20 @@ function updateMyCount() { const el = $("my-ads-count"); if (el) el.textContent 
 function showMyAds() { go("#/mine"); }
 const findAd = id => ads.find(a => String(a.id) === String(id));
 
-// Төлбөр баталгаажаагүй шинэ онцлох зар (status = "pending") нийтэд харагдахгүй, зөвхөн эзэнд харагдана
-const isPublic = a => a.status !== "pending";
+// Зарын хугацаа: энгийн зар 30 хоног, онцгой зар featured_until хүртэл (ихэвчлэн 7 хоног)
+const AD_DAYS = 30;
+function expiryOf(a) {
+  if (a.featured_until) return +new Date(a.featured_until);
+  if (a.featured) return Infinity;   // хугацаагүй онцгой
+  return a.created_at ? +new Date(a.created_at) + AD_DAYS * 864e5 : Infinity;
+}
+const isExpired = a => a.status === "expired" || Date.now() > expiryOf(a);
+// Төлбөр баталгаажаагүй (pending) болон хугацаа дууссан зар нийтэд харагдахгүй, зөвхөн эзэнд харагдана
+const isPublic = a => a.status !== "pending" && !isExpired(a);
 const isFeat = a => a.featured === true && (!a.featured_until || new Date(a.featured_until) > new Date());
 const fmtDate = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 function featAction(a) {
+  if (isExpired(a)) return `<button class="feat-btn" data-renew="${esc(a.id)}">${ico("clock")} Хугацаа дууссан · Дахин нийтлэх</button>`;
   if (isFeat(a)) return `<div class="feat-note">${ico("star")} Онцлох${a.featured_until ? " · " + fmtDate(a.featured_until) + " хүртэл" : ""}</div>`;
   if (a.feature_requested) return `<button class="feat-btn pending" data-pay="${esc(a.id)}">${ico("clock")} ${a.status === "pending" ? "Төлбөр хүлээж байна · Нийтлэгдээгүй" : "Төлбөр хүлээгдэж байна"}</button>`;
   return `<button class="feat-btn" data-pay="${esc(a.id)}">${ico("star")} Онцлох болгох</button>`;
@@ -436,6 +445,15 @@ function renderSaved() {
 }
 
 // ---------- "Миний зарууд" хуудас ----------
+async function renewAd(id) {
+  if (!sb) return;
+  const { error } = await sb.rpc("renew_my_ad", { p_id: String(id) });
+  if (error) { toast("Дахин нийтэлж чадсангүй: " + error.message + " (expire-ads.sql ажилласан эсэхээ шалгана уу)"); return; }
+  const i = ads.findIndex(x => String(x.id) === String(id));
+  if (i >= 0) ads[i] = { ...ads[i], status: "active", created_at: new Date().toISOString(), featured: false, featured_until: null, feature_requested: false };
+  render(); renderMine();
+  toast("Зар дахин нийтлэгдлээ (" + AD_DAYS + " хоног)");
+}
 function renderMine() {
   const list = myAds();
   $("mine-title").textContent = "Миний зарууд (" + list.length + ")";
@@ -447,6 +465,8 @@ function renderMine() {
 }
 
 ["grid", "featured-grid", "mine-grid", "saved-grid"].forEach(gid => $(gid).addEventListener("click", e => {
+  const ren = e.target.closest("[data-renew]");
+  if (ren) { e.stopPropagation(); renewAd(ren.dataset.renew); return; }
   const pay = e.target.closest("[data-pay]");
   if (pay) { e.stopPropagation(); onFeatureClick(pay.dataset.pay); return; }
   const dl = e.target.closest("[data-del]");
@@ -465,6 +485,28 @@ let cameFromApp = false, adsLoaded = false;
 function openAd(id) { cameFromApp = true; go("#/ad/" + encodeURIComponent(id)); }
 function adBack() { if (cameFromApp && history.length > 1) history.back(); else go("#/"); }
 
+// Зарын зургууд: imgs (дээд тал нь 4), байхгүй бол img
+const adImages = a => (Array.isArray(a.imgs) && a.imgs.length ? a.imgs : (a.img && a.img !== DEFAULT_IMG ? [a.img] : [])).slice(0, 4);
+let galList = [], galIdx = 0;
+function showGallery(list) {
+  galList = list.length ? list : [DEFAULT_IMG]; galIdx = 0;
+  galGo(0);
+}
+function galGo(i) {
+  galIdx = (i + galList.length) % galList.length;
+  $("ad-img").src = galList[galIdx];
+  const t = $("ad-thumbs");
+  t.hidden = galList.length < 2;
+  t.innerHTML = galList.map((u, k) => `<button type="button" class="${k === galIdx ? "on" : ""}" data-k="${k}" aria-label="Зураг ${k + 1}"><img src="${esc(u)}" alt=""></button>`).join("");
+}
+$("ad-thumbs").addEventListener("click", e => { const b = e.target.closest("button[data-k]"); if (b) galGo(Number(b.dataset.k)); });
+(function () {   // зүүн/баруун шудрах
+  const m = $("ad-img"); let x0 = null;
+  m.addEventListener("pointerdown", e => { x0 = e.clientX; });
+  m.addEventListener("pointerup", e => { if (x0 === null || galList.length < 2) return; const d = e.clientX - x0; x0 = null; if (d < -40) galGo(galIdx + 1); else if (d > 40) galGo(galIdx - 1); });
+  m.addEventListener("pointercancel", () => { x0 = null; });
+})();
+
 // Зарын хуудсыг бөглөх (route() дуудна)
 function renderAd(id) {
   const a0 = findAd(id);
@@ -476,8 +518,8 @@ function renderAd(id) {
     return;
   }
   const img = $("ad-img");
-  img.src = a.img || DEFAULT_IMG;
   img.onerror = function () { this.onerror = null; this.src = DEFAULT_IMG; };
+  showGallery(adImages(a));
   $("ad-price").textContent = Number(a.price || 0).toLocaleString() + "₮";
   $("ad-title").textContent = a.title || "";
   $("ad-meta").innerHTML =
@@ -641,8 +683,9 @@ function editAd(id) {
   $("f-cat").value = a.cat || "Бусад";
   $("f-loc").value = soumOf(a.loc) || "Сүхбаатар";
   $("f-desc").value = a.description || "";
-  if (a.img) { $("preview").src = a.img; $("preview").style.display = "block"; }
-  $("err").textContent = "Зураг солихгүй бол хуучнаараа үлдэнэ.";
+  photos = adImages(a).map(url => ({ url }));
+  renderPhotos();
+  $("err").textContent = "";
   go("#/add");
 }
 
@@ -660,23 +703,39 @@ function resetAdForm() {
   $("f-loc").value = myDefaultSoum();   // анхдагч: тохиргоонд сонгосон сум
   $("f-cat").value = "";   // ангилалыг заавал сонгуулна
   $("f-file").value = "";
-  $("preview").style.display = "none";
-  $("preview").removeAttribute("src");
+  photos.forEach(p => p.prev && URL.revokeObjectURL(p.prev));
+  photos = [];
+  renderPhotos();
   $("err").textContent = "";
-  file = null;
   setPlan("normal");
   syncAdPhone();
 }
 
+// ---- Зургийн жагсаалт (дээд тал нь 4) ----
+const MAX_PHOTOS = 4;
+let photos = [];   // {url} (хуучин) эсвэл {file, prev} (шинэ)
+function renderPhotos() {
+  $("ph-count").textContent = photos.length + "/" + MAX_PHOTOS;
+  $("photo-grid").innerHTML = photos.map((p, i) =>
+    `<div class="ph-item"><img src="${esc(p.url || p.prev)}" alt="">${i === 0 ? '<span class="ph-cov">Нүүр</span>' : ""}<button type="button" class="ph-del" data-i="${i}" aria-label="Зураг устгах">${ico("x")}</button></div>`).join("") +
+    (photos.length < MAX_PHOTOS ? `<button type="button" class="ph-add" data-add="1" aria-label="Зураг нэмэх">${ico("plus")}<span>Нэмэх</span></button>` : "");
+}
+$("photo-grid").addEventListener("click", e => {
+  const d = e.target.closest(".ph-del");
+  if (d) { const [r] = photos.splice(Number(d.dataset.i), 1); if (r && r.prev) URL.revokeObjectURL(r.prev); renderPhotos(); $("err").textContent = ""; return; }
+  if (e.target.closest("[data-add]")) $("f-file").click();
+});
 $("f-file").addEventListener("change", e => {
-  file = e.target.files[0] || null;
-  const p = $("preview");
-  if (!file) { p.style.display = "none"; return; }
-  p.src = URL.createObjectURL(file);
-  p.style.display = "block";
-  $("err").textContent = file.size > 500 * 1024
-    ? "Зураг " + (file.size / 1024 / 1024).toFixed(1) + "MB байна. Оруулахад автоматаар жижигрүүлнэ."
-    : "";
+  const files = [...e.target.files];
+  e.target.value = "";   // ижил зургийг дахин сонгож болно
+  let skipped = 0;
+  files.forEach(f => {
+    if (!/^image\//.test(f.type)) return;
+    if (photos.length >= MAX_PHOTOS) { skipped++; return; }
+    photos.push({ file: f, prev: URL.createObjectURL(f) });
+  });
+  renderPhotos();
+  $("err").textContent = skipped ? "Дээд тал нь " + MAX_PHOTOS + " зураг оруулна" : "";
 });
 
 // Том зургийг автоматаар жижигрүүлэх
@@ -724,19 +783,22 @@ $("publishBtn").onclick = async () => {
   btn.disabled = true;
   err.textContent = editingId ? "Хадгалж байна..." : "Зар оруулж байна...";
   try {
-    let imgUrl = editingId ? null : DEFAULT_IMG;
-    if (file) {
-      err.textContent = "Зургийг жижигрүүлж байна... (" + (file.size / 1024 / 1024).toFixed(1) + "MB)";
-      const small = await compressImage(file);
-      const fn = Date.now() + "-" + small.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const urls = [];
+    for (let i = 0; i < photos.length; i++) {
+      const p = photos[i];
+      if (p.url) { urls.push(p.url); continue; }
+      err.textContent = "Зураг " + (i + 1) + "/" + photos.length + " хуулж байна...";
+      const small = await compressImage(p.file);
+      const fn = Date.now() + "-" + i + "-" + (small.name || p.file.name || "img.jpg").replace(/[^a-zA-Z0-9._-]/g, "_");
       const up = await fetch(SUPABASE_URL + "/storage/v1/object/" + BUCKET + "/" + fn, {
         method: "POST",
-        headers: { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": small.type },
+        headers: { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": small.type || "image/jpeg" },
         body: small
       });
       if (!up.ok) throw new Error("Зураг хуулахад алдаа: " + await up.text());
-      imgUrl = SUPABASE_URL + "/storage/v1/object/public/" + BUCKET + "/" + fn;
+      urls.push(SUPABASE_URL + "/storage/v1/object/public/" + BUCKET + "/" + fn);
     }
+    const imgUrl = urls[0] || DEFAULT_IMG;
 
     if (editingId) {   // ---- Одоо байгаа зарыг засах (нэвтэрсэн хэрэглэгчийн token-оор, зөвхөн өөрийн зар) ----
       const patch = {
@@ -745,18 +807,24 @@ $("publishBtn").onclick = async () => {
         loc: locValue($("f-loc").value),
         description: $("f-desc").value.trim()
       };
-      if (imgUrl) patch.img = imgUrl;
+      patch.img = imgUrl; patch.imgs = urls;
       const cur = findAd(editingId);
       const askPay = plan === "featured" && cur && !isFeat(cur);
       if (cur && !isFeat(cur) && (plan === "featured") !== !!cur.feature_requested) patch.feature_requested = plan === "featured";
       const { data: sess } = await sb.auth.getSession();
       const token = sess && sess.session && sess.session.access_token;
       if (!token) throw new Error("Дахин нэвтэрнэ үү");
-      const pr = await fetch(API + "?id=eq." + encodeURIComponent(editingId), {
+      const doPatch = () => fetch(API + "?id=eq." + encodeURIComponent(editingId), {
         method: "PATCH",
         headers: { apikey: KEY, Authorization: "Bearer " + token, "Content-Type": "application/json", Prefer: "return=representation" },
         body: JSON.stringify(patch)
       });
+      let pr = await doPatch();
+      if (!pr.ok) {
+        const t = await pr.text();
+        if (t.includes("imgs")) { delete patch.imgs; pr = await doPatch(); }   // imgs багана хараахан нэмээгүй бол
+        else throw new Error("Засахад алдаа: " + t);
+      }
       if (!pr.ok) throw new Error("Засахад алдаа: " + await pr.text());
       const rows = await pr.json();
       if (!rows.length) throw new Error("Засах эрх олгогдоогүй байна (ads-features.sql-ийг Supabase дээр ажиллуулсан эсэхээ шалгана уу)");
@@ -778,6 +846,7 @@ $("publishBtn").onclick = async () => {
       phone: regPhone,
       loc: locValue($("f-loc").value),
       img: imgUrl,
+      imgs: urls,
       description: $("f-desc").value.trim()
     };
     const wantFeat = plan === "featured";
@@ -793,7 +862,7 @@ $("publishBtn").onclick = async () => {
     let r = await post(body);
     for (let k = 0; k < 2 && !r.ok; k++) {   // багана хараахан нэмээгүй бол түүнгүйгээр оруулна
       const t = await r.text();
-      const col = ["feature_requested", "status", "user_id"].find(c => c in body && t.includes(c));
+      const col = ["feature_requested", "status", "imgs", "user_id"].find(c => c in body && t.includes(c));
       if (!col) throw new Error("Алдаа: " + t);
       delete body[col];
       if (col === "feature_requested") delete body.status;   // хүсэлтгүй, нуугдсан зар үлдэхээс сэргийлнэ

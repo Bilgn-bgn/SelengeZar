@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0E6B5C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="style.css?v=20261214">
+<link rel="stylesheet" href="style.css?v=20261217">
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
@@ -107,7 +107,7 @@
     <button class="icon-btn" id="ad-save" onclick="saveFromAd()" aria-label="Хадгалах"><svg class="i" aria-hidden="true"><use href="#i-bookmark"/></svg></button>
   </div>
   <div class="ad-layout">
-    <div class="ad-media"><img id="ad-img" alt=""></div>
+    <div class="ad-media"><img id="ad-img" alt=""><div class="ad-thumbs" id="ad-thumbs"></div></div>
     <div class="ad-info">
       <div class="price" id="ad-price"></div>
       <h2 id="ad-title"></h2>
@@ -132,7 +132,7 @@
   <div class="box add-box page-card">
     <div class="plan-pick" id="plan-pick" role="radiogroup" aria-label="Зарын төрөл">
       <button type="button" class="plan on" data-plan="normal" role="radio" aria-checked="true">
-        <b>Энгийн</b><span>Үнэгүй</span>
+        <b>Энгийн</b><span>Үнэгүй · 30 хоног</span>
       </button>
       <button type="button" class="plan" data-plan="featured" role="radio" aria-checked="false">
         <b><svg class="i fill" aria-hidden="true"><use href="#i-star"/></svg> Онцлох</b><span id="plan-price"></span>
@@ -148,10 +148,10 @@
     <select id="f-loc" aria-label="Байршил"></select>
     <input id="f-phone" inputmode="tel" placeholder="Бүртгэлтэй утас" readonly style="opacity:.75;cursor:default" title="Бүртгэлтэй дугаар. Өөрчлөх боломжгүй">
     <div class="upload">
-      <div class="upload-title"><svg class="i" aria-hidden="true"><use href="#i-camera"/></svg> Зураг нэмэх</div>
-      <div class="upload-hint">Утаснаасаа зураг сонгоно уу</div>
-      <input type="file" id="f-file" accept="image/*">
-      <img id="preview" alt="">
+      <div class="upload-title"><svg class="i" aria-hidden="true"><use href="#i-camera"/></svg> Зураг нэмэх <span class="ph-count" id="ph-count">0/4</span></div>
+      <div class="upload-hint">Дээд тал нь 4 зураг. Эхний зураг нүүр зураг болно.</div>
+      <div class="photo-grid" id="photo-grid"></div>
+      <input type="file" id="f-file" accept="image/*" multiple hidden>
     </div>
     <textarea id="f-desc" placeholder="Тайлбар"></textarea>
     <div class="form-msg" id="err"></div>
@@ -291,6 +291,6 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20261214"></script>
+<script src="app.js?v=20261217"></script>
 </body>
 </html>
