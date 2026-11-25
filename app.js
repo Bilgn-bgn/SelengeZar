@@ -1546,3 +1546,15 @@ MODAL_IDS.forEach(id => lockObserver.observe($(id), { attributes: true, attribut
 
 route();
 load();
+
+// Зочдын тоо: төхөөрөмж бүр өдөрт нэг л удаа бүртгэгдэнэ (нэргүй санамсаргүй ID, хувийн мэдээлэлгүй)
+(function trackVisit() {
+  try {
+    const d = new Date().toLocaleDateString("sv");
+    if (localStorage.getItem("szVisitDay") === d) return;
+    let v = localStorage.getItem("szVid");
+    if (!v) { v = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now(); localStorage.setItem("szVid", v); }
+    fetch(SUPABASE_URL + "/rest/v1/rpc/track_visit", { method: "POST", headers: { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "application/json" }, body: JSON.stringify({ p_vid: v }) })
+      .then(r => { if (r.ok) localStorage.setItem("szVisitDay", d); }).catch(() => {});
+  } catch (_) {}
+})();
