@@ -6,6 +6,26 @@ const KEY = "sb_publishable_ZIYp3CB6jyjXzaBxdQv1Dw_rpfE1s21";
 const API = SUPABASE_URL + "/rest/v1/ads";
 const BUCKET = "ads-images";
 const DEFAULT_IMG = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600";
+// Зураггүй зарт ангилалд тохирсон зураг (SVG, интернэтгүйгээр ч харагдана)
+const CAT_ART = {
+  "Утас":    ["#0f766e", "#34d399", '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>'],
+  "Машин":   ["#1d4ed8", "#60a5fa", '<path d="M5 16v-5l2-5h10l2 5v5M3 16h18M3 16v2.5M21 16v2.5M5 11h14"/><circle cx="7.5" cy="16" r="1.6"/><circle cx="16.5" cy="16" r="1.6"/>'],
+  "Байр":    ["#b45309", "#fbbf24", '<path d="M3 11.5 12 4l9 7.5M5.5 10v10h13V10M10 20v-6h4v6"/>'],
+  "Тавилга": ["#7c3aed", "#c4b5fd", '<path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3M3 13a2 2 0 0 1 4 0v2h10v-2a2 2 0 0 1 4 0v5H3zM6 18v2M18 18v2"/>'],
+  "Хувцас":  ["#be185d", "#f9a8d4", '<path d="M8 4 3 7l2 4 3-1v10h8V10l3 1 2-4-5-3a4 4 0 0 1-8 0z"/>'],
+  "Бусад":   ["#475569", "#94a3b8", '<path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5zM3.5 7.5 12 12l8.5-4.5M12 12v9"/>']
+};
+const _catArt = {};
+function catImg(cat) {
+  const k = CAT_ART[cat] ? cat : "Бусад";
+  return _catArt[k] || (_catArt[k] = (() => {
+    const [c1, c2, d] = CAT_ART[k];
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="800" height="600" fill="url(#g)"/><g transform="translate(400 250) scale(11) translate(-12 -12)" fill="none" stroke="#fff" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" opacity=".95">${d}</g><text x="400" y="500" text-anchor="middle" font-family="sans-serif" font-size="34" font-weight="700" fill="#fff" opacity=".9">${k}</text></svg>`;
+    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  })());
+}
+const hasPhoto = a => (Array.isArray(a.imgs) && a.imgs.length > 0) || (!!a.img && a.img !== DEFAULT_IMG);
+const cardImg = a => hasPhoto(a) ? (a.img || a.imgs[0]) : catImg(a.cat);
 // Зураг оруулаагүй хэрэглэгчийн анхдагч зураг
 const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2096%2096%27%3E%3Crect%20width=%2796%27%20height=%2796%27%20fill=%27%23E2F2EE%27/%3E%3Ccircle%20cx=%2748%27%20cy=%2737%27%20r=%2716%27%20fill=%27%230E6B5C%27/%3E%3Cpath%20d=%27M15%2096c0-19%2015-31%2033-31s33%2012%2033%2031z%27%20fill=%27%230E6B5C%27/%3E%3C/svg%3E";
 const DEFAULT_LOC = "Сүхбаатар, Сэлэнгэ";
@@ -317,7 +337,7 @@ function cardHTML(a, opts) {
   return `
     <div class="card${feat ? " featured" : ""}" data-id="${esc(a.id)}">
       <div class="card-img">
-        <img src="${esc(a.img || DEFAULT_IMG)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
+        <img src="${esc(cardImg(a))}" alt="" loading="lazy" onerror="this.onerror=null;this.src=catImg('${esc(a.cat || "")}')">
         ${feat ? `<span class="feat-badge">${ico("star")} Онцлох</span>` : `<span class="cat-tag">${esc(a.cat || "Бусад")}</span>`}
         <button class="save-btn${isSaved(a.id) ? " on" : ""}" data-save="${esc(a.id)}" aria-label="Хадгалах">${ico("bookmark")}</button>
       </div>
@@ -537,7 +557,7 @@ function renderAd(id) {
     else { $("ad-title").textContent = "Ачаалж байна..."; ["ad-price", "ad-meta", "ad-desc"].forEach(k => { $(k).innerHTML = ""; }); }
     return;
   }
-  showGallery(adImages(a));
+  showGallery(adImages(a).length ? adImages(a) : [catImg(a.cat)]);
   $("ad-price").textContent = Number(a.price || 0).toLocaleString() + "₮";
   $("ad-title").textContent = a.title || "";
   $("ad-meta").innerHTML =
