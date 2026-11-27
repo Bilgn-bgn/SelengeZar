@@ -45,7 +45,8 @@ function soumOf(loc) {
   return hit ? hit[0] : "";
 }
 // Онцлох зарын төлбөр (өөрчлөхдөө энд засна)
-const PAY = { bank: "Хаан банк", account: "5688106076", name: "Билгүүн", price: 5000, days: 7 };
+// ЗААВАЛ supabase/functions/wire-pay/index.ts доторх PRICE, DAYS-тай ижил байх ёстой (дүнг сервер өөрөө тогтооно)
+const PAY = { price: 5000, days: 7 };
 const CATS = ["Бүгд", "Утас", "Машин", "Байр", "Тавилга", "Хувцас", "Бусад"];
 
 const $ = id => document.getElementById(id);
@@ -649,25 +650,63 @@ function setPlan(p) {
 $("plan-price").textContent = money(PAY.price) + " / " + PAY.days + " хоног";
 $("plan-pick").addEventListener("click", e => { const b = e.target.closest(".plan"); if (b) setPlan(b.dataset.plan); });
 
-let payCode = "";
+let payAdId = null;
 function openPay(a) {
-  payCode = adCode(a.id);
+  payAdId = a.id;
   $("pay-ad").textContent = a.title || "";
-  $("pay-amount").textContent = money(PAY.price) + " (" + PAY.days + " хоног)";
-  $("pay-bank").textContent = PAY.bank;
-  $("pay-acc").textContent = PAY.account;
-  $("pay-name").textContent = PAY.name;
-  $("pay-code").textContent = payCode;
+  $("pay-amount").textContent = money(PAY.price);
+  $("pay-days").textContent = PAY.days + " хоног";
+  $("pay-err").textContent = "";
   closeAllModals();
   $("payModal").classList.add("open");
 }
 function closePay() { $("payModal").classList.remove("open"); }
-$("payModal").addEventListener("click", e => {
-  const c = e.target.closest("[data-copy]");
-  if (!c) { if (e.target === $("payModal")) closePay(); return; }
-  const txt = c.dataset.copy === "acc" ? PAY.account : payCode;
-  try { navigator.clipboard.writeText(txt).then(() => toast("Хууллаа: " + txt), () => toast(txt)); }
-  catch (_) { toast(txt); }
+$("payModal").addEventListener("click", e => { if (e.target === $("payModal")) closePay(); });
+
+// Wire (QPay) төлбөрийн Edge Function дуудах
+async function payCall(action, adId) {
+  const { data: sess } = await sb.auth.getSession();
+  const token = sess && sess.session && sess.session.access_token;
+  if (!token) throw new Error("Дахин нэвтэрнэ үү");
+  const r = await fetch(SUPABASE_URL + "/functions/v1/wire-pay", {
+    method: "POST",
+    headers: { apikey: KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({ action, ad_id: String(adId) })
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
+  return j;
+}
+const payErrText = m =>
+  m === "login_required" ? "Дахин нэвтэрнэ үү" :
+  m === "not_your_ad" ? "Энэ зар таны бүртгэл дээр биш байна" :
+  m === "ad_not_available" ? "Энэ зарыг одоо онцлох боломжгүй" :
+  "Төлбөрийн үйлчилгээнд түр алдаа гарлаа. Дахин оролдоно уу";
+$("pay-go").addEventListener("click", async () => {
+  const b = $("pay-go"); if (b.disabled || payAdId == null) return;
+  b.disabled = true; $("pay-err").textContent = "";
+  const old = b.textContent; b.textContent = "Түр хүлээнэ үү...";
+  try { const { url } = await payCall("checkout", payAdId); location.href = url; }
+  catch (e) { $("pay-err").textContent = payErrText(e.message); b.disabled = false; b.textContent = old; }
+});
+// Төлбөр орсон эсэхийг шалгаад зарыг шинэчилнэ
+async function checkPayment(adId, silent) {
+  try {
+    const { status } = await payCall("check", adId);
+    if (status === "succeeded") {
+      await load(); closePay();
+      toast("Төлбөр баталгаажлаа. Зар онцлох боллоо");
+      if (location.hash.startsWith("#/mine")) renderMine();
+      return true;
+    }
+    if (!silent) $("pay-err").textContent = "Төлбөр хараахан ороогүй байна. Төлсөн бол 1 минутын дараа дахин шалгана уу";
+  } catch (e) { if (!silent) $("pay-err").textContent = payErrText(e.message); }
+  return false;
+}
+$("pay-check").addEventListener("click", async () => {
+  const b = $("pay-check"); if (b.disabled || payAdId == null) return;
+  b.disabled = true; $("pay-err").textContent = "";
+  await checkPayment(payAdId, false); b.disabled = false;
 });
 
 async function patchAd(id, patch) {
@@ -1575,7 +1614,18 @@ const lockObserver = new MutationObserver(syncScrollLock);
 MODAL_IDS.forEach(id => lockObserver.observe($(id), { attributes: true, attributeFilter: ["class"] }));
 
 route();
-load();
+load().then(async () => {
+  // Төлбөрийн хуудаснаас буцаж ирсэн (?paid=<зарын id>)
+  const pid = new URLSearchParams(location.search).get("paid");
+  if (!pid) return;
+  history.replaceState(null, "", location.pathname + (location.hash || "#/mine"));
+  toast("Төлбөр шалгаж байна...");
+  for (let i = 0; i < 6; i++) {            // webhook хоцорсон бол 6 удаа (≈30 сек) шалгана
+    if (await checkPayment(pid, true)) return;
+    await new Promise(r => setTimeout(r, 5000));
+  }
+  toast("Төлбөр хараахан ороогүй байна. «Онцлох» дээр дарж «Төлсөн бол шалгах»-ыг дарна уу");
+});
 
 // Зочдын тоо: төхөөрөмж бүр өдөрт нэг л удаа бүртгэгдэнэ (нэргүй санамсаргүй ID, хувийн мэдээлэлгүй)
 (function trackVisit() {

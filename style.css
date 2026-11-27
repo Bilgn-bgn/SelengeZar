@@ -641,3 +641,6 @@ body.lb-open{overflow:hidden}
 .gal-nav.prev{left:10px}.gal-nav.next{right:10px}.gal-nav.next .i{transform:scaleX(-1)}
 .gal-nav:hover{background:rgba(0,0,0,.75)}
 @media (hover:hover) and (pointer:fine){.gal-nav{display:grid}.gal-nav[hidden]{display:none}}
+.pay-err{margin:8px 0 0;min-height:0;font-size:13px;color:#dc2626;font-weight:600}
+.pay-err:empty{display:none}
+.pay-check{margin-top:8px}
