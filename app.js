@@ -694,13 +694,14 @@ function loadQrLib() {
     sc.onload = () => ok(); sc.onerror = () => no(new Error("qr_lib")); document.head.appendChild(sc);
   });
 }
+const QR_LOGO = '<span class="pay-qr-logo"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#0E6B5C"/><g fill="none" stroke="#fff" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 25c6-6.5 13-6.5 20 0s14 6.5 20 0"/><path d="M12 40c6-6.5 13-6.5 20 0s14 6.5 20 0"/></g></svg></span>';
 async function qrHtml(r) {
-  if (r.qr_image_url && /^https:\/\//i.test(r.qr_image_url)) return `<img class="pay-qr-img" src="${esc(r.qr_image_url)}" alt="QR код">`;
+  if (r.qr_image_url && /^https:\/\//i.test(r.qr_image_url)) return `<div class="pay-qr-img"><img src="${esc(r.qr_image_url)}" alt="QR код">${QR_LOGO}</div>`;
   if (!r.qr_text) return "";
   try {
     await loadQrLib();
-    const q = qrcode(0, "M"); q.addData(String(r.qr_text)); q.make();
-    return `<div class="pay-qr-img">${q.createSvgTag({ cellSize: 4, margin: 0, scalable: true })}</div>`;
+    const q = qrcode(0, "H"); q.addData(String(r.qr_text)); q.make();
+    return `<div class="pay-qr-img">${q.createSvgTag({ cellSize: 4, margin: 0, scalable: true })}${QR_LOGO}</div>`;
   } catch (e) { return ""; }
 }
 // QR код + (утсан дээр) банкны аппуудын жагсаалт. Банк дээр дарахад апп нээгдэнэ
@@ -709,12 +710,14 @@ async function showPay(r, mobile) {
   const qr = await qrHtml(r);
   const list = mobile ? (r.deeplinks || []) : [];
   if (!qr && !list.length) return false;
+  const chk = $("pay-check");
   let h = "";
-  if (qr) h += `<div class="pay-qr"><div class="pay-banks-t">${mobile ? "Эсвэл QR кодыг уншуулна уу" : "QR кодыг банкныхаа аппаар уншуулна уу"}</div>${qr}</div>`;
-  if (list.length) h = '<div class="pay-banks-t">Банкаа сонгоно уу</div><div class="pay-banks-g">' + list.map(d =>
-    `<a class="pay-bank" href="${esc(d.link)}" rel="noopener"><span class="pb-logo">${d.logo ? `<img src="${esc(d.logo)}" alt="" onerror="this.replaceWith(document.createTextNode('${bankInit(d.name)}'))">` : esc(bankInit(d.name))}</span><span class="pb-name">${esc(d.name)}</span></a>`).join("") + "</div>" + h;
+  if (qr) h += `<div class="pay-qr"><div class="pay-banks-t">${mobile ? "QR кодыг банкны аппаараа уншуулна уу" : "QR кодыг банкныхаа аппаар уншуулна уу"}</div>${qr}</div>`;
+  h += '<div id="pay-check-slot"></div>';
+  if (list.length) h += '<div class="pay-banks-t">Банкаа сонгоно уу</div><div class="pay-banks-g">' + list.map(d =>
+    `<a class="pay-bank" href="${esc(d.link)}" rel="noopener"><span class="pb-logo">${d.logo ? `<img src="${esc(d.logo)}" alt="" onerror="this.replaceWith(document.createTextNode('${bankInit(d.name)}'))">` : esc(bankInit(d.name))}</span><span class="pb-name">${esc(d.name)}</span></a>`).join("") + "</div>";
   h += '<p class="pay-banks-h">Төлсний дараа энд буцаж ирнэ. Зар автоматаар онцгой болно.</p>';
-  box.innerHTML = h; box.hidden = false; $("pay-go").hidden = true;
+  box.innerHTML = h; $("pay-check-slot").appendChild(chk); box.hidden = false; $("pay-go").hidden = true;
   return true;
 }
 $("pay-go").addEventListener("click", async () => {
