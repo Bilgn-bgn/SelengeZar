@@ -657,6 +657,7 @@ function openPay(a) {
   $("pay-amount").textContent = money(PAY.price);
   $("pay-days").textContent = PAY.days + " хоног";
   $("pay-err").textContent = "";
+  $("pay-banks").hidden = true; $("pay-go").hidden = false; $("pay-go").disabled = false; $("pay-go").textContent = "QPay-ээр төлөх";
   closeAllModals();
   $("payModal").classList.add("open");
 }
@@ -682,12 +683,35 @@ const payErrText = m =>
   m === "not_your_ad" ? "Энэ зар таны бүртгэл дээр биш байна" :
   m === "ad_not_available" ? "Энэ зарыг одоо онцлох боломжгүй" :
   "Төлбөрийн үйлчилгээнд түр алдаа гарлаа. Дахин оролдоно уу";
+const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (matchMedia("(pointer:coarse)").matches && innerWidth < 900);
+const bankInit = n => (n || "?").trim().charAt(0).toUpperCase();
+// Утсан дээр банкны аппуудын жагсаалтыг шууд харуулна, дарахад банкны апп нээгдэнэ
+function showBanks(list) {
+  const box = $("pay-banks");
+  box.innerHTML = '<div class="pay-banks-t">Банкаа сонгоно уу</div><div class="pay-banks-g">' + list.map(d =>
+    `<a class="pay-bank" href="${esc(d.link)}" rel="noopener"><span class="pb-logo">${d.logo ? `<img src="${esc(d.logo)}" alt="" onerror="this.replaceWith(document.createTextNode('${bankInit(d.name)}'))">` : esc(bankInit(d.name))}</span><span class="pb-name">${esc(d.name)}</span></a>`).join("") +
+    '</div><p class="pay-banks-h">Банкны аппаар төлсний дараа энд буцаж ирнэ. Зар автоматаар онцгой болно.</p>';
+  box.hidden = false; $("pay-go").hidden = true;
+}
 $("pay-go").addEventListener("click", async () => {
   const b = $("pay-go"); if (b.disabled || payAdId == null) return;
   b.disabled = true; $("pay-err").textContent = "";
   const old = b.textContent; b.textContent = "Түр хүлээнэ үү...";
-  try { const { url } = await payCall("checkout", payAdId); location.href = url; }
-  catch (e) { $("pay-err").textContent = payErrText(e.message); b.disabled = false; b.textContent = old; }
+  try {
+    if (isMobile()) {
+      try {
+        const r = await payCall("start", payAdId);
+        if (r.deeplinks && r.deeplinks.length) { showBanks(r.deeplinks); b.disabled = false; b.textContent = old; return; }
+      } catch (e) { if (["login_required", "not_your_ad", "ad_not_available"].includes(e.message)) throw e; }
+    }
+    const { url } = await payCall("checkout", payAdId);   // компьютер эсвэл банкны жагсаалт гарахгүй бол
+    location.href = url;
+  } catch (e) { $("pay-err").textContent = payErrText(e.message); b.disabled = false; b.textContent = old; }
+});
+// Банкны аппаас сайт руу буцаж ирэхэд төлбөрийг автоматаар шалгана
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState !== "visible" || payAdId == null || !$("payModal").classList.contains("open") || $("pay-banks").hidden) return;
+  for (let i = 0; i < 4; i++) { if (await checkPayment(payAdId, true)) return; await new Promise(r => setTimeout(r, 3000)); }
 });
 // Төлбөр орсон эсэхийг шалгаад зарыг шинэчилнэ
 async function checkPayment(adId, silent) {
