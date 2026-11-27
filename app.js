@@ -685,26 +685,48 @@ const payErrText = m =>
   "Төлбөрийн үйлчилгээнд түр алдаа гарлаа. Дахин оролдоно уу";
 const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (matchMedia("(pointer:coarse)").matches && innerWidth < 900);
 const bankInit = n => (n || "?").trim().charAt(0).toUpperCase();
-// Утсан дээр банкны аппуудын жагсаалтыг шууд харуулна, дарахад банкны апп нээгдэнэ
-function showBanks(list) {
+// QR кодыг зураг эсвэл текстээс зурна (текстээс бол QR сан ачаална)
+function loadQrLib() {
+  return new Promise((ok, no) => {
+    if (window.qrcode) return ok();
+    const sc = document.createElement("script");
+    sc.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js";
+    sc.onload = () => ok(); sc.onerror = () => no(new Error("qr_lib")); document.head.appendChild(sc);
+  });
+}
+async function qrHtml(r) {
+  if (r.qr_image_url && /^https:\/\//i.test(r.qr_image_url)) return `<img class="pay-qr-img" src="${esc(r.qr_image_url)}" alt="QR код">`;
+  if (!r.qr_text) return "";
+  try {
+    await loadQrLib();
+    const q = qrcode(0, "M"); q.addData(String(r.qr_text)); q.make();
+    return `<div class="pay-qr-img">${q.createSvgTag({ cellSize: 4, margin: 0, scalable: true })}</div>`;
+  } catch (e) { return ""; }
+}
+// QR код + (утсан дээр) банкны аппуудын жагсаалт. Банк дээр дарахад апп нээгдэнэ
+async function showPay(r, mobile) {
   const box = $("pay-banks");
-  box.innerHTML = '<div class="pay-banks-t">Банкаа сонгоно уу</div><div class="pay-banks-g">' + list.map(d =>
-    `<a class="pay-bank" href="${esc(d.link)}" rel="noopener"><span class="pb-logo">${d.logo ? `<img src="${esc(d.logo)}" alt="" onerror="this.replaceWith(document.createTextNode('${bankInit(d.name)}'))">` : esc(bankInit(d.name))}</span><span class="pb-name">${esc(d.name)}</span></a>`).join("") +
-    '</div><p class="pay-banks-h">Банкны аппаар төлсний дараа энд буцаж ирнэ. Зар автоматаар онцгой болно.</p>';
-  box.hidden = false; $("pay-go").hidden = true;
+  const qr = await qrHtml(r);
+  const list = mobile ? (r.deeplinks || []) : [];
+  if (!qr && !list.length) return false;
+  let h = "";
+  if (qr) h += `<div class="pay-qr"><div class="pay-banks-t">${mobile ? "Эсвэл QR кодыг уншуулна уу" : "QR кодыг банкныхаа аппаар уншуулна уу"}</div>${qr}</div>`;
+  if (list.length) h = '<div class="pay-banks-t">Банкаа сонгоно уу</div><div class="pay-banks-g">' + list.map(d =>
+    `<a class="pay-bank" href="${esc(d.link)}" rel="noopener"><span class="pb-logo">${d.logo ? `<img src="${esc(d.logo)}" alt="" onerror="this.replaceWith(document.createTextNode('${bankInit(d.name)}'))">` : esc(bankInit(d.name))}</span><span class="pb-name">${esc(d.name)}</span></a>`).join("") + "</div>" + h;
+  h += '<p class="pay-banks-h">Төлсний дараа энд буцаж ирнэ. Зар автоматаар онцгой болно.</p>';
+  box.innerHTML = h; box.hidden = false; $("pay-go").hidden = true;
+  return true;
 }
 $("pay-go").addEventListener("click", async () => {
   const b = $("pay-go"); if (b.disabled || payAdId == null) return;
   b.disabled = true; $("pay-err").textContent = "";
   const old = b.textContent; b.textContent = "Түр хүлээнэ үү...";
   try {
-    if (isMobile()) {
-      try {
-        const r = await payCall("start", payAdId);
-        if (r.deeplinks && r.deeplinks.length) { showBanks(r.deeplinks); b.disabled = false; b.textContent = old; return; }
-      } catch (e) { if (["login_required", "not_your_ad", "ad_not_available"].includes(e.message)) throw e; }
-    }
-    const { url } = await payCall("checkout", payAdId);   // компьютер эсвэл банкны жагсаалт гарахгүй бол
+    try {
+      const r = await payCall("start", payAdId);
+      if (await showPay(r, isMobile())) { b.disabled = false; b.textContent = old; return; }
+    } catch (e) { if (["login_required", "not_your_ad", "ad_not_available"].includes(e.message)) throw e; }
+    const { url } = await payCall("checkout", payAdId);   // QR гарахгүй бол Wire-ийн хуудас руу
     location.href = url;
   } catch (e) { $("pay-err").textContent = payErrText(e.message); b.disabled = false; b.textContent = old; }
 });
